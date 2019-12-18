@@ -2303,7 +2303,7 @@ idPlayer* idGameLocal::GetCoopPlayer() const {
 	if (mpGame.IsGametypeCoopBased()) {
 		if (GetLocalClientNum() < 0 || !entities[GetLocalClientNum()] || !entities[GetLocalClientNum()]->IsType(idPlayer::Type)) {
 
-			if (common->IsServer) { //for coop while using a dedicated server
+			if (common->IsServer()) { //for coop while using a dedicated server
 				for (int i = 0; i < gameLocal.numClients; i++) {
 					if (entities[i] && entities[i]->IsType(idPlayer::Type)) {
 						return static_cast<idPlayer*>(entities[i]);
@@ -2456,7 +2456,7 @@ idGameLocal::InCoopPlayersPVS
 ================
 */
 bool idGameLocal::InCoopPlayersPVS(idEntity* ent) const { //Experimental, maybe can be a bit CPU performance killer with many players
-	if (common->IsClient) {
+	if (common->IsClient()) {
 		common->Warning("[COOP] Client tried to use idGameLocal::InCoopPlayersPVS...\n");
 		return false; //clients should never reach this point
 	}
@@ -2855,7 +2855,7 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 							ent->GetPhysics()->UpdateTime( time );
 							continue;
 						}
-						if (common->IsMultiplayer && mpGame.IsGametypeCoopBased() && GetLocalClientNum() < 0 && !gameLocal.firstClientToSpawn && g_freezeUntilClientJoins.GetBool()) {
+						if (common->IsMultiplayer() && mpGame.IsGametypeCoopBased() && GetLocalClientNum() < 0 && !gameLocal.firstClientToSpawn && g_freezeUntilClientJoins.GetBool()) {
 							num++;
 							continue; //don't let any entity to think while there're no players in-game yet for dedicated server in coop
 						}
@@ -2872,7 +2872,7 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 						{
 							continue;
 						}
-						if (common->IsMultiplayer && mpGame.IsGametypeCoopBased() && GetLocalClientNum() < 0 && !gameLocal.firstClientToSpawn && g_freezeUntilClientJoins.GetBool()) {
+						if (common->IsMultiplayer() && mpGame.IsGametypeCoopBased() && GetLocalClientNum() < 0 && !gameLocal.firstClientToSpawn && g_freezeUntilClientJoins.GetBool()) {
 							num++;
 							continue;//don't let any entity to think while there're no players in-game yet for dedicated server in coop
 						}
