@@ -51,6 +51,8 @@ enum gameType_t
 	GAME_TDM,
 	GAME_LASTMAN,
 	GAME_CTF,
+	GAME_COOP, //added by Stradex
+	GAME_SURVIVAL, //added by Stradex
 	GAME_COUNT,
 };
 

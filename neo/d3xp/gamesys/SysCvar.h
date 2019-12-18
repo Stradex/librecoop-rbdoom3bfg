@@ -271,4 +271,19 @@ extern idCVar g_CTFArrows;
 
 extern idCVar	net_clientSelfSmoothing;
 
+//fluff start (Thanks fluff :3)
+extern idCVar	si_shootDoors;
+extern idCVar	si_itemRespawn; // added for coop
+//fluff end
+
+//stradex start
+extern idCVar	g_unblockPlayers; //if players are solid between them or not
+extern idCVar	si_onePickupPerPlayer;
+extern idCVar	net_clientCoopDebug; //added for debug stuff only
+extern idCVar	net_serverSnapshotLimit; //how many entities are we able to send per snapshot as server (avoid snapshot overflow, something common in big coop maps)
+extern idCVar	g_freezeUntilClientJoins; //If entities can start thinking and scripts executing before or after a first clients join (used only in dedicated servers)
+extern idCVar	si_lives; //survival lives
+extern idCVar	net_clientSideMovement; //added by Stradex (experimental, works only with high ping)
+//stradex end
+
 #endif /* !__SYS_CVAR_H__ */

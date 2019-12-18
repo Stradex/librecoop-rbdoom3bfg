@@ -87,6 +87,7 @@ void gameError( const char* fmt, ... );
 #include "gamesys/SysCvar.h"
 #include "gamesys/SysCmds.h"
 #include "gamesys/SaveGame.h"
+#include "Entity.h" //added for coop by Stradex
 
 #include "script/Script_Program.h"
 
@@ -106,16 +107,25 @@ class idWeapon;
 
 //============================================================================
 
+const int MAX_SORT_ITERATIONS = 7500; //COOP: added by stradex. Iterations per player by the server
+const int MAX_SERVER_EVENTS_PER_FRAME = 15; //COOP: May the limit could be higher but shouldn't be necessary, I prefer a bit of desync over events overflow.
+const int SERVER_EVENTS_QUEUE_SIZE = 256; //Added to avoid events overflow by server
+const int SERVER_EVENT_NONE = -999; //Added to avoid events overflow by server
+const int SERVER_EVENT_OVERFLOW_WAIT = 7; //How many frames to wait in case of server event overflow
+
 const int MAX_GAME_MESSAGE_SIZE		= 8192;
 const int MAX_ENTITY_STATE_SIZE		= 512;
 const int ENTITY_PVS_SIZE			= ( ( MAX_GENTITIES + 31 ) >> 5 );
 const int NUM_RENDER_PORTAL_BITS	= idMath::BitsForInteger( PS_BLOCK_ALL );
+const int CS_ENTITIES_START		(MAX_GENTITIES-1000) //added by stradex for client-side entities
+
 
 const int MAX_EVENT_PARAM_SIZE		= 128;
 
 typedef struct entityNetEvent_s
 {
 	int						spawnId;
+	int						coopId; //added for coop by stradex
 	int						event;
 	int						time;
 	int						paramsSize;
@@ -123,6 +133,23 @@ typedef struct entityNetEvent_s
 	struct entityNetEvent_s*	next;
 	struct entityNetEvent_s* prev;
 } entityNetEvent_t;
+
+typedef struct serverEvent_s { //added for coop to avoid events overflow 
+	int							eventId;
+	idBitMsg					msg;
+	bool						saveEvent;
+	int							excludeClient;
+	int							eventTime;
+	idEntity* eventEnt;
+	bool						isEventType;
+	bool						saveLastOnly; //added by stradex for coop
+	struct entityNetEvent_s* event;
+}serverEvent_t;
+
+typedef struct snapshotsort_context_s {
+	int clientNum;
+} snapshotsort_context_s;
+
 
 enum
 {
@@ -145,7 +172,12 @@ enum
 	GAME_RELIABLE_MESSAGE_RESPAWN_AVAILABLE,			// Used just to show clients the respawn text on the hud.
 	GAME_RELIABLE_MESSAGE_MATCH_STARTED_TIME,
 	GAME_RELIABLE_MESSAGE_ACHIEVEMENT_UNLOCK,
-	GAME_RELIABLE_MESSAGE_CLIENT_HITSCAN_HIT
+	GAME_RELIABLE_MESSAGE_CLIENT_HITSCAN_HIT,
+	//New messages added for coop
+	GAME_RELIABLE_MESSAGE_ADDCHECKPOINT,
+	GAME_RELIABLE_MESSAGE_GOTOCHECKPOINT,
+	GAME_RELIABLE_MESSAGE_GLOBALCHECKPOINT,
+	GAME_RELIABLE_MESSAGE_NOCLIP
 };
 
 typedef enum
@@ -238,9 +270,18 @@ public:
 	bool					IsValid() const;
 	type* 					GetEntity() const;
 	int						GetEntityNum() const;
+
+	//added for coop by Stradex
+	int						GetCoopId(void) const { return coopId; }
+	bool					SetCoopId(int id);
+	bool					UpdateCoopId(void);
+	type* GetCoopEntity(void) const;
+	int						GetCoopEntityNum(void) const;
+	bool					forceCoopEntity; //EVIL HACK
 	
 private:
 	int						spawnId;
+	int						coopId; 	//added for coop by Stradex
 };
 
 struct timeState_t
@@ -308,6 +349,24 @@ public:
 	bool					sortPushers;			// true if active lists needs to be reordered to place pushers at the front
 	bool					sortTeamMasters;		// true if active lists needs to be reordered to place physics team masters before their slaves
 	idDict					persistentLevelInfo;	// contains args that are kept around between levels
+
+	//start: stradex for coop netcode
+	idArray< int, 2 >		firstFreeEntityCoopIndex;		// first free index in the entities array for coop
+	idArray< int, 2 >		firstFreeEntityCsIndex;		// first free index in the entities array for clientsideEntities
+	idEntity* coopentities[MAX_GENTITIES];	//For coop netcode only by Stradex
+	idEntity* sortsnapshotentities[MAX_GENTITIES]; //for coop only to sort the priority of snapshot
+	int						coopIds[MAX_GENTITIES];			// for use in idEntityPtr in coop
+	int						num_coopentities;				//for coop netcode only by stradex 
+	idLinkList<idEntity>	coopSyncEntities;				// all net-synced (used by Coop only)
+	idLinkList<idEntity>	serverPriorityEntities;			// coopSyncEnities but sort by snapshotPriority (used by Coop only)
+	int						serverEventsCount;				//just to debug delete later
+	int						clientEventsCount;				//just to debug, delete later
+	serverEvent_t			serverOverflowEvents[SERVER_EVENTS_QUEUE_SIZE]; //To avoid server reliabe messages overflow
+	void					addToServerEventOverFlowList(int eventId, const idBitMsg* msg, bool saveEvent, int excludeClient, int eventTime, idEntity* ent, bool saveLastOnly = false); //To avoid server reliabe messages overflow
+	void					addToServerEventOverFlowList(entityNetEvent_t* event, int clientNum); //To avoid server reliabe messages overflow
+	void					sendServerOverflowEvents(void); //to send the overflow events that are in queue to avoid event overflow
+	int						overflowEventCountdown; //FIXME: Not pretty way I I think
+	//end: stradex for coop netcode
 	
 	// can be used to automatically effect every material in the world that references globalParms
 	float					globalShaderParms[ MAX_GLOBAL_SHADER_PARMS ];
@@ -345,7 +404,9 @@ public:
 	
 	gameType_t				gameType;
 	idLinkList<idEntity>	snapshotEntities;		// entities from the last snapshot
+	idLinkList<idEntity>	clientsideEntities;		// entities only present in the client machine that requires to think (added by Stradex)
 	int						realClientTime;			// real client time
+	int						clientsideTime;			// only for clients added by Stradex
 	bool					isNewFrame;				// true if this is a new game frame, not a rerun due to prediction
 	float					clientSmoothing;		// smoothing of other clients in the view
 	int						entityDefBits;			// bits required to store an entity def number
@@ -428,6 +489,16 @@ public:
 	
 	virtual void			GetAimAssistAngles( idAngles& angles );
 	virtual float			GetAimAssistSensitivity();
+
+	//Added by Stradex for Coop
+	virtual gameReturn_t	RunClientSideFrame(idPlayer* clientPlayer, const usercmd_t* clientCmds);
+	virtual void			ServerWriteSnapshotCoop(int clientNum, int sequence, idBitMsg& msg, byte* clientInPVS, int numPVSClients);
+	virtual void			ClientReadSnapshotCoop(int clientNum, int sequence, const int gameFrame, const int gameTime, const int dupeUsercmds, const int aheadOfServer, const idBitMsg& msg);
+
+	virtual void			snapshotsort_swap(idEntity* entities[], int lhs, int rhs);
+	virtual bool			snapshotsort_notInOrder(const snapshotsort_context_s& context, idEntity* lhs, idEntity* rhs);
+	virtual int				snapshotsort_partition(const snapshotsort_context_s& context, idEntity* entities[], int low, int high);
+	virtual void			snapshotsort(const snapshotsort_context_s& context, idEntity* entities[], int low, int high);
 	
 	// ---------------------- Public idGameLocal Interface -------------------
 	
@@ -458,12 +529,14 @@ public:
 	bool					CheatsOk( bool requirePlayer = true );
 	gameState_t				GameState() const;
 	idEntity* 				SpawnEntityType( const idTypeInfo& classdef, const idDict* args = NULL, bool bIsClientReadSnapshot = false );
-	bool					SpawnEntityDef( const idDict& args, idEntity** ent = NULL, bool setDefaults = true );
+	bool					SpawnEntityDef(const idDict& args, idEntity** ent = NULL, bool setDefaults = true, bool bIsClientReadSnapshot = false); //bIsClientReadSnapshot added by Stradex for DEBUG
 	int						GetSpawnId( const idEntity* ent ) const;
+	int						GetCoopId(const idEntity* ent) const; //added by Stradex for coop
 	
 	const idDeclEntityDef* 	FindEntityDef( const char* name, bool makeDefault = true ) const;
 	const idDict* 			FindEntityDefDict( const char* name, bool makeDefault = true ) const;
 	
+	void					RegisterCoopEntity(idEntity* ent, int forceSpawnId, const idDict& spawnArgsToCopy); //added by Stradex for coop
 	void					RegisterEntity( idEntity* ent, int forceSpawnId, const idDict& spawnArgsToCopy );
 	void					UnregisterEntity( idEntity* ent );
 	const idDict& 			GetSpawnArgs() const
@@ -476,6 +549,7 @@ public:
 	void					AlertAI( idEntity* ent );
 	idActor* 				GetAlertEntity();
 	
+	bool					InCoopPlayersPVS(idEntity* ent) const; //added by Stradex for coop
 	bool					InPlayerPVS( idEntity* ent ) const;
 	bool					InPlayerConnectedArea( idEntity* ent ) const;
 	pvsHandle_t				GetPlayerPVS()
@@ -528,13 +602,14 @@ public:
 	idPlayer* 				GetClientByNum( int current ) const;
 	
 	idPlayer* 				GetLocalPlayer() const;
+	idPlayer*				GetCoopPlayer() const; //added for Coop
 	
 	void					SpreadLocations();
 	idLocationEntity* 		LocationForPoint( const idVec3& point );	// May return NULL
 	idEntity* 				SelectInitialSpawnPoint( idPlayer* player );
 	
 	void					SetPortalState( qhandle_t portal, int blockingBits );
-	void					SaveEntityNetworkEvent( const idEntity* ent, int event, const idBitMsg* msg );
+	void					SaveEntityNetworkEvent(const idEntity* ent, int event, const idBitMsg* msg, bool saveLastOnly = false); //COOP: added saveLastOnly
 	int						ServerRemapDecl( int clientNum, declType_t type, int index );
 	int						ClientRemapDecl( declType_t type, int index );
 	void					SyncPlayersWithLobbyUsers( bool initial );
@@ -626,6 +701,11 @@ public:
 	
 	const char* 			GetMPPlayerDefName() const;
 	
+	//specific coop stuff
+	bool					firstClientToSpawn; //used in coop for dedicated server not starting scripts until a player joins
+	bool					coopMapScriptLoad; //used in coop for dedicated server not starting scripts until a player joins
+	spawnSpot_t				spPlayerStartSpot; //added for COOP
+
 private:
 	const static int		INITIAL_SPAWN_COUNT = 1;
 	
@@ -635,6 +715,9 @@ private:
 	
 	int						spawnCount;
 	int						mapSpawnCount;			// it's handy to know which entities are part of the map
+
+	int						coopCount;				//added by Stradex for coop entities
+	int						mapCoopCount;			//added by Stradex for coop entities
 	
 	idLocationEntity** 		locationEntities;		// for location names, etc
 	
@@ -730,6 +813,13 @@ private:
 	static int				sortSpawnPoints( const void* ptr1, const void* ptr2 );
 	
 	bool					SimulateProjectiles();
+
+	bool					isSnapshotEntity(idEntity* ent); //added for COOP by Stradex
+	idEntity*				getEntityBySpawnId(int spawnId);  //added for COOP by Stradex
+	idEntity*				getEntityByEntityNumber(int entityNum);  //added for COOP by Stradex
+	int						getFreeEntityNumber(void); //added for COOP by Stradex
+	bool					duplicateEntity(idEntity* ent); //added for Coop by stradex
+
 };
 
 //============================================================================
@@ -751,6 +841,8 @@ template< class type >
 ID_INLINE idEntityPtr<type>::idEntityPtr()
 {
 	spawnId = 0;
+	coopId = 0;
+	forceCoopEntity = false;
 }
 
 template< class type >
@@ -771,10 +863,12 @@ ID_INLINE idEntityPtr<type>& idEntityPtr<type>::operator=( const type* ent )
 	if( ent == NULL )
 	{
 		spawnId = 0;
+		coopId = 0;
 	}
 	else
 	{
 		spawnId = ( gameLocal.spawnIds[ent->entityNumber] << GENTITYNUM_BITS ) | ent->entityNumber;
+		coopId = ( gameLocal.coopIds[ent->entityCoopNumber] << GENTITYNUM_BITS ) | ent->entityCoopNumber;
 	}
 	return *this;
 }
@@ -813,6 +907,11 @@ ID_INLINE bool idEntityPtr<type>::IsValid() const
 template< class type >
 ID_INLINE type* idEntityPtr<type>::GetEntity() const
 {
+
+	if (forceCoopEntity) {
+		return GetCoopEntity(); //evil stuff, forgive me god
+	}
+
 	int entityNum = spawnId & ( ( 1 << GENTITYNUM_BITS ) - 1 );
 	// DG: removed extraneous parenthesis to shut up clang
 	if( gameLocal.spawnIds[ entityNum ] == ( spawnId >> GENTITYNUM_BITS ) )
@@ -826,6 +925,38 @@ template< class type >
 ID_INLINE int idEntityPtr<type>::GetEntityNum() const
 {
 	return ( spawnId & ( ( 1 << GENTITYNUM_BITS ) - 1 ) );
+}
+
+/***************
+Added by Stradex for coop
+***************/
+
+template< class type >
+ID_INLINE bool idEntityPtr<type>::SetCoopId(int id) {
+	// the reason for this first check is unclear:
+	// the function returning false may mean the spawnId is already set right, or the entity is missing
+	if (id == coopId) {
+		return false;
+	}
+	if ((id >> GENTITYNUM_BITS) == gameLocal.coopIds[id & ((1 << GENTITYNUM_BITS) - 1)]) {
+		coopId = id;
+		return true;
+	}
+	return false;
+}
+
+template< class type >
+ID_INLINE type* idEntityPtr<type>::GetCoopEntity(void) const {
+	int entityNum = coopId & ((1 << GENTITYNUM_BITS) - 1);
+	if (gameLocal.coopIds[entityNum] == (coopId >> GENTITYNUM_BITS)) {
+		return static_cast<type*>(gameLocal.coopentities[entityNum]);
+	}
+	return NULL;
+}
+
+template< class type >
+ID_INLINE int idEntityPtr<type>::GetCoopEntityNum(void) const {
+	return (coopId & ((1 << GENTITYNUM_BITS) - 1));
 }
 
 //  ===========================================================================
