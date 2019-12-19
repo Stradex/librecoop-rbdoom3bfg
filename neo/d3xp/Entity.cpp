@@ -495,10 +495,10 @@ idEntity::idEntity():
 	readByServer = false; //added by Stradex for Coop netcode optimization
 	snapshotPriority = DEFAULT_SNAPSHOT_PRIORITY;
 	fl.useOldNetcode = false; //added by Stradex for Coop netcode
+	inSnapshotQueue = false;
+	firstTimeInClientPVS = true;
 
 	for (int i = 0; i < MAX_CLIENTS; i++) {
-		firstTimeInClientPVS[i] = true; //added by Stradex for Coop netcode optimization
-		inSnapshotQueue[i] = false; //added by Stradex for Coop netcode optimization
 		snapshotMissingCount[i] = 0;  //added by Stradex for Coop netcode optimization
 	}
 
@@ -1116,9 +1116,7 @@ void idEntity::BecomeActive( int flags )
 			activeNode.AddToEnd( gameLocal.activeEntities );
 
 			//addded for Coop
-			for (int i = 0; i < MAX_CLIENTS; i++) {
-				firstTimeInClientPVS[i] = true; //reset this so players who weren't present while this entity was active are forced to receive the changes.
-			}
+			firstTimeInClientPVS = true;
 		}
 		else if( !oldFlags )
 		{

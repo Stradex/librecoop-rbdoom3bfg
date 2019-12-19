@@ -71,7 +71,7 @@ idCVar si_itemRespawn("si_itemRespawn", "0", CVAR_GAME | CVAR_SERVERINFO | CVAR_
 
 //stradex start
 idCVar si_onePickupPerPlayer("si_onePickupPerPlayer", "1", CVAR_GAME | CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_BOOL | CVAR_NETWORKSYNC, "Items pickups are indivual for each player in server");
-idCVar net_serverSnapshotLimit("net_serverSnapshotLimit", "120", CVAR_GAME | CVAR_ARCHIVE | CVAR_INTEGER, "How many snapshots can we send in total as limit (per client)", 20, 500);
+idCVar net_serverSnapshotLimit("net_serverSnapshotLimit", "50", CVAR_GAME | CVAR_ARCHIVE | CVAR_INTEGER, "How many snapshots can we send in total as limit (per client)", 8, 64); //64 = RECEIVE_SNAPSHOT_BUFFER_SIZE, never suprass this limit
 idCVar g_unblockPlayers("g_unblockPlayers", "0", CVAR_GAME | CVAR_BOOL | CVAR_NETWORKSYNC | CVAR_NOCHEAT, "If player are solid between them or not");
 idCVar g_freezeUntilClientJoins("g_freezeUntilClientJoins", "0", CVAR_GAME | CVAR_BOOL, "(Dedicated server only) used to wait until a clients join to the game start running or not");
 idCVar si_lives("si_lives", "2", CVAR_GAME | CVAR_ARCHIVE | CVAR_INTEGER, "How many lives can the players have in Survival mode", 1, 100);

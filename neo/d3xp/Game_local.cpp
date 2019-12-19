@@ -3822,7 +3822,7 @@ void idGameLocal::RegisterCoopEntity(idEntity* ent, int forceSpawnId, const idDi
 		const int maxEntityNum = (common->IsMultiplayer() && !ent->GetSkipReplication()) ? ENTITYNUM_FIRST_NON_REPLICATED : ENTITYNUM_MAX_NORMAL;
 		int freeIndex = firstFreeEntityCoopIndex[freeListType];
 
-		while (entities[freeIndex] != NULL && freeIndex < maxEntityNum)
+		while (coopentities[freeIndex] != NULL && freeIndex < maxEntityNum)
 		{
 			freeIndex++;
 		}

@@ -1941,12 +1941,26 @@ void idGameLocal::snapshotsort_swap(idEntity* entities[], int lhs, int rhs) {
 // entities in snapshot queue <-- lower snapshot priority <-- first time in PVS <-- everything else
 bool idGameLocal::snapshotsort_notInOrder(idEntity* lhs, idEntity* rhs) {
 
-	// 1 - lower priority should be left
+	// 1 - elements in snapshot queue should be left
+	if (!lhs->inSnapshotQueue && rhs->inSnapshotQueue) {
+		return true;
+	}
+	else if (lhs->inSnapshotQueue && !rhs->inSnapshotQueue) {
+		return false;
+	}
+
+	// 2 - lower priority should be left
 	if (lhs->snapshotPriority > rhs->snapshotPriority) {
 		return true;
 	}
 	else if (lhs->snapshotPriority < rhs->snapshotPriority) {
 		return false;
+	}
+
+	// both are same priority
+	// 3 - first time in PVS should be left
+	if (!lhs->firstTimeInClientPVS && rhs->firstTimeInClientPVS) {
+		return true;
 	}
 
 	// either left or both are in client PVS for first time
@@ -1996,6 +2010,10 @@ idGameLocal::ServerWriteSnapshotCoop
 ================
 */
 void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
+
+
+	int serverSendEntitiesCount = 0;
+	int serverEntitiesLimit = net_serverSnapshotLimit.GetInteger();
 
 	ss.SetTime(fast.time);
 
@@ -2077,21 +2095,35 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 	}
 
 	int sortSnapCount = 0;
-
+	
 	for (ent = coopSyncEntities.Next(); ent != NULL; ent = ent->coopNode.Next()) {
+		bool entInPvsHandle = false;
 		ent->readByServer = false;
 
 		if (ent->clientsideNode.InList()) { //Stradex: ignore clientside only entities to avoid weird shit
 			continue;
 		}
 
-		if (!ent->IsActive() && !ent->IsMasterActive() && !ent->forceNetworkSync && !ent->MasterUseOldNetcode()) { //ignore inactive entities that the player already saw before
-			continue;
+		if (!ent->IsActive() && !ent->IsMasterActive() && !ent->forceNetworkSync && !ent->MasterUseOldNetcode() && !ent->inSnapshotQueue && !ent->firstTimeInClientPVS) { //ignore inactive entities that the player already saw before
+				continue;
 		}
 		// if that entity is not marked for network synchronization
 		if (!ent->fl.coopNetworkSync) {
 			continue;
 		}
+		for (int i = 0; i < MAX_PLAYERS; i++) {
+			if (pvsHandles[i].i == -1) {
+				continue;
+			}
+			if (ent->PhysicsTeamInPVS(pvsHandles[i])) {
+				entInPvsHandle = true;
+				break;
+			}
+		}
+		if (!entInPvsHandle) { //Stradex why I have to do this?
+			continue;
+		}
+
 		//Since sorting it's a pretty expensive stuff, let's try to have this list the less filled with entities possible
 		sortsnapshotentities[sortSnapCount++] = ent;
 	}
@@ -2105,6 +2137,14 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 		if (ent->GetSkipReplication()) {
 			continue;
 		}
+
+		if (serverSendEntitiesCount >= serverEntitiesLimit) {
+			ent->inSnapshotQueue = true;
+			continue;
+		}
+		ent->inSnapshotQueue = false; 
+		ent->firstTimeInClientPVS = false;
+		serverSendEntitiesCount++;
 
 		msg.InitWrite(buffer, sizeof(buffer));
 		msg.WriteBits(coopIds[ent->entityCoopNumber], 32 - GENTITYNUM_BITS);
@@ -2128,6 +2168,8 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 		}
 		pvs.FreeCurrentPVS(pvsHandles[i]);
 	}
+
+	common->Printf("Sending %d snapshots...\n", serverSendEntitiesCount);
 }
 
 

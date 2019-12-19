@@ -215,9 +215,9 @@ public:
 
 	bool					spawnedByServer;		// When entity is spawned by the server, added by stradex for COOP
 	bool					clientSideEntity;		// FIXME: I think there's no need of this but well... for COOP
-	bool					firstTimeInClientPVS[MAX_CLIENTS]; //added for Netcode optimization for COOP (Stradex)
+	bool					firstTimeInClientPVS;	//added for Netcode optimization for COOP (Stradex)
 	bool					forceNetworkSync;		//FIXME: I think there's no need of this. Just duct tape to fix the new netcode 
-	bool					inSnapshotQueue[MAX_CLIENTS];		//IF there's a snapshot overflow (see net_serverSnapshotLimit) we're going to need a snapshotqueue
+	bool					inSnapshotQueue;		//IF there's a snapshot overflow (see net_serverSnapshotLimit) we're going to need a snapshotqueue
 	bool					readByServer;			//if the entity was already tried to be sent in the snapshot
 	int						snapshotPriority;		//The priority of this entity (useful when snapshot overflow
 	int						snapshotMissingCount[MAX_CLIENTS];	//Missing snapshots count for coop

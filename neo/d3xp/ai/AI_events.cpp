@@ -3384,6 +3384,10 @@ idAI::Event_LaunchHomingMissile
 */
 void idAI::Event_LaunchHomingMissile()
 {
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		idThread::ReturnEntity(NULL); //why this happen?
+		return;
+	}
 	idVec3		start;
 	trace_t		tr;
 	idBounds	projBounds;

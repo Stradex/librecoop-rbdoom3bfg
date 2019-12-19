@@ -193,6 +193,9 @@ void idLib::FatalError( const char* fmt, ... )
 	idStr::vsnPrintf( text, sizeof( text ), fmt, argptr );
 	va_end( argptr );
 	
+#if _DEBUG
+	assert(0); //for debug only
+#endif
 	common->FatalError( "%s", text );
 }
 
