@@ -67,7 +67,7 @@ void idMenuScreen_Shell_ModeSelect::Initialize( idMenuHandler* data )
 	}
 	options->SetListData( menuOptions );
 	
-	const char* tips[] = { "#str_swf_deathmatch_desc", "#str_swf_tourney_desc", "#str_swf_team_deathmatch_desc", "#str_swf_lastman_desc", "#str_swf_ctf_desc" };
+	const char* tips[] = { "#str_swf_deathmatch_desc", "#str_swf_tourney_desc", "#str_swf_team_deathmatch_desc", "#str_swf_lastman_desc", "#str_swf_ctf_desc", "Survival", "Coop" }; //fixme later
 	
 	while( options->GetChildren().Num() < NUM_SETTING_OPTIONS )
 	{

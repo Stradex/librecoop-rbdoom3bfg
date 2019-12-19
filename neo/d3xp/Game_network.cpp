@@ -2113,12 +2113,12 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 
 		msg.WriteBits(ent->GetPredictedKey(), 32);
 
-		if (ent->fl.networkSync) {
+		if (ent->fl.coopNetworkSync) {
 			// write the class specific data to the snapshot
 			ent->WriteToSnapshot(msg);
 		}
 
-		ss.S_AddObject(SNAP_ENTITIES + ent->entityNumber, ~0U, msg, ent->GetName());
+		ss.S_AddObject(SNAP_ENTITIES + ent->entityCoopNumber, ~0U, msg, ent->GetName());
 	}
 
 	// Free PVS handles for all the players

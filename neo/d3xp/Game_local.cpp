@@ -2173,6 +2173,7 @@ const char* idGameLocal::GetMPPlayerDefName() const
 		return "player_doommarine_ctf";
 	} else if (gameType == GAME_COOP || gameType == GAME_SURVIVAL) {
 		return "player_doommarine_coop";
+		//return "player_doommarine_mp";
 	}
 	
 	return "player_doommarine_mp";
@@ -2213,6 +2214,18 @@ void idGameLocal::SpawnPlayer( int clientNum )
 	
 	if( !SpawnEntityDef( args, &ent ) || clientNum >= MAX_GENTITIES || entities[ clientNum ] == NULL || coopentities[clientNum] == NULL)
 	{
+		if (coopentities[clientNum] == NULL) {
+			Error("coopentities[clientNum] == NULL");
+		}
+		else if (entities[clientNum] == NULL) {
+			Error("entities[ clientNum ] == NULL");
+		}
+		else if (clientNum >= MAX_GENTITIES) {
+			Error("clientNum >= MAX_GENTITIES");
+		}
+		else {
+			Error("!SpawnEntityDef( args, &ent )");
+		}
 		Error( "Failed to spawn player as '%s'", args.GetString( "classname" ) );
 	}
 	
@@ -3889,7 +3902,7 @@ void idGameLocal::RegisterEntity( idEntity* ent, int forceSpawnId, const idDict&
 	}
 
 	if (ent->fl.coopNetworkSync || spawnArgsToCopy.GetInt("coop_entnum", "0")) {
-		RegisterCoopEntity(ent, 0, ent->spawnArgs); //for coop only
+		RegisterCoopEntity(ent, forceSpawnId, spawnArgsToCopy); //for coop only
 	}
 	
 	entities[ spawn_entnum ] = ent;

@@ -5912,6 +5912,10 @@ void idPlayer::UpdateWeapon()
 	
 	assert( !spectating );
 	
+	if (gameLocal.mpGame.IsGametypeCoopBased() && weapon.GetEntity() == NULL) { //added for COOP
+		return;
+	}
+
 	if( common->IsClient() )
 	{
 		// clients need to wait till the weapon and it's world model entity
@@ -5937,7 +5941,15 @@ void idPlayer::UpdateWeapon()
 				ammoInClip = 0;
 			}
 			weapon.GetEntity()->GetWeaponDef( animPrefix, ammoInClip );
-			assert( weapon.GetEntity()->IsLinked() );
+			if (gameLocal.mpGame.IsGametypeCoopBased()) {
+				if (!weapon.GetEntity()->IsLinked()) {
+					return; //something really wrong here...
+				}
+			}
+			else {
+				assert(weapon.GetEntity()->IsLinked());
+			}
+			
 		}
 		else
 		{
@@ -5997,6 +6009,10 @@ void idPlayer::UpdateFlashlight()
 		return;
 	}
 	
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		return; //disable flashlight in coop by now
+	}
+
 	if( !flashlight.GetEntity()->GetOwner() )
 	{
 		return;

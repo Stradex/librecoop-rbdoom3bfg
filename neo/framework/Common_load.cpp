@@ -342,7 +342,7 @@ void idCommonLocal::LoadLoadingGui( const char* mapName, bool& hellMap )
 				const idStrList& modes = common->GetModeDisplayList();
 				subTitle = modes[ idMath::ClampInt( 0, modes.Num() - 1, matchParameters.gameMode ) ];
 				
-				const char* modeDescs[] = { "#str_swf_deathmatch_desc", "#str_swf_tourney_desc", "#str_swf_team_deathmatch_desc", "#str_swf_lastman_desc", "#str_swf_ctf_desc" };
+				const char* modeDescs[] = { "#str_swf_deathmatch_desc", "#str_swf_tourney_desc", "#str_swf_team_deathmatch_desc", "#str_swf_lastman_desc", "#str_swf_ctf_desc", "Coop", "Survival" }; //fixme later: add strings
 				desc = idLocalization::GetString( modeDescs[matchParameters.gameMode] );
 			}
 			

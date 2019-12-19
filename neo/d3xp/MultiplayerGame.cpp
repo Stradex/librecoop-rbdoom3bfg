@@ -2833,7 +2833,8 @@ void idMultiplayerGame::CheckRespawns( idPlayer* spectator )
 			else
 			{
 				if( gameLocal.gameType == GAME_DM ||		// CTF : 3wave sboily, was DM really included before?
-						IsGametypeTeamBased() )
+						IsGametypeTeamBased() ||
+					gameLocal.gameType == GAME_COOP) //added coop support
 				{
 					if( gameState == WARMUP || gameState == COUNTDOWN || gameState == GAMEON )
 					{
@@ -3794,6 +3795,8 @@ bool idMultiplayerGame::IsGametypeTeamBased() /* CTF */
 		case GAME_DM:
 		case GAME_TOURNEY:
 		case GAME_LASTMAN:
+		case GAME_SURVIVAL:
+		case GAME_COOP:
 			return false;
 		case GAME_CTF:
 		case GAME_TDM:
@@ -3820,6 +3823,8 @@ bool idMultiplayerGame::IsGametypeFlagBased()
 		case GAME_TOURNEY:
 		case GAME_LASTMAN:
 		case GAME_TDM:
+		case GAME_SURVIVAL:
+		case GAME_COOP:
 			return false;
 		case GAME_CTF:
 			return true;

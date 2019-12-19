@@ -4451,7 +4451,7 @@ void idEntity::FindTargets()
 
 			targets[i].GetEntity()->forceNetworkSync = false;
 			targets[i].GetEntity()->fl.coopNetworkSync = true;
-			gameLocal.RegisterCoopEntity(targets[i].GetEntity(), 0, targets[i].GetEntity()->spawnArgs); //just lol
+			gameLocal.RegisterCoopEntity(targets[i].GetEntity(), -1, targets[i].GetEntity()->spawnArgs); //just lol
 			targets[i].SetCoopId(gameLocal.GetCoopId(targets[i].GetEntity())); //Dirty dirty hack
 			common->Printf("[COOP] Adding %s to the coopentities array\n", targets[i].GetEntity()->GetName());
 

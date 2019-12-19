@@ -70,6 +70,17 @@ static columnDef_t public_CaptureTheFlag[] =
 	{ "Wins", 64, AGGREGATE_MAX, STATS_COLUMN_DISPLAY_NUMBER },
 };
 
+static columnDef_t public_Coop[] =
+{
+	{ "Wins", 64, AGGREGATE_MAX, STATS_COLUMN_DISPLAY_NUMBER },
+};
+
+static columnDef_t public_Survival[] =
+{
+	{ "Wins", 64, AGGREGATE_MAX, STATS_COLUMN_DISPLAY_NUMBER },
+};
+
+
 // This should match up to the ordering of the gameType_t. ( in MultiplayerGame.h )
 const columnGameMode_t gameMode_columnDefs[] =
 {
@@ -78,6 +89,8 @@ const columnGameMode_t gameMode_columnDefs[] =
 	{ public_TeamDeathmatch,	ARRAY_COUNT( public_TeamDeathmatch ),	RANK_GREATEST_FIRST, false, false, "TDM" },			// TEAM DEATHMATCH
 	{ public_LastmanStanding,	ARRAY_COUNT( public_LastmanStanding ),	RANK_GREATEST_FIRST, false, false, "LMS" },			// LASTMAN STANDING
 	{ public_CaptureTheFlag,	ARRAY_COUNT( public_CaptureTheFlag ),	RANK_GREATEST_FIRST, false, false, "CTF" },			// CAPTURE THE FLAG
+	{ public_Coop,				ARRAY_COUNT(public_Coop),				RANK_GREATEST_FIRST, false, false, "COOP" },		// COOP
+	{ public_Survival,			ARRAY_COUNT(public_Survival),			RANK_GREATEST_FIRST, false, false, "SURVIVAL" },	// SURVIVAL
 };
 
 /*
