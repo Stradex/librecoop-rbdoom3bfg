@@ -720,7 +720,10 @@ idClipModel::Link
 void idClipModel::Link( idClip& clp )
 {
 
-	assert( idClipModel::entity );
+	if (!gameLocal.mpGame.IsGametypeCoopBased()) { //avoid very strange and uncommon crash in coop
+		assert(idClipModel::entity);
+	}
+
 	if( !idClipModel::entity )
 	{
 		return;
@@ -1217,7 +1220,9 @@ ID_INLINE bool TestHugeTranslation( trace_t& results, const idClipModel* mdl, co
 		// in the PVS of a player that has a flag that is spawning the idMoveableItem
 		// "nuggets".  The error seems benign and the assert was getting in the way
 		// of testing.
-		assert( 0 );
+		if (!gameLocal.mpGame.IsGametypeCoopBased()) { //Avoid crash for clients in coop (and in rare cases for server), ROE did the same in CTF so...
+			assert(0);
+		}
 #endif
 		
 		results.fraction = 0.0f;
@@ -1498,6 +1503,11 @@ bool idClip::Motion( trace_t& results, const idVec3& start, const idVec3& end, c
 	trace_t translationalTrace, rotationalTrace, trace;
 	idRotation endRotation;
 	const idTraceModel* trm;
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && (rotation.GetOrigin() != start)) {
+		common->Printf("[COOP FATAL] assert( rotation.GetOrigin() == start ) at idClip::Motion\n");
+		return true; //should return true or false?
+	}
 	
 	assert( rotation.GetOrigin() == start );
 	

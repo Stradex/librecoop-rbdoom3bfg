@@ -26,6 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#pragma once //ugly fix probably
 #pragma hdrstop
 #include "precompiled.h"
 
@@ -345,34 +346,66 @@ idAI::Event_FindEnemy
 void idAI::Event_FindEnemy( int useFOV )
 {
 	int			i;
-	idEntity*	ent;
-	idActor*		actor;
-	
-	if( gameLocal.InPlayerPVS( this ) )
-	{
-		for( i = 0; i < gameLocal.numClients ; i++ )
-		{
-			ent = gameLocal.entities[ i ];
-			
-			if( !ent || !ent->IsType( idActor::Type ) )
-			{
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		idPlayer* closestPlayer = NULL;
+		float shortestDist = idMath::INFINITY;
+		idPlayer* player;
+		float dist;
+		idVec3		delta;
+		for (i = 0; i < gameLocal.numClients; i++) {
+			player = gameLocal.GetClientByNum(i);
+
+			if (!player || player->spectating || player->health <= 0 || !(ReactionTo(player) & ATTACK_ON_SIGHT)) {
 				continue;
 			}
-			
-			actor = static_cast<idActor*>( ent );
-			if( ( actor->health <= 0 ) || !( ReactionTo( actor ) & ATTACK_ON_SIGHT ) )
-			{
-				continue;
+			//was better but marked as slow by the engine
+			//dist = TravelDistance(this->GetPhysics()->GetOrigin(), player->GetPhysics()->GetOrigin());
+			delta = physicsObj.GetOrigin() - player->GetPhysics()->GetOrigin();
+			dist = delta.LengthSqr();
+
+			if ((dist < shortestDist) && CanSee(player, useFOV != 0)) {
+				shortestDist = dist;
+				closestPlayer = player;
 			}
-			
-			if( CanSee( actor, useFOV != 0 ) )
-			{
-				idThread::ReturnEntity( actor );
+
+			/*
+			if (CanSee(closestPlayer, useFOV != 0)) {
+				idThread::ReturnEntity(closestPlayer);
 				return;
+			}*/
+		}
+		idThread::ReturnEntity(closestPlayer);
+		return;
+	}
+	else {
+		idEntity* ent;
+		idActor* actor;
+
+		if (gameLocal.InPlayerPVS(this))
+		{
+			for (i = 0; i < gameLocal.numClients; i++)
+			{
+				ent = gameLocal.entities[i];
+
+				if (!ent || !ent->IsType(idActor::Type))
+				{
+					continue;
+				}
+
+				actor = static_cast<idActor*>(ent);
+				if ((actor->health <= 0) || !(ReactionTo(actor) & ATTACK_ON_SIGHT))
+				{
+					continue;
+				}
+
+				if (CanSee(actor, useFOV != 0))
+				{
+					idThread::ReturnEntity(actor);
+					return;
+				}
 			}
 		}
 	}
-	
 	idThread::ReturnEntity( NULL );
 }
 
@@ -397,7 +430,7 @@ void idAI::Event_FindEnemyAI( int useFOV )
 	bestEnemy = NULL;
 	for( ent = gameLocal.activeEntities.Next(); ent != NULL; ent = ent->activeNode.Next() )
 	{
-		if( ent->fl.hidden || ent->fl.isDormant || !ent->IsType( idActor::Type ) )
+		if( ent->fl.hidden || ent->fl.isDormant || !ent->IsType( idActor::Type ) || !ent->IsType(idPlayer::Type))
 		{
 			continue;
 		}
@@ -542,15 +575,29 @@ void idAI::Event_HeardSound( int ignore_team )
 {
 	// check if we heard any sounds in the last frame
 	idActor*	actor = gameLocal.GetAlertEntity();
-	if( actor != NULL && ( !ignore_team || ( ReactionTo( actor ) & ATTACK_ON_SIGHT ) ) && gameLocal.InPlayerPVS( this ) )
-	{
-		idVec3 pos = actor->GetPhysics()->GetOrigin();
-		idVec3 org = physicsObj.GetOrigin();
-		float dist = ( pos - org ).LengthSqr();
-		if( dist < Square( AI_HEARING_RANGE ) )
+
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		if (actor && (!ignore_team || (ReactionTo(actor) & ATTACK_ON_SIGHT)) && gameLocal.InCoopPlayersPVS(this)) {
+			idVec3 pos = actor->GetPhysics()->GetOrigin();
+			idVec3 org = physicsObj.GetOrigin();
+			float dist = (pos - org).LengthSqr();
+			if (dist < Square(AI_HEARING_RANGE)) {
+				idThread::ReturnEntity(actor);
+				return;
+			}
+		}
+	}
+	else {
+		if (actor != NULL && (!ignore_team || (ReactionTo(actor) & ATTACK_ON_SIGHT)) && gameLocal.InPlayerPVS(this))
 		{
-			idThread::ReturnEntity( actor );
-			return;
+			idVec3 pos = actor->GetPhysics()->GetOrigin();
+			idVec3 org = physicsObj.GetOrigin();
+			float dist = (pos - org).LengthSqr();
+			if (dist < Square(AI_HEARING_RANGE))
+			{
+				idThread::ReturnEntity(actor);
+				return;
+			}
 		}
 	}
 	
@@ -611,6 +658,11 @@ void idAI::Event_CreateMissile( const char* jointname )
 {
 	idVec3 muzzle;
 	idMat3 axis;
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		return idThread::ReturnEntity(NULL); //Make this clientside in future
+	}
+
 	
 	if( !projectileDef )
 	{
@@ -641,6 +693,11 @@ idAI::Event_AttackMissile
 */
 void idAI::Event_AttackMissile( const char* jointname )
 {
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		//gameLocal.Warning( "[COOP] Event_AttackMissile called by a client!\n"); //not a warning, just a natural thing in coop
+		return idThread::ReturnEntity(NULL);
+	}
+
 	idProjectile* proj;
 	
 	proj = LaunchProjectile( jointname, enemy.GetEntity(), true );
@@ -654,6 +711,11 @@ idAI::Event_FireMissileAtTarget
 */
 void idAI::Event_FireMissileAtTarget( const char* jointname, const char* targetname )
 {
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		//gameLocal.Warning( "[COOP] Event_FireMissileAtTarget called by a client!\n"); //not a warning, just a natural thing in coop
+		return idThread::ReturnEntity(NULL);
+	}
+
 	idEntity*		aent;
 	idProjectile*	proj;
 	
@@ -674,6 +736,20 @@ idAI::Event_LaunchMissile
 */
 void idAI::Event_LaunchMissile( const idVec3& org, const idAngles& ang )
 {
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		if (flashJointWorld != INVALID_JOINT) {
+			idVec3 muzzle;
+			animator.GetJointTransform(flashJointWorld, gameLocal.time, muzzle, worldMuzzleFlash.axis);
+			animator.GetJointTransform(flashJointWorld, gameLocal.time, muzzle, worldMuzzleFlash.axis);
+			muzzle = physicsObj.GetOrigin() + (muzzle + modelOffset) * viewAxis * physicsObj.GetGravityAxis();
+			TriggerWeaponEffects(muzzle); //to show flash effects for clients
+			//common->Printf("[debug] Event_LaunchMissile\n");
+		}
+		//gameLocal.Warning( "[COOP] Event_LaunchMissile called by a client!\n"); //not a warning, just a natural thing in coop
+		return idThread::ReturnEntity(NULL);
+	}
+
 	idVec3		start;
 	trace_t		tr;
 	idBounds	projBounds;

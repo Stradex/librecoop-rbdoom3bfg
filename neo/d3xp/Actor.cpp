@@ -746,7 +746,7 @@ void idActor::SetupHead()
 	int					i;
 	const idKeyValue*	sndKV;
 	
-	if( common->IsClient() )
+	if( common->IsClient() && !gameLocal.mpGame.IsGametypeCoopBased())
 	{
 		return;
 	}
@@ -785,7 +785,7 @@ void idActor::SetupHead()
 		args.SetBool( "slowmo", spawnArgs.GetBool( "slowmo", "1" ) );
 		
 		
-		headEnt = static_cast<idAFAttachment*>( gameLocal.SpawnEntityType( idAFAttachment::Type, &args ) );
+		headEnt = static_cast<idAFAttachment*>( gameLocal.SpawnEntityType( idAFAttachment::Type, &args, true) ); //In coop we can spawn heads
 		headEnt->SetName( va( "%s_head", name.c_str() ) );
 		headEnt->SetBody( this, headModel, damageJoint );
 		head = headEnt;
@@ -2429,7 +2429,7 @@ idActor::Gib
 void idActor::Gib( const idVec3& dir, const char* damageDefName )
 {
 	// no gibbing in multiplayer - by self damage or by moving objects
-	if( common->IsMultiplayer() )
+	if( common->IsMultiplayer() && !gameLocal.mpGame.IsGametypeCoopBased())
 	{
 		return;
 	}
@@ -2470,6 +2470,10 @@ idCVar actor_noDamage(	"actor_noDamage",			"0",		CVAR_BOOL, "actors don't take d
 void idActor::Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir,
 					  const char* damageDefName, const float damageScale, const int location )
 {
+	if (common->IsClient()) {
+		return; //Client should never produce damage
+	}
+
 	if( !fl.takedamage || actor_noDamage.GetBool() )
 	{
 		return;
@@ -2647,7 +2651,7 @@ void idActor::Damage( idEntity* inflictor, idEntity* attacker, const idVec3& dir
 			}
 			
 			Killed( inflictor, attacker, damage, dir, location );
-			if( ( health < -20 ) && spawnArgs.GetBool( "gib" ) && damageDef->GetBool( "gib" ) )
+			if (((health < -20) || gameLocal.mpGame.IsGametypeCoopBased()) && spawnArgs.GetBool("gib") && damageDef->GetBool("gib")) //instant gib in coop
 			{
 				Gib( dir, damageDefName );
 			}

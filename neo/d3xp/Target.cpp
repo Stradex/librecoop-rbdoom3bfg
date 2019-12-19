@@ -307,16 +307,24 @@ void idTarget_EndLevel::Event_Activate( idEntity* activator )
 		return;
 	}
 	
-	if( spawnArgs.GetInt( "devmap", "0" ) )
-	{
-		gameLocal.sessionCommand = "devmap ";	// only for special demos
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		gameLocal.mpGame.SavePersistentPlayersInfo();
+		//si_map.SetString(nextMap); //FIXME: Search a way to exit a map in rbdoom3bfg
+		gameLocal.MapRestart();
 	}
-	else
-	{
-		gameLocal.sessionCommand = "map ";
+	else {
+
+		if (spawnArgs.GetInt("devmap", "0"))
+		{
+			gameLocal.sessionCommand = "devmap ";	// only for special demos
+		}
+		else
+		{
+			gameLocal.sessionCommand = "map ";
+		}
+
+		gameLocal.sessionCommand += nextMap;
 	}
-	
-	gameLocal.sessionCommand += nextMap;
 }
 
 
@@ -812,6 +820,10 @@ idTarget_GiveEmail::Event_Activate
 */
 void idTarget_GiveEmail::Event_Activate( idEntity* activator )
 {
+	if (gameLocal.mpGame.IsGametypeCoopBased()) { //No PDAS or emails in coop
+		return;
+	}
+
 	idPlayer* player = gameLocal.GetLocalPlayer();
 	const idDeclPDA* pda = player->GetPDA();
 	if( pda )
@@ -1182,6 +1194,10 @@ idTarget_SetInfluence::Event_Activate
 */
 void idTarget_SetInfluence::Event_Activate( idEntity* activator )
 {
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		return; //Disabled in COOP. testing avoid crash
+	}
+
 	int i, j;
 	idEntity* ent;
 	idLight* light;

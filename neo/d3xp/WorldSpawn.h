@@ -48,6 +48,7 @@ public:
 	
 	void			Save( idSaveGame* savefile );
 	void			Restore( idRestoreGame* savefile );
+
 	
 private:
 	void			Event_Remove();

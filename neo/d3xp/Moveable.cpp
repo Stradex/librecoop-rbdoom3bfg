@@ -75,6 +75,10 @@ idMoveable::idMoveable()
 	allowStep			= false;
 	canDamage			= false;
 	attacker			= NULL;
+
+	fl.networkSync = false;
+	fl.coopNetworkSync = true; //just to test something in coop
+
 }
 
 /*
@@ -710,6 +714,7 @@ idBarrel::idBarrel()
 	additionalRotation = 0.0f;
 	additionalAxis.Identity();
 	fl.networkSync = true;
+	fl.coopNetworkSync = true;
 }
 
 /*

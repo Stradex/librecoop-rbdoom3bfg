@@ -186,6 +186,7 @@ idWeapon::idWeapon()
 	Clear();
 	
 	fl.networkSync = true;
+	fl.coopNetworkSync = true;
 }
 
 /*
@@ -212,6 +213,13 @@ void idWeapon::Spawn()
 		// setup the world model
 		worldModel = static_cast< idAnimatedEntity* >( gameLocal.SpawnEntityType( idAnimatedEntity::Type, NULL ) );
 		worldModel.GetEntity()->fl.networkSync = true;
+		worldModel.GetEntity()->fl.coopNetworkSync = true;
+		gameLocal.RegisterCoopEntity(worldModel.GetEntity(), -1, worldModel.GetEntity()->spawnArgs); //just lol
+		worldModel.SetCoopId(gameLocal.GetCoopId(worldModel.GetEntity())); //Dirty dirty hack
+	}
+
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		worldModel.forceCoopEntity = true; //evil stuff here
 	}
 	
 	if( 1 /*!common->IsMultiplayer()*/ )
@@ -3228,7 +3236,12 @@ idWeapon::WriteToSnapshot
 void idWeapon::WriteToSnapshot( idBitMsg& msg ) const
 {
 	msg.WriteBits( ammoClip.Get(), ASYNC_PLAYER_INV_CLIP_BITS );
-	msg.WriteBits( worldModel.GetSpawnId(), 32 );
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		msg.WriteBits(worldModel.GetCoopId(), 32);
+	}
+	else {
+		msg.WriteBits(worldModel.GetSpawnId(), 32);
+	}
 	msg.WriteBits( lightOn, 1 );
 	msg.WriteBits( isFiring ? 1 : 0, 1 );
 }
@@ -3241,7 +3254,12 @@ idWeapon::ReadFromSnapshot
 void idWeapon::ReadFromSnapshot( const idBitMsg& msg )
 {
 	const int snapshotAmmoClip = msg.ReadBits( ASYNC_PLAYER_INV_CLIP_BITS );
-	worldModel.SetSpawnId( msg.ReadBits( 32 ) );
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		worldModel.SetCoopId(msg.ReadBits(32));
+	}
+	else {
+		worldModel.SetSpawnId(msg.ReadBits(32));
+	}
 	const bool snapshotLightOn = msg.ReadBits( 1 ) != 0;
 	isFiring = msg.ReadBits( 1 ) != 0;
 	
@@ -3322,7 +3340,22 @@ bool idWeapon::ClientReceiveEvent( int event, int time, const idBitMsg& msg )
 		case EVENT_CHANGESKIN:
 		{
 			int index = gameLocal.ClientRemapDecl( DECL_SKIN, msg.ReadLong() );
-			renderEntity.customSkin = ( index != -1 ) ? static_cast<const idDeclSkin*>( declManager->DeclByIndex( DECL_SKIN, index ) ) : NULL;
+			//ugly to avoid crash in coop
+			if (index != -1) {
+				int declTypeCount = declManager->GetNumDecls(DECL_SKIN);
+				if (index < 0 || index >= declTypeCount) {
+					renderEntity.customSkin = NULL;
+					common->Warning("[COOP] index declType out of range at idWeapon::ClientReceiveEvent\n");
+				}
+				else {
+					renderEntity.customSkin = static_cast<const idDeclSkin*>(declManager->DeclByIndex(DECL_SKIN, index));
+				}
+			}
+			else {
+				renderEntity.customSkin = NULL;
+			}
+			//end ugly
+			//renderEntity.customSkin = ( index != -1 ) ? static_cast<const idDeclSkin*>( declManager->DeclByIndex( DECL_SKIN, index ) ) : NULL;
 			UpdateVisuals();
 			if( worldModel.GetEntity() )
 			{
@@ -4131,6 +4164,7 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 			{
 				// don't synchronize this on top of the already predicted effect
 				ent->fl.networkSync = false;
+				ent->fl.coopNetworkSync = false;
 			}
 			else if( owner != NULL )
 			{

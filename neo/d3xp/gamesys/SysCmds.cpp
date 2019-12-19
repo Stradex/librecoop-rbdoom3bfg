@@ -627,7 +627,16 @@ void Cmd_Noclip_f( const idCmdArgs& args )
 	{
 		msg = "noclip ON\n";
 	}
-	player->noclip = !player->noclip;
+
+	if (common->IsMultiplayer() && common->IsClient()) {
+		idBitMsg	outMsg;
+		byte		msgBuf[MAX_GAME_MESSAGE_SIZE];
+		outMsg.InitWrite(msgBuf, sizeof(msgBuf));
+		session->GetActingGameStateLobbyBase().SendReliableToHost(GAME_RELIABLE_MESSAGE_NOCLIP, outMsg);
+	} else {
+		player->noclip = !player->noclip;
+	}
+
 	
 	gameLocal.Printf( "%s", msg );
 }
@@ -2651,6 +2660,83 @@ void Cmd_TestId_f( const idCmdArgs& args )
 	gameLocal.mpGame.AddChatLine( idLocalization::GetString( id ), "<nothing>", "<nothing>", "<nothing>" );
 }
 
+//COOP Specific
+
+/*
+===============
+Cmd_Checkpoint_f
+This is only used for test in coop, probably going to be deleted or declared as cheat only in the final release
+===============
+*/
+void Cmd_Checkpoint_f(const idCmdArgs& args) {
+	const char* name;
+	idPlayer* player;
+	int			commandType = COOP_CMD_ADDCHECKPOINT;
+	if (args.Argc() == 1) {
+		common->Printf("usage: <go> create a current checkpoint, <add> save current, <global> save for all players\n");
+		return;
+	}
+
+	player = gameLocal.GetLocalPlayer();
+	if (!player || player->spectating) { // !gameLocal.CheatsOk()
+		return;
+	}
+
+	name = args.Argv(1);
+
+	if (idStr::Icmp(name, "go") == 0) {
+		commandType = COOP_CMD_GOTOCHECKPOINT;
+	}
+	else if (idStr::Icmp(name, "global") == 0) {
+		commandType = COOP_CMD_GLOBALCHECKPOINT;
+	}
+
+	if (commandType == COOP_CMD_GLOBALCHECKPOINT && !gameLocal.CheatsOk()) {
+		common->Printf("checkpoint global works only with net_allowcheats 1\n");
+		return;
+	}
+
+	if (common->IsMultiplayer()) {
+		if (common->IsClient()) { //Client
+			idBitMsg	outMsg;
+			byte		msgBuf[MAX_GAME_MESSAGE_SIZE];
+			outMsg.InitWrite(msgBuf, sizeof(msgBuf));
+
+			switch (commandType) {
+			case COOP_CMD_ADDCHECKPOINT:
+				session->GetActingGameStateLobbyBase().SendReliableToHost(GAME_RELIABLE_MESSAGE_ADDCHECKPOINT, outMsg);
+				break;
+			case COOP_CMD_GOTOCHECKPOINT:
+				session->GetActingGameStateLobbyBase().SendReliableToHost(GAME_RELIABLE_MESSAGE_GOTOCHECKPOINT, outMsg);
+				break;
+			case COOP_CMD_GLOBALCHECKPOINT:
+			default:
+				session->GetActingGameStateLobbyBase().SendReliableToHost(GAME_RELIABLE_MESSAGE_GLOBALCHECKPOINT, outMsg);
+				break;
+			}
+		}
+		else { //server
+			if (gameLocal.GetLocalClientNum() < 0) {
+				return; //dedicated server
+			}
+			switch (commandType) {
+			case COOP_CMD_ADDCHECKPOINT:
+				gameLocal.mpGame.WantAddCheckpoint(gameLocal.GetLocalClientNum());
+				break;
+			case COOP_CMD_GOTOCHECKPOINT:
+				gameLocal.mpGame.WantUseCheckpoint(gameLocal.GetLocalClientNum());
+				break;
+			case COOP_CMD_GLOBALCHECKPOINT:
+				gameLocal.mpGame.WantAddCheckpoint(gameLocal.GetLocalClientNum(), true);
+				break;
+			}
+		}
+	}
+
+
+}
+
+
 
 /*
 =================
@@ -2754,6 +2840,9 @@ void idGameLocal::InitConsoleCommands()
 	cmdSystem->AddCommand( "testid",				Cmd_TestId_f,				CMD_FL_GAME | CMD_FL_CHEAT,	"output the string for the specified id." );
 	
 	cmdSystem->AddCommand( "setActorState",			Cmd_SetActorState_f,		CMD_FL_GAME | CMD_FL_CHEAT,	"Manually sets an actors script state", idGameLocal::ArgCompletion_EntityName );
+
+	//added for Coop specific
+	cmdSystem->AddCommand("checkpoint",				Cmd_Checkpoint_f,			CMD_FL_GAME,				"Checkpoints for coop");
 }
 
 /*

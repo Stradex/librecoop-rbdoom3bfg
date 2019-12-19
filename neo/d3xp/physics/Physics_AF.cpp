@@ -6097,6 +6097,14 @@ bool idPhysics_AF::CollisionImpulse( float timeStep, idAFBody* body, trace_t& co
 	{
 		return false;
 	}
+
+	//Stradex: you know that at this point this shitty mod is full of duct-tape, don't you?
+	if (gameLocal.mpGame.IsGametypeCoopBased() && (IEEE_FLT_IS_NAN(collision.endpos.x) || IEEE_FLT_IS_NAN(collision.endpos.y) || IEEE_FLT_IS_NAN(collision.endpos.z) ||
+		IEEE_FLT_IS_NAN(collision.c.normal.x) || IEEE_FLT_IS_NAN(collision.c.normal.y) || IEEE_FLT_IS_NAN(collision.c.normal.z) ||
+		IEEE_FLT_IS_NAN(collision.c.normal.x) || IEEE_FLT_IS_NAN(collision.c.normal.y) || IEEE_FLT_IS_NAN(collision.c.normal.z))) {
+		common->Warning("[COOP FATAL] IEEE_FLT_IS_NAN at idPhysics_AF::CollisionImpulse\n");
+		return false;
+	}
 	
 	// get info from other entity involved
 	ent->GetImpactInfo( self, collision.c.id, collision.c.point, &info );

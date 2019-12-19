@@ -390,6 +390,10 @@ private:
 	void					MuzzleRise( idVec3& origin, idMat3& axis );
 	void					UpdateNozzleFx();
 	void					UpdateFlashPosition();
+
+	//coop (add later)
+	//void					ClientsideFireProjectile(int num_projectiles, float spread, float fuseOffset, float launchPower, float dmgPower, const idDict& projectileDef);
+
 	
 	// script events
 	void					Event_Clear();

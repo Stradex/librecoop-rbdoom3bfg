@@ -333,6 +333,11 @@ idCameraAnim::Spawn
 */
 void idCameraAnim::Spawn()
 {
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		//No cameras in coop for clients
+		return;
+	}
+
 	if( spawnArgs.GetVector( "old_origin", "0 0 0", offset ) )
 	{
 		offset = GetPhysics()->GetOrigin() - offset;
@@ -355,6 +360,12 @@ idCameraAnim::Load
 */
 void idCameraAnim::LoadAnim()
 {
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		//No cameras in coop
+		return;
+	}
+
 	int			version;
 	idLexer		parser( LEXFL_ALLOWPATHNAMES | LEXFL_NOSTRINGESCAPECHARS | LEXFL_NOSTRINGCONCAT );
 	idToken		token;
@@ -469,6 +480,11 @@ void idCameraAnim::Start()
 	
 	starttime = gameLocal.time;
 	gameLocal.SetCamera( this );
+
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		return; //Disabled cinematics in COOP
+	}
+
 	BecomeActive( TH_THINK );
 	
 	// if the player has already created the renderview for this frame, have him update it again so that the camera starts this frame
@@ -485,6 +501,7 @@ idCameraAnim::Stop
 */
 void idCameraAnim::Stop()
 {
+
 	if( gameLocal.GetCamera() == this )
 	{
 		if( g_debugCinematic.GetBool() )

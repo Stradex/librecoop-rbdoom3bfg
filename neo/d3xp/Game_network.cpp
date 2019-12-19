@@ -1580,7 +1580,7 @@ gameReturn_t	idGameLocal::RunClientSideFrame(idPlayer* clientPlayer)
 		}
 		ent->clientSideEntity = false; //this entity is not clientside
 		ent->thinkFlags |= TH_PHYSICS;
-		ent->ClientPredictionThink();
+		ent->ClientThink(netInterpolationInfo.serverGameMs, netInterpolationInfo.pct, true);
 	}
 
 	SortActiveEntityList();
@@ -1604,7 +1604,7 @@ gameReturn_t	idGameLocal::RunClientSideFrame(idPlayer* clientPlayer)
 			ent->clientSideEntity = true; //this entity is now clientside
 		}
 		ent->thinkFlags |= TH_PHYSICS;
-		ent->ClientPredictionThink();
+		ent->ClientThink(netInterpolationInfo.serverGameMs, netInterpolationInfo.pct, true);
 	}
 
 	//FIXME: AVOID UGLY COOP IN BUG START

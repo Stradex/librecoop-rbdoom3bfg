@@ -159,6 +159,10 @@ idMover::idMover()
 	damage = 0.0f;
 	areaPortal = 0;
 	fl.networkSync = true;
+	//added for coop
+	fl.coopNetworkSync = true;
+	snapshotPriority = 2;
+	fl.useOldNetcode = false;
 }
 
 /*
@@ -1822,6 +1826,9 @@ idElevator::idElevator()
 	lastTouchTime = 0;
 	returnFloor = 0;
 	returnTime = 0;
+	//fl.networkSync = true;
+	fl.coopNetworkSync = true;
+	fl.useOldNetcode = true;
 }
 
 /*
@@ -2446,6 +2453,8 @@ idMover_Binary::idMover_Binary()
 	blocked = false;
 	playerOnly = false;
 	fl.networkSync = true;
+	fl.coopNetworkSync = true;
+	fl.useOldNetcode = true;
 }
 
 /*
@@ -3037,11 +3046,18 @@ void idMover_Binary::Event_Reached_BinaryMover()
 		if( enabled && wait >= 0 && !spawnArgs.GetBool( "toggle" ) )
 		{
 			// return to pos1 after a delay
-			PostEventSec( &EV_Mover_ReturnToPos1, wait );
+			if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+				CS_PostEventSec(&EV_Mover_ReturnToPos1, wait); //added this for coop
+			}
+			else {
+				PostEventSec(&EV_Mover_ReturnToPos1, wait);
+			}
 		}
 		
 		// fire targets
-		ActivateTargets( moveMaster->GetActivator() );
+		if (!gameLocal.mpGame.IsGametypeCoopBased() || common->IsServer()) { //Don't activate targets in coop for clients
+			ActivateTargets(moveMaster->GetActivator());
+		}
 		
 		SetBlocked( false );
 	}
@@ -3065,7 +3081,12 @@ void idMover_Binary::Event_Reached_BinaryMover()
 		
 		if( enabled && wait >= 0 && spawnArgs.GetBool( "continuous" ) )
 		{
-			PostEventSec( &EV_Activate, wait, this );
+			if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+				CS_PostEventSec(&EV_Activate, wait, this); //Added for client-side coop
+			}
+			else {
+				PostEventSec(&EV_Activate, wait, this);
+			}
 		}
 		SetBlocked( false );
 	}
@@ -3115,7 +3136,14 @@ void idMover_Binary::GotoPosition1()
 	{
 		// use the physics times because this might be executed during the physics simulation
 		partial = physicsObj.GetLinearEndTime() - physicsObj.GetTime();
-		assert( partial >= 0 );
+
+		if (common->IsClient() && gameLocal.mpGame.IsGametypeCoopBased()) { //avoid crash in coop
+			partial = 0;
+		}
+		else {
+			assert(partial >= 0);
+		}
+
 		if( partial < 0 )
 		{
 			partial = 0;
@@ -3168,7 +3196,14 @@ void idMover_Binary::GotoPosition2()
 	{
 		// use the physics times because this might be executed during the physics simulation
 		partial = physicsObj.GetLinearEndTime() - physicsObj.GetTime();
-		assert( partial >= 0 );
+
+		if (common->IsClient() && gameLocal.mpGame.IsGametypeCoopBased()) { //avoid crash in coop
+			partial = 0;
+		}
+		else {
+			assert(partial >= 0);
+		}
+
 		if( partial < 0 )
 		{
 			partial = 0;
@@ -3615,6 +3650,9 @@ idDoor::idDoor()
 	syncLock.Clear();
 	companionDoor = NULL;
 	normalAxisIndex = 0;
+	//fl.networkSync = true;
+	fl.coopNetworkSync = true;
+	fl.useOldNetcode = false;
 }
 
 /*
@@ -4064,7 +4102,9 @@ void idDoor::Use( idEntity* other, idEntity* activator )
 				}
 			}
 		}
-		ActivateTargets( activator );
+		if (!gameLocal.mpGame.IsGametypeCoopBased() || common->IsServer()) { //not activate targets in coop for clients
+			ActivateTargets(activator);
+		}
 		Use_BinaryMover( activator );
 	}
 }
@@ -4451,6 +4491,11 @@ void idDoor::Event_Touch( idEntity* other, trace_t* trace )
 		{
 			if( AllowPlayerOnly( other ) )
 			{
+				if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+					if (GetMoverState() != MOVER_POS1) { //FIXME: more ductape
+						return;
+					}
+				}
 				Use( this, other );
 			}
 		}

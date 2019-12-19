@@ -685,6 +685,8 @@ idEntityFx::idEntityFx()
 	started = -1;
 	nextTriggerTime = -1;
 	fl.networkSync = true;
+	fl.coopNetworkSync = true; //coop: Should this really be a networksync entity?
+	snapshotPriority = 6; //coop: really low priority (in case of snapshot overflow)
 }
 
 /*
@@ -843,7 +845,7 @@ idEntityFx::StartFx
 idEntityFx* idEntityFx::StartFx( const char* fx, const idVec3* useOrigin, const idMat3* useAxis, idEntity* ent, bool bind )
 {
 
-	if( g_skipFX.GetBool() || !fx || !*fx )
+	if( g_skipFX.GetBool() || !fx || !*fx || (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient())) //FIXME: this point should never be reached in Multiplayer at all by clients
 	{
 		return NULL;
 	}
@@ -911,10 +913,25 @@ void idEntityFx::ReadFromSnapshot( const idBitMsg& msg )
 			started = 0;
 			return;
 		}
-		const idDeclFX* fx = static_cast<const idDeclFX*>( declManager->DeclByIndex( DECL_FX, fx_index ) );
+		const idDeclFX* fx;
+		//ugly avoid crash in coop
+
+		int declTypeCount = declManager->GetNumDecls(DECL_ENTITYDEF);
+		if (fx_index < 0 || fx_index >= declTypeCount) {
+			fx = NULL;
+		} else {
+			fx = static_cast<const idDeclFX*>(declManager->DeclByIndex(DECL_FX, fx_index));
+		}
+
+		//end avoid crash in coop
 		if( !fx )
 		{
-			gameLocal.Error( "FX at index %d not found", fx_index );
+			if (gameLocal.mpGame.IsGametypeCoopBased()) {
+				common->Warning("[COOP] FX at index %d not found", fx_index);
+			}
+			else {
+				gameLocal.Error("FX at index %d not found", fx_index);
+			}
 		}
 		fxEffect = fx;
 		Setup( fx->GetName() );

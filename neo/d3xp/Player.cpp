@@ -220,6 +220,16 @@ idInventory::GivePowerUp
 */
 void idInventory::GivePowerUp( idPlayer* player, int powerup, int msec )
 {
+	/* //FIXME: Update this for BFG Edition
+	if (gameLocal.mpGame.IsGametypeCoopBased() && !def) {
+		common->Warning("[COOP] Trying to give unkwown powerup! THIS IS BAD\n");
+		return; //don't give a shit
+	}
+	else {
+		assert(def);
+	}
+	*/
+
 	powerups |= 1 << powerup;
 	powerupEndTime[ powerup ] = gameLocal.time + msec;
 }
@@ -1621,6 +1631,8 @@ idPlayer::idPlayer():
 	smoothedAngles			= ang_zero;
 	
 	fl.networkSync			= true;
+	fl.coopNetworkSync = true;
+	forceNetworkSync = true; //added by Stradex for Coop
 	
 	doingDeathSkin			= false;
 	weaponGone				= false;
@@ -1657,6 +1669,9 @@ idPlayer::idPlayer():
 	isChatting				= 0;
 	
 	selfSmooth				= false;
+
+	//adde for COOP by stradex
+	snapshotPriority = 1;
 	
 	playedTimeSecs			= 0;
 	playedTimeResidual		= 0;
@@ -1982,6 +1997,9 @@ void idPlayer::Init()
 	lastMPAimTime		= 0;
 	MPAimFadeTime		= 0;
 	MPAimHighlight		= false;
+
+	//coop start
+	allowClientsideMovement = false; //added by Stradex
 	
 	//isChatting = false;
 	
@@ -2016,6 +2034,11 @@ void idPlayer::Spawn()
 	
 	// allow thinking during cinematics
 	cinematic = true;
+
+	if (common->IsServer() && gameLocal.mpGame.IsGametypeCoopBased()) {
+		originalSpawnArgs.Copy(spawnArgs); //I think there's no need for this
+		gameLocal.firstClientToSpawn = true; //addded for COOP
+	}
 	
 	if( common->IsMultiplayer() )
 	{
@@ -2103,6 +2126,12 @@ void idPlayer::Spawn()
 	{
 		Init();
 		Hide();	// properly hidden if starting as a spectator
+
+		if (gameLocal.mpGame.IsGametypeCoopBased()) {
+			weapon.forceCoopEntity = true; //evil stuff
+		}
+
+
 		if( !common->IsClient() )
 		{
 			// set yourself ready to spawn. idMultiplayerGame will decide when/if appropriate and call SpawnFromSpawnSpot
@@ -2181,7 +2210,7 @@ void idPlayer::Spawn()
 	inventory.pdaOpened = false;
 	inventory.selPDA = 0;
 	
-	if( !common->IsMultiplayer() )
+	if( !common->IsMultiplayer() || gameLocal.mpGame.IsGametypeCoopBased())
 	{
 		int startingHealth = gameLocal.world->spawnArgs.GetInt( "startingHealth", health );
 		if( health > startingHealth )
@@ -3048,6 +3077,42 @@ void idPlayer::ServerSpectate( bool spectate )
 	}
 }
 
+bool idPlayer::IsCollidingWithPlayer(void) {
+	idPhysics* phys = GetPhysics();
+	if (!phys->GetNumClipModels()) {
+		return false;
+	}
+
+	idClipModel* clipModels[MAX_GENTITIES];
+	int num = gameLocal.clip.ClipModelsTouchingBounds(phys->GetAbsBounds(), phys->GetClipMask(), clipModels, MAX_GENTITIES);
+
+	idClipModel* cm;
+	idEntity* hit;
+	for (int i = 0; i < num; i++) {
+		cm = clipModels[i];
+
+		// don't check render entities
+		if (cm->IsRenderModel()) {
+			continue;
+		}
+
+		hit = cm->GetEntity();
+		if (hit == this) {
+			continue;
+		}
+
+		if (!phys->ClipContents(cm)) {
+			continue;
+		}
+
+		if (hit->IsType(idPlayer::Type)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
 /*
 ===========
 idPlayer::SelectInitialSpawnPoint
@@ -3071,6 +3136,13 @@ void idPlayer::SelectInitialSpawnPoint( idVec3& origin, idAngles& angles )
 	
 	// activate the spawn locations targets
 	spot->PostEventMS( &EV_ActivateTargets, 0, this );
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && gameLocal.mpGame.playerUseCheckpoints[this->entityNumber] && common->IsServer()) {
+		origin = gameLocal.mpGame.playerCheckpoints[this->entityNumber];
+		origin[2] += 4.0f + CM_BOX_EPSILON;
+		angles = spot->GetPhysics()->GetAxis().ToAngles();
+		return;
+	}
 	
 	origin = spot->GetPhysics()->GetOrigin();
 	origin[2] += 4.0f + CM_BOX_EPSILON;		// move up to make sure the player is at least an epsilon above the floor
@@ -3190,6 +3262,7 @@ void idPlayer::SpawnToPoint( const idVec3& spawn_origin, const idAngles& spawn_a
 	{
 		physicsObj.SetClipMask( MASK_PLAYERSOLID ); // the clip mask is usually maintained in Move(), but KillBox requires it
 		gameLocal.KillBox( this );
+		spawnPhaseWalk = (gameLocal.mpGame.IsGametypeCoopBased() && IsCollidingWithPlayer());
 	}
 	
 	// don't allow full run speed for a bit
@@ -3266,7 +3339,7 @@ Restores any inventory and player stats when changing levels.
 */
 void idPlayer::RestorePersistantInfo()
 {
-	if( common->IsMultiplayer() || g_demoMode.GetBool() )
+	if((common->IsMultiplayer() && (!gameLocal.mpGame.IsGametypeCoopBased() || common->IsClient())) || g_demoMode.GetBool() )
 	{
 		gameLocal.persistentPlayerInfo[entityNumber].Clear();
 	}
@@ -4206,8 +4279,7 @@ float idPlayer::PowerUpModifier( int type )
 				GiveHealthPool( 100 );
 			}
 		}
-		else
-		{
+		else if (!gameLocal.mpGame.IsGametypeCoopBased()) {
 			healthPool = 0;
 		}
 		
@@ -4589,6 +4661,8 @@ void idPlayer::UpdatePowerUps()
 			renderEntity.customSkin = skin;
 		}
 	}
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) return;  //clients should never reach this point
 	
 	if( healthPool && gameLocal.time > nextHealthPulse && !AI_DEAD && health > 0 )
 	{
@@ -4815,6 +4889,10 @@ idPlayer::GiveSecurity
 */
 void idPlayer::GiveSecurity( const char* security )
 {
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		return; //disable this in  coop
+	}
+
 	GetPDA()->SetSecurity( security );
 	
 	if( hud )
@@ -4836,6 +4914,11 @@ void idPlayer::GiveEmail( const idDeclEmail* email )
 	}
 	
 	inventory.emails.AddUnique( email );
+
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		return; //disable this in  coop
+	}
+
 	GetPDA()->AddEmail( email );
 	
 	// TODO_SPARTY: hook up new email notification in new hud
@@ -4851,7 +4934,7 @@ idPlayer::GivePDA
 */
 void idPlayer::GivePDA( const idDeclPDA* pda, const char* securityItem )
 {
-	if( common->IsMultiplayer() && spectating )
+	if( common->IsMultiplayer() && (spectating || common->IsClient()))
 	{
 		return;
 	}
@@ -4859,6 +4942,28 @@ void idPlayer::GivePDA( const idDeclPDA* pda, const char* securityItem )
 	if( securityItem != NULL && securityItem[0] != 0 )
 	{
 		inventory.pdaSecurity.AddUnique( securityItem );
+		if (gameLocal.mpGame.IsGametypeCoopBased()) {
+			idPlayer* p;
+
+			cmdSystem->BufferCommandText(CMD_EXEC_NOW, va("say picked up PDA\n"));
+			for (int j = 0; j < gameLocal.numClients; j++) {
+				if (!gameLocal.entities[j]) {
+					continue;
+				}
+
+				p = static_cast<idPlayer*>(gameLocal.entities[j]);
+
+				if (!p || p->spectating || (p->entityNumber == this->entityNumber)) {
+					continue;
+				}
+
+				p->inventory.pdaSecurity.AddUnique(securityItem);
+			}
+		}
+	}
+
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		return; //No PDAs in Coop yet
 	}
 	
 	// Just to make sure they want the default player spawn defined pda.
@@ -6768,7 +6873,7 @@ void idPlayer::CrashLand( const idVec3& oldOrigin, const idVec3& oldVelocity )
 	}
 	
 	// allow falling a bit further for multiplayer
-	if( common->IsMultiplayer() )
+	if( common->IsMultiplayer() && !gameLocal.mpGame.IsGametypeCoopBased())
 	{
 		fatalDelta	= 75.0f;
 		hardDelta	= 50.0f;
@@ -8113,7 +8218,17 @@ void idPlayer::Move_Interpolated( float fraction )
 	}
 	else
 	{
-		physicsObj.SetClipMask( MASK_PLAYERSOLID );
+		if (g_unblockPlayers.GetBool() && gameLocal.mpGame.IsGametypeCoopBased()) {
+			physicsObj.SetClipMask(MASK_DEADSOLID);
+		}
+		else if (spawnPhaseWalk && gameLocal.mpGame.IsGametypeCoopBased()) {
+			physicsObj.SetClipMask(MASK_PLAYERSOLID);
+			spawnPhaseWalk = IsCollidingWithPlayer();
+			physicsObj.SetClipMask(MASK_DEADSOLID);
+		}
+		else {
+			physicsObj.SetClipMask(MASK_PLAYERSOLID);
+		}
 	}
 	
 	physicsObj.SetDebugLevel( g_debugMove.GetBool() );
@@ -8255,7 +8370,17 @@ void idPlayer::Move()
 	}
 	else
 	{
-		physicsObj.SetClipMask( MASK_PLAYERSOLID );
+		if (g_unblockPlayers.GetBool() && gameLocal.mpGame.IsGametypeCoopBased()) {
+			physicsObj.SetClipMask(MASK_DEADSOLID);
+		}
+		else if (spawnPhaseWalk && gameLocal.mpGame.IsGametypeCoopBased()) {
+			physicsObj.SetClipMask(MASK_PLAYERSOLID);
+			spawnPhaseWalk = IsCollidingWithPlayer();
+			physicsObj.SetClipMask(MASK_DEADSOLID);
+		}
+		else {
+			physicsObj.SetClipMask(MASK_PLAYERSOLID);
+		}
 	}
 	
 	physicsObj.SetDebugLevel( g_debugMove.GetBool() );
@@ -8941,7 +9066,7 @@ void idPlayer::Think()
 		}
 		
 		// not done on clients for various reasons. don't do it on server and save the sound channel for other things
-		if( !common->IsMultiplayer() )
+		if( !common->IsMultiplayer() || gameLocal.mpGame.IsGametypeCoopBased())
 		{
 			SetCurrentHeartRate();
 			float scale = new_g_damageScale;
@@ -9414,6 +9539,14 @@ void idPlayer::Killed( idEntity* inflictor, idEntity* attacker, int damage, cons
 	float delay;
 	
 	assert( !common->IsClient() );
+
+
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		spawnArgs.Clear(); //with this only should be enough
+		spawnArgs.Copy(originalSpawnArgs); //I think there's no need for this.
+		inventory.Clear(); //this maybe is not a good idea
+		gameLocal.persistentPlayerInfo[entityNumber].Clear(); //reset persistant info
+	}
 	
 	// stop taking knockback once dead
 	fl.noknockback = true;
@@ -9598,7 +9731,7 @@ void idPlayer::CalcDamagePoints( idEntity* inflictor, idEntity* attacker, const 
 	damage = GetDamageForLocation( damage, location );
 	
 	idPlayer* player = attacker->IsType( idPlayer::Type ) ? static_cast<idPlayer*>( attacker ) : NULL;
-	if( !common->IsMultiplayer() )
+	if( !common->IsMultiplayer() || gameLocal.mpGame.IsGametypeCoopBased())
 	{
 		if( inflictor != gameLocal.world )
 		{
@@ -9628,7 +9761,7 @@ void idPlayer::CalcDamagePoints( idEntity* inflictor, idEntity* attacker, const 
 	// always give half damage if hurting self
 	if( attacker == this )
 	{
-		if( common->IsMultiplayer() )
+		if( common->IsMultiplayer() && !gameLocal.mpGame.IsGametypeCoopBased())
 		{
 			// only do this in mp so single player plasma and rocket splash is very dangerous in close quarters
 			damage *= damageDef->GetFloat( "selfDamageScale", "0.5" );
@@ -9662,7 +9795,7 @@ void idPlayer::CalcDamagePoints( idEntity* inflictor, idEntity* attacker, const 
 	{
 		float armor_protection;
 		
-		armor_protection = ( common->IsMultiplayer() ) ? g_armorProtectionMP.GetFloat() : g_armorProtection.GetFloat();
+		armor_protection = ( common->IsMultiplayer() && !gameLocal.mpGame.IsGametypeCoopBased() ) ? g_armorProtectionMP.GetFloat() : g_armorProtection.GetFloat();
 		
 		armorSave = ceil( damage * armor_protection );
 		if( armorSave >= inventory.armor )
@@ -9690,12 +9823,12 @@ void idPlayer::CalcDamagePoints( idEntity* inflictor, idEntity* attacker, const 
 	}
 	
 	// check for team damage
-	if( gameLocal.mpGame.IsGametypeTeamBased()  /* CTF */
+	if((gameLocal.mpGame.IsGametypeTeamBased() || gameLocal.mpGame.IsGametypeCoopBased())  /* CTF */ //Team damage cvar working now in Coop
 			&& !gameLocal.serverInfo.GetBool( "si_teamDamage" )
 			&& !damageDef->GetBool( "noTeam" )
 			&& player
 			&& player != this		// you get self damage no matter what
-			&& player->team == team )
+			&& (player->team == team || gameLocal.mpGame.IsGametypeCoopBased()))
 	{
 		damage = 0;
 	}
@@ -10772,7 +10905,19 @@ void idPlayer::SetLastHitTime( int time )
 		{
 			aimed = static_cast< idPlayer* >( gameLocal.entities[ MPAim ] );
 		}
-		assert( aimed );
+		if (gameLocal.mpGame.IsGametypeCoopBased()) { //avoid crash in coop
+			if (!aimed) {
+				//hud->SetStateString("aim_text", "Unknown");
+				//hud->SetStateFloat("aim_color", 0);
+				//hud->HandleNamedEvent("aim_flash");
+				MPAimHighlight = true;
+				MPAimFadeTime = 0;
+				return;
+			}
+		}
+		else {
+			assert(aimed);
+		}
 		// full highlight, no fade till loosing aim
 		
 		if( hud )
@@ -10793,7 +10938,20 @@ void idPlayer::SetLastHitTime( int time )
 		{
 			aimed = static_cast< idPlayer* >( gameLocal.entities[ lastMPAim ] );
 		}
-		assert( aimed );
+		if (gameLocal.mpGame.IsGametypeCoopBased()) { //avoid crash in coop
+			if (!aimed) {
+				//hud->SetStateString("aim_text", "Unknown");
+				//hud->SetStateFloat("aim_color", 0);
+				//hud->HandleNamedEvent("aim_flash");
+				//hud->HandleNamedEvent("aim_fade");
+				MPAimHighlight = false;
+				MPAimFadeTime = gameLocal.realClientTime;
+				return;
+			}
+		}
+		else {
+			assert(aimed);
+		}
 		// start fading right away
 		if( hud )
 		{
@@ -10821,15 +10979,20 @@ void idPlayer::SetInfluenceLevel( int level )
 	{
 		if( level )
 		{
-			for( idEntity* ent = gameLocal.spawnedEntities.Next(); ent != NULL; ent = ent->spawnNode.Next() )
-			{
-				if( ent->IsType( idProjectile::Type ) )
+			if (!gameLocal.mpGame.IsGametypeCoopBased()) { //try to fix crash in coop by Stradex
+
+				for (idEntity* ent = gameLocal.spawnedEntities.Next(); ent != NULL; ent = ent->spawnNode.Next())
 				{
-					// remove all projectiles
-					ent->PostEventMS( &EV_Remove, 0 );
+					if (ent->IsType(idProjectile::Type))
+					{
+						// remove all projectiles
+						ent->PostEventMS(&EV_Remove, 0);
+					}
 				}
+
 			}
-			if( weaponEnabled && weapon.GetEntity() )
+
+			if (weaponEnabled && weapon.GetEntity())
 			{
 				weapon.GetEntity()->EnterCinematic();
 			}
@@ -11400,6 +11563,11 @@ void idPlayer::ClientThink( const int curTime, const float fraction, const bool 
 		{
 			// Locally-controlled clients are authoritative on their positions, so they can move normally.
 			Move();
+
+			if (!noclip && !spectating && (health > 0) && !IsHidden() && gameLocal.isNewFrame && gameLocal.mpGame.IsGametypeCoopBased()) { //Touch triggers COOP
+				ClientTouchTriggers(); //specific client-side triggers
+			}
+
 			usercmd.pos = physicsObj.GetOrigin();
 		}
 		else
@@ -11696,7 +11864,12 @@ void idPlayer::WriteToSnapshot( idBitMsg& msg ) const
 	msg.WriteShort( lastDamageLocation );
 	msg.WriteBits( idealWeapon.Get(), idMath::BitsForInteger( MAX_WEAPONS ) );
 	msg.WriteBits( inventory.weapons, MAX_WEAPONS );
-	msg.WriteBits( weapon.GetSpawnId(), 32 );
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		msg.WriteBits(weapon.GetCoopId(), 32);
+	}
+	else {
+		msg.WriteBits(weapon.GetSpawnId(), 32);
+	}
 	msg.WriteBits( flashlight.GetSpawnId(), 32 );
 	msg.WriteBits( spectator, idMath::BitsForInteger( MAX_CLIENTS ) );
 	msg.WriteBits( lastHitToggle, 1 );
@@ -11721,6 +11894,12 @@ void idPlayer::WriteToSnapshot( idBitMsg& msg ) const
 	msg.WriteBits( usercmd.rightmove, -8 );
 	
 	msg.WriteBool( spectating );
+
+	//extra added for coop
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		msg.WriteBits(noclip, 1);
+		msg.WriteBits(fl.hidden, 1);
+	}
 }
 
 /*
@@ -11730,7 +11909,7 @@ idPlayer::ReadFromSnapshot
 */
 void idPlayer::ReadFromSnapshot( const idBitMsg& msg )
 {
-	int		oldHealth, newIdealWeapon, weaponSpawnId;
+	int		oldHealth, newIdealWeapon, weaponSpawnId, weaponCoopId;
 	int		flashlightSpawnId;
 	bool	newHitToggle;
 	
@@ -11758,7 +11937,14 @@ void idPlayer::ReadFromSnapshot( const idBitMsg& msg )
 	lastDamageLocation = msg.ReadShort();
 	newIdealWeapon = msg.ReadBits( idMath::BitsForInteger( MAX_WEAPONS ) );
 	inventory.weapons = msg.ReadBits( MAX_WEAPONS );
-	weaponSpawnId = msg.ReadBits( 32 );
+
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		weaponCoopId = msg.ReadBits(32);
+	}
+	else {
+		weaponSpawnId = msg.ReadBits(32);
+	}
+
 	flashlightSpawnId = msg.ReadBits( 32 );
 	spectator = msg.ReadBits( idMath::BitsForInteger( MAX_CLIENTS ) );
 	newHitToggle = msg.ReadBits( 1 ) != 0;
@@ -11785,6 +11971,22 @@ void idPlayer::ReadFromSnapshot( const idBitMsg& msg )
 	
 	const bool snapshotSpectating = msg.ReadBool();
 	
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+
+		bool shouldHide = false;
+
+		noclip = msg.ReadBits(1) != 0;
+		shouldHide = msg.ReadBits(1) != 0;
+		if (entityNumber != gameLocal.GetLocalClientNum()) {
+			if (shouldHide && !fl.hidden) {
+				Hide();
+			}
+			else if (!shouldHide && fl.hidden) {
+				Show();
+			}
+		}
+	}
+
 	// no msg reading below this
 	
 	// Update remote remote player state.
@@ -11807,14 +12009,29 @@ void idPlayer::ReadFromSnapshot( const idBitMsg& msg )
 		usercmd.rightmove = snapshotRight;
 	}
 	
-	if( weapon.SetSpawnId( weaponSpawnId ) )
-	{
-		if( weapon.GetEntity() )
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+
+		if ( weapon.SetCoopId(weaponCoopId) )
 		{
-			// maintain ownership locally
-			weapon.GetEntity()->SetOwner( this );
+			if (weapon.GetEntity())
+			{
+				// maintain ownership locally
+				weapon.GetCoopEntity()->SetOwner(this);
+			}
+			currentWeapon = -1;
 		}
-		currentWeapon = -1;
+
+	}
+	else {
+		if (weapon.SetSpawnId(weaponSpawnId))
+		{
+			if (weapon.GetEntity())
+			{
+				// maintain ownership locally
+				weapon.GetEntity()->SetOwner(this);
+			}
+			currentWeapon = -1;
+		}
 	}
 	
 	if( flashlight.SetSpawnId( flashlightSpawnId ) )
@@ -11887,7 +12104,20 @@ void idPlayer::ReadFromSnapshot( const idBitMsg& msg )
 		else
 		{
 			// damage feedback
-			const idDeclEntityDef* def = static_cast<const idDeclEntityDef*>( declManager->DeclByIndex( DECL_ENTITYDEF, lastDamageDef, false ) );
+
+			const idDeclEntityDef* def;
+			//ugly avoid crash in coop
+			int declTypeCount = declManager->GetNumDecls(DECL_ENTITYDEF);
+			if (lastDamageDef < 0 || lastDamageDef >= declTypeCount) {
+				def = NULL;
+			}
+			else {
+				// damage feedback
+				def = static_cast<const idDeclEntityDef*>(declManager->DeclByIndex(DECL_ENTITYDEF, lastDamageDef, false));
+			}
+			//avoid crash in coop
+
+			//const idDeclEntityDef* def = static_cast<const idDeclEntityDef*>( declManager->DeclByIndex( DECL_ENTITYDEF, lastDamageDef, false ) );
 			if( def )
 			{
 				if( IsLocallyControlled() )
@@ -12603,4 +12833,84 @@ gameExpansionType_t idPlayer::GetExpansionType() const
 		return GAME_D3LE;
 	}
 	return GAME_UNKNOWN;
+}
+
+/***************
+COOP specific stuff
+****************/
+
+/*
+======
+idInventory::CS_Give
+==========
+*/
+
+bool idInventory::CS_Give(idPlayer* owner, const idDict& spawnArgs, const char* statname, const char* value, int* idealWeapon, bool updateHud) {
+	return true; //fix this later
+}
+
+
+/*
+===============
+idPlayer::CS_Give
+===============
+*/
+bool idPlayer::CS_Give(const char* statname, const char* value) {
+	return true; //fix this later
+}
+
+/*
+===============
+idPlayer::CS_GiveItem
+Returns false if the item shouldn't be picked up
+===============
+*/
+
+bool idPlayer::CS_GiveItem(idItem* item)
+{
+	return true; //fix this later
+}
+
+/*
+================
+idPlayer::GetViewAngles
+================
+*/
+idAngles idPlayer::GetViewAngles(void) {
+	return viewAngles;
+}
+
+/*
+===========
+idPlayer::Teleport
+============
+*/
+void idPlayer::Teleport(const idVec3& origin, const idAngles& angles) {
+	idVec3 org;
+
+	if (weapon.GetEntity()) {
+		weapon.GetEntity()->LowerWeapon();
+	}
+
+	SetOrigin(origin + idVec3(0, 0, CM_CLIP_EPSILON));
+	if (!common->IsMultiplayer() && GetFloorPos(16.0f, org)) {
+		SetOrigin(org);
+	}
+
+	// clear the ik heights so model doesn't appear in the wrong place
+	walkIK.EnableAll();
+
+	GetPhysics()->SetLinearVelocity(vec3_origin);
+
+	SetViewAngles(angles);
+
+	legsYaw = 0.0f;
+	idealLegsYaw = 0.0f;
+	oldViewYaw = viewAngles.yaw;
+
+	if (common->IsMultiplayer()) {
+		playerView.Flash(colorWhite, 140);
+	}
+
+	UpdateVisuals();
 }

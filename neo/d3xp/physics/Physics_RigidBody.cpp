@@ -968,7 +968,14 @@ bool idPhysics_RigidBody::Evaluate( int timeStepMSec, int endTimeMSec )
 #ifdef RB_TIMINGS
 	timer_collision.Start();
 #endif
-	
+
+	// check for collisions from the currennextt to the next state
+	if (gameLocal.mpGame.IsGametypeCoopBased() && (IEEE_FLT_IS_NAN(next.i.angularMomentum.x) || IEEE_FLT_IS_NAN(next.i.angularMomentum.y) || IEEE_FLT_IS_NAN(next.i.angularMomentum.z) ||
+		IEEE_FLT_IS_NAN(next.i.angularMomentum.x) || IEEE_FLT_IS_NAN(next.i.angularMomentum.y) || IEEE_FLT_IS_NAN(next.i.angularMomentum.z))) {
+		//common->Warning("[COOP FATAL] NAN Float at idPhysics_RigidBody::Evaluate\n");
+		return false;
+	}
+
 	// check for collisions from the current to the next state
 	collided = CheckForCollisions( timeStep, next_step, collision );
 	

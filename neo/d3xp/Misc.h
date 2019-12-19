@@ -284,10 +284,18 @@ public:
 	virtual bool			LoadAF();
 	bool					StartRagdoll();
 	virtual bool			GetPhysicsToSoundTransform( idVec3& origin, idMat3& axis );
+
+	virtual void			WriteToSnapshot(idBitMsg& msg) const; //added for COOP
+	virtual void			ReadFromSnapshot(const idBitMsg& msg); //added for COOP
+
+	virtual void			ClientThink(const int curTime, const float fraction, const bool predict); //added for coop
+	virtual void			Think(void); //added for COOP
 	
 private:
 	int						num_anims;
 	int						current_anim_index;
+	int						currentAnimPlaying; //for coop
+	bool					hasBeenActivated; //added for Coop
 	int						anim;
 	int						blendFrames;
 	jointHandle_t			soundJoint;
@@ -333,12 +341,22 @@ public:
 	virtual void		Show();
 	void				Fade( const idVec4& to, float fadeTime );
 	virtual void		Think();
+
+	//added for coop
+	enum {
+		EVENT_STATIC_ACTIVATE = idEntity::EVENT_MAXEVENTS,
+		EVENT_STATIC_REMOVE,
+		EVENT_MAXEVENTS
+	};
+	//end for coop
 	
 	virtual void		WriteToSnapshot( idBitMsg& msg ) const;
 	virtual void		ReadFromSnapshot( const idBitMsg& msg );
+	virtual bool		ClientReceiveEvent(int event, int time, const idBitMsg& msg); //added for coop
 	
 private:
 	void				Event_Activate( idEntity* activator );
+	void				Event_Remove( void ); //added for coop
 	
 	int					spawnTime;
 	bool				active;
@@ -581,13 +599,25 @@ public:
 	void				SetBeamTarget( const idVec3& origin );
 	
 	virtual void		Show();
+
+	//added for coop
+	enum {
+		EVENT_BEAM_ACTIVATE = idEntity::EVENT_MAXEVENTS,
+		EVENT_BEAM_REMOVE,
+		EVENT_MAXEVENTS
+	};
+	//end for coop
+	virtual void		ClientThink(const int curTime, const float fraction, const bool predict); //added for COOP
 	
 	virtual void		WriteToSnapshot( idBitMsg& msg ) const;
 	virtual void		ReadFromSnapshot( const idBitMsg& msg );
+
+	virtual bool		ClientReceiveEvent(int event, int time, const idBitMsg& msg); //added for coop
 	
 private:
 	void				Event_MatchTarget();
 	void				Event_Activate( idEntity* activator );
+	void				Event_Remove(void); //added for coop
 	
 	idEntityPtr<idBeam>	target;
 	idEntityPtr<idBeam>	master;

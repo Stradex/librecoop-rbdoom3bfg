@@ -1640,6 +1640,11 @@ void idThread::Event_SetCamera( idEntity* ent )
 		Error( "Entity not found" );
 		return;
 	}
+
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		common->Printf("Avoid cinematics in COOP\n");
+		return;
+	}
 	
 	if( !ent->IsType( idCamera::Type ) )
 	{

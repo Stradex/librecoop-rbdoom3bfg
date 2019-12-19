@@ -220,6 +220,10 @@ public:
 	bool					HasEmptyClipCannotRefill( const char* weapon_classname, idPlayer* owner );
 	
 	void					UpdateArmor();
+
+	//COOP specific functions
+	bool					CS_Give(idPlayer* owner, const idDict& spawnArgs, const char* statname, const char* value, int* idealWeapon, bool updateHud);
+
 	
 	void					SetInventoryAmmoForType( const int ammoType, const int amount );
 	void					SetClipAmmoForWeapon( const int weapon, const int amount );
@@ -423,6 +427,7 @@ public:
 	idMat3					firstPersonViewAxis;
 	
 	idDragEntity			dragEntity;
+	bool					spawnPhaseWalk;
 	
 	idFuncMountedObject*		mountedObject;
 	idEntityPtr<idLight>	enviroSuitLight;
@@ -506,6 +511,7 @@ public:
 	
 	// use exitEntityNum to specify a teleport with private camera view and delayed exit
 	virtual void			Teleport( const idVec3& origin, const idAngles& angles, idEntity* destination );
+	virtual void			Teleport(const idVec3& origin, const idAngles& angles); //For coop only
 	
 	void					Kill( bool delayRespawn, bool nodamage );
 	virtual void			Killed( idEntity* inflictor, idEntity* attacker, int damage, const idVec3& dir, int location );
@@ -691,6 +697,7 @@ public:
 	
 	// server side work for in/out of spectate. takes care of spawning it into the world as well
 	void					ServerSpectate( bool spectate );
+	bool					IsCollidingWithPlayer(); // used in coop
 	// for very specific usage. != GetPhysics()
 	idPhysics*				GetPlayerPhysics();
 	void					TeleportDeath( int killer );
@@ -734,6 +741,17 @@ public:
 	
 	bool					SelfSmooth();
 	void					SetSelfSmooth( bool b );
+
+	//COOP SPECIFIC
+	idDict					originalSpawnArgs;	//used for coop inventory
+	idAngles				GetViewAngles(void); //added for coop checkpoint teleport
+	bool					allowClientsideMovement; //used to let the server send info for some seconds after spawning, to avoid spawn in void
+
+	//Client-side stuff for coop
+	bool					CS_Give(const char* statname, const char* value);
+	bool					CS_GiveItem(idItem* item);
+
+	//END COOP SPECIFIC
 	
 	const idAngles& 		GetViewBobAngles()
 	{

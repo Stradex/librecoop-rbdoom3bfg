@@ -63,6 +63,7 @@ public :
 	void					Event_LaunchProjectile( const idVec3& start, const idVec3& dir, const idVec3& pushVelocity );
 	void					Event_SetGravity( float gravity );
 	
+	virtual void			SpawnDebris(); //added for COOP Clientside code
 	virtual void			Think();
 	virtual void			Killed( idEntity* inflictor, idEntity* attacker, int damage, const idVec3& dir, int location );
 	virtual bool			Collide( const trace_t& collision, const idVec3& velocity );
@@ -86,6 +87,8 @@ public :
 	{
 		return launchedFromGrabber;
 	}
+
+	bool					selfClientside; //if this projectile should be allowed to be self Clientside
 	
 	static void				DefaultDamageEffect( idEntity* soundEnt, const idDict& projectileDef, const trace_t& collision, const idVec3& velocity );
 	static bool				ClientPredictionCollide( idEntity* soundEnt, const idDict& projectileDef, const trace_t& collision, const idVec3& velocity, bool addDamageEffect );
@@ -189,6 +192,10 @@ public :
 	virtual void			Launch( const idVec3& start, const idVec3& dir, const idVec3& pushVelocity, const float timeSinceFire = 0.0f, const float launchPower = 1.0f, const float dmgPower = 1.0f );
 	void					SetEnemy( idEntity* ent );
 	void					Event_SetEnemy( idEntity* ent );
+
+	virtual void			ClientThink(const int curTime, const float fraction, const bool predict); //added for coop
+	virtual void			WriteToSnapshot(idBitMsg& msg) const; //added for Coop
+	virtual void			ReadFromSnapshot(const idBitMsg& msg); //added for Coop
 	
 protected:
 	float					speed;
@@ -220,6 +227,10 @@ public:
 	virtual void			Think();
 	virtual void			Launch( const idVec3& start, const idVec3& dir, const idVec3& pushVelocity, const float timeSinceFire = 0.0f, const float power = 1.0f, const float dmgPower = 1.0f );
 	
+	virtual void			ClientThink(const int curTime, const float fraction, const bool predict);
+	virtual void			WriteToSnapshot(idBitMsg& msg) const; //added for Coop
+	virtual void			ReadFromSnapshot(const idBitMsg& msg); //added for Coop
+
 protected:
 	virtual void			GetSeekPos( idVec3& out );
 	void					ReturnToOwner();
@@ -339,6 +350,7 @@ public :
 	void					Explode();
 	void					Fizzle();
 	virtual bool			Collide( const trace_t& collision, const idVec3& velocity );
+	virtual void			ClientThink(const int curTime, const float fraction, const bool predict); //added for Coop
 	
 	
 private:

@@ -1322,6 +1322,11 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3& dir, const char* damageDefNam
 	idVec3 entityCenter, velocity;
 	idList<idEntity*> list;
 	
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		return; //avoid crash in coop.. kind of
+	}
+
+
 	assert( !common->IsClient() );
 	
 	const idDict* damageDef = gameLocal.FindEntityDefDict( damageDefName );
@@ -1404,7 +1409,7 @@ void idAFEntity_Gibbable::Gib( const idVec3& dir, const char* damageDefName )
 	
 	UnlinkCombat();
 	
-	if( g_bloodEffects.GetBool() )
+	if (g_bloodEffects.GetBool() && !gameLocal.mpGame.IsGametypeCoopBased()) //unable to spawn gibs yet in coop
 	{
 		if( gameLocal.time > gameLocal.GetGibTime() )
 		{

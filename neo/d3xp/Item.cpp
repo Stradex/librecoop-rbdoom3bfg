@@ -73,6 +73,14 @@ idItem::idItem() :
 	orgOrigin.Zero();
 	canPickUp = true;
 	fl.networkSync = true;
+
+	fl.coopNetworkSync = false; //don't sync items in coop
+
+	//coop
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		clientPickedItem[i] = false;
+	}
+	firstTimePicked = true;
 }
 
 /*
@@ -244,7 +252,7 @@ void idItem::Think()
 {
 	if( thinkFlags & TH_THINK )
 	{
-		if( spin )
+		if( spin || (common->IsMultiplayer() && !gameLocal.mpGame.IsGametypeCoopBased()))
 		{
 			idAngles	ang;
 			idVec3		org;
@@ -394,6 +402,9 @@ bool idItem::GiveToPlayer( idPlayer* player, unsigned int giveFlags )
 	{
 		return false;
 	}
+	if (common->IsClient() && gameLocal.mpGame.IsGametypeCoopBased()) { //how the fuck this point is reached?
+		return false;
+	}
 	
 	if( spawnArgs.GetBool( "inv_carry" ) )
 	{
@@ -405,11 +416,71 @@ bool idItem::GiveToPlayer( idPlayer* player, unsigned int giveFlags )
 
 /*
 ================
+idItem::CS_GiveToPlayer
+================
+*/
+bool idItem::CS_GiveToPlayer(idPlayer* player) {
+	if (player == NULL) {
+		return false;
+	}
+
+	return player->CS_GiveItem(this);
+}
+
+/*
+================
 idItem::Pickup
 ================
 */
 bool idItem::Pickup( idPlayer* player )
 {
+
+	float respawn = spawnArgs.GetFloat("respawn");
+	bool dropped = spawnArgs.GetBool("dropped");
+	bool no_respawn = spawnArgs.GetBool("no_respawn");
+
+	if ((!gameLocal.mpGame.IsGametypeCoopBased() || gameLocal.serverInfo.GetBool("si_itemRespawn")) && common->IsMultiplayer() && respawn == 0.0f) {
+		respawn = 20.0f;
+	}
+
+	if (common->IsClient() && gameLocal.mpGame.IsGametypeCoopBased()) { //client-side pickup for coop
+		if (player && gameLocal.serverInfo.GetBool("si_onePickupPerPlayer") && (player->entityNumber != gameLocal.GetLocalClientNum())) { //One Pickup per player clientside behaviour
+			return false;
+		}
+		if (!CS_GiveToPlayer(player)) {
+			return false;
+		}
+
+		StartSound("snd_acquire", SND_CHANNEL_ITEM, 0, false, NULL);
+
+		// clear our contents so the object isn't picked up twice
+		GetPhysics()->SetContents(0);
+
+		// hide the model
+		Hide();
+		// add the highlight shell
+		if (itemShellHandle != -1) {
+			gameRenderWorld->FreeEntityDef(itemShellHandle);
+			itemShellHandle = -1;
+		}
+
+		if (respawn && !dropped && !no_respawn) {
+			//common->Printf("Item should respawn in %f seconds\n", respawn);
+			const char* sfx = spawnArgs.GetString("fxRespawn");
+			//if ( sfx && *sfx ) {
+			//	PostEventSec( &EV_RespawnFx, respawn - 0.5f );
+			//}
+			CS_PostEventSec(&EV_RespawnItem, respawn);
+		}
+		BecomeInactive(TH_THINK);
+		return true;
+	}
+
+	//server-side - Singleplayer pickup
+
+	if (player && gameLocal.serverInfo.GetBool("si_onePickupPerPlayer") && clientPickedItem[player->entityNumber] && gameLocal.mpGame.IsGametypeCoopBased()) { //COOP
+		return false; //this player already picked this item
+	}
 
 	const bool didGiveSucceed = GiveToPlayer( player, ITEM_GIVE_FEEDBACK );
 	if( !didGiveSucceed )
@@ -427,68 +498,79 @@ bool idItem::Pickup( idPlayer* player )
 		clientPredictPickupMilliseconds = 0;
 	}
 	
+	clientPickedItem[player->entityNumber] = true;
+
 	// play pickup sound
 	StartSound( "snd_acquire", SND_CHANNEL_ITEM, 0, false, NULL );
 	
-	// clear our contents so the object isn't picked up twice
-	GetPhysics()->SetContents( 0 );
-	
-	// hide the model
-	Hide();
-	
-	// remove the highlight shell
-	if( itemShellHandle != -1 )
-	{
-		gameRenderWorld->FreeEntityDef( itemShellHandle );
-		itemShellHandle = -1;
+	if (!gameLocal.serverInfo.GetBool("si_onePickupPerPlayer") || !gameLocal.mpGame.IsGametypeCoopBased()) { //COOP: enable multiple pickups with si_onePickupPerPlayer enabled
+		// clear our contents so the object isn't picked up twice
+		GetPhysics()->SetContents(0);
 	}
 	
-	// Clients need to bail out after some feedback, but
-	// before actually changing any values. The values
-	// will be updated in the next snapshot.
-	if( common->IsClient() )
+	//COOP: if si_onePickupPerPlayer enabled, then only hide the model when the local player pick it.
+	if (!gameLocal.serverInfo.GetBool("si_onePickupPerPlayer") || (player->entityNumber == gameLocal.GetLocalClientNum()) || !gameLocal.mpGame.IsGametypeCoopBased())
 	{
-		return didGiveSucceed;
-	}
-	
-	if( !GiveToPlayer( player, ITEM_GIVE_UPDATE_STATE ) )
-	{
-		return false;
-	}
-	
-	// trigger our targets
-	ActivateTargets( player );
-	
-	float respawn = spawnArgs.GetFloat( "respawn" );
-	bool dropped = spawnArgs.GetBool( "dropped" );
-	bool no_respawn = spawnArgs.GetBool( "no_respawn" );
-	
-	if( common->IsMultiplayer() && respawn == 0.0f )
-	{
-		respawn = 20.0f;
-	}
-	
-	if( respawn && !dropped && !no_respawn )
-	{
-		const char* sfx = spawnArgs.GetString( "fxRespawn" );
-		if( sfx != NULL && *sfx != '\0' )
+
+		// hide the model
+		Hide();
+
+		// remove the highlight shell
+		if (itemShellHandle != -1)
 		{
-			PostEventSec( &EV_RespawnFx, respawn - 0.5f );
+			gameRenderWorld->FreeEntityDef(itemShellHandle);
+			itemShellHandle = -1;
 		}
-		PostEventSec( &EV_RespawnItem, respawn );
-	}
-	else if( !spawnArgs.GetBool( "inv_objective" ) && !no_respawn )
-	{
-		// give some time for the pickup sound to play
-		// FIXME: Play on the owner
-		if( !spawnArgs.GetBool( "inv_carry" ) )
+
+		// Clients need to bail out after some feedback, but
+		// before actually changing any values. The values
+		// will be updated in the next snapshot.
+		if (common->IsClient())
 		{
-			PostEventMS( &EV_Remove, 5000 );
+			return didGiveSucceed;
 		}
+
+		if (!GiveToPlayer(player, ITEM_GIVE_UPDATE_STATE))
+		{
+			return false;
+		}
+
+		// trigger our targets
+		if (firstTimePicked || !gameLocal.serverInfo.GetBool("si_onePickupPerPlayer") || !gameLocal.mpGame.IsGametypeCoopBased()) {
+			firstTimePicked = false; //COOP: used only when si_onePickupPerPlayer enabled
+			ActivateTargets(player);
+		}
+
+		if (common->IsMultiplayer() && respawn == 0.0f)
+		{
+			respawn = 20.0f;
+		}
+
+		if (respawn && !dropped && !no_respawn)
+		{
+			const char* sfx = spawnArgs.GetString("fxRespawn");
+			if (sfx != NULL && *sfx != '\0')
+			{
+				PostEventSec(&EV_RespawnFx, respawn - 0.5f);
+			}
+			PostEventSec(&EV_RespawnItem, respawn);
+		}
+		else if (!spawnArgs.GetBool("inv_objective") && !no_respawn)
+		{
+			// give some time for the pickup sound to play
+			// FIXME: Play on the owner
+			if (!spawnArgs.GetBool("inv_carry") && !gameLocal.serverInfo.GetBool("si_onePickupPerPlayer"))
+			{
+				PostEventMS(&EV_Remove, 5000);
+			}
+		}
+
+		BecomeInactive(TH_THINK);
+		return true;
+
+	} else {
+		return false;  //should this return false?
 	}
-	
-	BecomeInactive( TH_THINK );
-	return true;
 }
 
 /*
@@ -651,7 +733,7 @@ idItem::Event_Respawn
 */
 void idItem::Event_Respawn()
 {
-	if( common->IsServer() )
+	if( common->IsServer() && !gameLocal.mpGame.IsGametypeCoopBased())  //not sending events in coop
 	{
 		ServerSendEvent( EVENT_RESPAWN, NULL, false );
 	}
@@ -672,7 +754,7 @@ idItem::Event_RespawnFx
 */
 void idItem::Event_RespawnFx()
 {
-	if( common->IsServer() )
+	if( common->IsServer() && !gameLocal.mpGame.IsGametypeCoopBased()) //not sending events in coop
 	{
 		ServerSendEvent( EVENT_RESPAWNFX, NULL, false );
 	}
@@ -755,9 +837,15 @@ bool idItemPowerup::GiveToPlayer( idPlayer* player, unsigned int giveFlags )
 	{
 		return false;
 	}
+
+	if (common->IsClient() && gameLocal.mpGame.IsGametypeCoopBased()) { //how the fuck this point is reached?
+		return false;
+	}
+
 	player->GivePowerUp( type, time * 1000, giveFlags );
 	return true;
 }
+
 
 /*
 ===============================================================================
@@ -1594,6 +1682,11 @@ idObjective::Event_Trigger
 */
 void idObjective::Event_Trigger( idEntity* activator )
 {
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		return; //clients can't touch this
+	}
+
 	idPlayer* player = gameLocal.GetLocalPlayer();
 	if( player )
 	{
@@ -1685,6 +1778,11 @@ bool idVideoCDItem::GiveToPlayer( idPlayer* player, unsigned int giveFlags )
 	{
 		return false;
 	}
+
+	if (common->IsClient() && gameLocal.mpGame.IsGametypeCoopBased()) { //how the fuck this point is reached?
+		return false;
+	}
+
 	const idDeclVideo* video = static_cast<const idDeclVideo* >( declManager->FindType( DECL_VIDEO, spawnArgs.GetString( "video" ), false ) );
 	if( video == NULL )
 	{
@@ -1719,6 +1817,10 @@ bool idPDAItem::GiveToPlayer( idPlayer* player, unsigned int giveFlags )
 	{
 		return false;
 	}
+	if (common->IsClient() && gameLocal.mpGame.IsGametypeCoopBased()) { //disable pda pickup in COOP to avoid crash
+		return true;
+	}
+
 	const char* pdaName = spawnArgs.GetString( "pda_name" );
 	const char* invName = spawnArgs.GetString( "inv_name" );
 	const idDeclPDA* pda = NULL;
@@ -2215,6 +2317,11 @@ bool idMoveablePDAItem::GiveToPlayer( idPlayer* player, unsigned int giveFlags )
 	{
 		return false;
 	}
+
+	if (common->IsClient() && gameLocal.mpGame.IsGametypeCoopBased()) { //disable pda pickup in COOP to avoid crash
+		return true;
+	}
+
 	const char* pdaName = spawnArgs.GetString( "pda_name" );
 	const char* invName = spawnArgs.GetString( "inv_name" );
 	const idDeclPDA* pda = NULL;
@@ -2277,6 +2384,10 @@ idItemRemover::Event_Trigger
 */
 void idItemRemover::Event_Trigger( idEntity* activator )
 {
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		return; //clients can't touch this
+	}
+
 	if( activator->IsType( idPlayer::Type ) )
 	{
 		RemoveItem( static_cast<idPlayer*>( activator ) );
@@ -2345,6 +2456,10 @@ idObjectiveComplete::Event_Trigger
 */
 void idObjectiveComplete::Event_Trigger( idEntity* activator )
 {
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		return; //clients can't touch this
+	}
+
 	if( !spawnArgs.GetBool( "objEnabled" ) )
 	{
 		return;
