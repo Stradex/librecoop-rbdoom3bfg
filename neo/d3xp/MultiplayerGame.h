@@ -70,6 +70,7 @@ typedef struct mpPlayerState_s
 	int				ping;			// player ping
 	int				fragCount;		// kills
 	int				teamFragCount;	// team kills
+	int				livesLeft;		// SURVIVAL: Lives reamaining
 	int				wins;			// wins
 	bool			scoreBoardUp;	// toggle based on player scoreboard button, used to activate de-activate the scoreboard gui
 	int				deaths;
@@ -84,6 +85,7 @@ const int MP_PLAYER_MAXFRAGS = 400;	// in CTF frags are player points
 const int MP_PLAYER_MAXWINS	= 100;
 const int MP_PLAYER_MAXPING	= 999;
 const int MP_CTF_MAXPOINTS = 400;
+const int MP_PLAYER_MAXLIVES = 100;
 
 typedef struct mpChatLine_s
 {
@@ -227,6 +229,17 @@ public:
 	int             player_blue_flag;           // Ent num of blue flag carrier for HUD
 	
 	void			PlayerStats( int clientNum, char* data, const int len );
+
+	//specific coop functions
+	void			CreateNewCheckpoint(idVec3 pos);
+	void			WantUseCheckpoint(int clientNum);
+	void			WantAddCheckpoint(int clientNum, bool isGlobal = false);
+	void			WantNoClip(int clientNum);
+	void			IncrementFrags(idPlayer* player);
+	void			SavePersistentPlayersInfo(void);
+
+	idVec3			playerCheckpoints[MAX_CLIENTS]; //added for coop checkpoints
+	bool			playerUseCheckpoints[MAX_CLIENTS]; //added for coop checkpoints
 	
 private:
 	static const char* teamNames[];
@@ -348,6 +361,7 @@ public:
 	
 	bool            IsGametypeFlagBased();
 	bool            IsGametypeTeamBased();
+	bool            IsGametypeCoopBased() const; //Added for COOP mod by Stradex
 	
 };
 

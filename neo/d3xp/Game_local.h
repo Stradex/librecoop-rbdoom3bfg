@@ -87,7 +87,7 @@ void gameError( const char* fmt, ... );
 #include "gamesys/SysCvar.h"
 #include "gamesys/SysCmds.h"
 #include "gamesys/SaveGame.h"
-#include "Entity.h" //added for coop by Stradex
+//#include "Entity.h" //added for coop by Stradex
 
 #include "script/Script_Program.h"
 
@@ -117,7 +117,7 @@ const int MAX_GAME_MESSAGE_SIZE		= 8192;
 const int MAX_ENTITY_STATE_SIZE		= 512;
 const int ENTITY_PVS_SIZE			= ( ( MAX_GENTITIES + 31 ) >> 5 );
 const int NUM_RENDER_PORTAL_BITS	= idMath::BitsForInteger( PS_BLOCK_ALL );
-const int CS_ENTITIES_START		(MAX_GENTITIES-1000) //added by stradex for client-side entities
+const int CS_ENTITIES_START		(MAX_GENTITIES-1000); //added by stradex for client-side entities
 
 
 const int MAX_EVENT_PARAM_SIZE		= 128;
@@ -138,17 +138,13 @@ typedef struct serverEvent_s { //added for coop to avoid events overflow
 	int							eventId;
 	idBitMsg					msg;
 	bool						saveEvent;
-	int							excludeClient;
+	lobbyUserID_t				excludeClient;
 	int							eventTime;
 	idEntity* eventEnt;
 	bool						isEventType;
 	bool						saveLastOnly; //added by stradex for coop
 	struct entityNetEvent_s* event;
 }serverEvent_t;
-
-typedef struct snapshotsort_context_s {
-	int clientNum;
-} snapshotsort_context_s;
 
 
 enum
@@ -362,8 +358,8 @@ public:
 	int						serverEventsCount;				//just to debug delete later
 	int						clientEventsCount;				//just to debug, delete later
 	serverEvent_t			serverOverflowEvents[SERVER_EVENTS_QUEUE_SIZE]; //To avoid server reliabe messages overflow
-	void					addToServerEventOverFlowList(int eventId, const idBitMsg* msg, bool saveEvent, int excludeClient, int eventTime, idEntity* ent, bool saveLastOnly = false); //To avoid server reliabe messages overflow
-	void					addToServerEventOverFlowList(entityNetEvent_t* event, int clientNum); //To avoid server reliabe messages overflow
+	void					addToServerEventOverFlowList(int eventId, const idBitMsg* msg, bool saveEvent, lobbyUserID_t excludeClient, int eventTime, idEntity* ent, bool saveLastOnly = false); //To avoid server reliabe messages overflow
+	void					addToServerEventOverFlowList(entityNetEvent_t* event, lobbyUserID_t excludeClient); //To avoid server reliabe messages overflow
 	void					sendServerOverflowEvents(void); //to send the overflow events that are in queue to avoid event overflow
 	int						overflowEventCountdown; //FIXME: Not pretty way I I think
 	//end: stradex for coop netcode
@@ -491,14 +487,14 @@ public:
 	virtual float			GetAimAssistSensitivity();
 
 	//Added by Stradex for Coop
-	virtual gameReturn_t	RunClientSideFrame(idPlayer* clientPlayer, const usercmd_t* clientCmds);
-	virtual void			ServerWriteSnapshotCoop(int clientNum, int sequence, idBitMsg& msg, byte* clientInPVS, int numPVSClients);
-	virtual void			ClientReadSnapshotCoop(int clientNum, int sequence, const int gameFrame, const int gameTime, const int dupeUsercmds, const int aheadOfServer, const idBitMsg& msg);
+	virtual gameReturn_t	RunClientSideFrame(idPlayer* clientPlayer);
+	virtual void			ServerWriteSnapshotCoop(idSnapShot& ss);
+	virtual void			ClientReadSnapshotCoop(const idSnapShot& ss);
 
 	virtual void			snapshotsort_swap(idEntity* entities[], int lhs, int rhs);
-	virtual bool			snapshotsort_notInOrder(const snapshotsort_context_s& context, idEntity* lhs, idEntity* rhs);
-	virtual int				snapshotsort_partition(const snapshotsort_context_s& context, idEntity* entities[], int low, int high);
-	virtual void			snapshotsort(const snapshotsort_context_s& context, idEntity* entities[], int low, int high);
+	virtual bool			snapshotsort_notInOrder(idEntity* lhs, idEntity* rhs);
+	virtual int				snapshotsort_partition(idEntity* entities[], int low, int high);
+	virtual void			snapshotsort(idEntity* entities[], int low, int high);
 	
 	// ---------------------- Public idGameLocal Interface -------------------
 	
@@ -816,9 +812,6 @@ private:
 
 	bool					isSnapshotEntity(idEntity* ent); //added for COOP by Stradex
 	idEntity*				getEntityBySpawnId(int spawnId);  //added for COOP by Stradex
-	idEntity*				getEntityByEntityNumber(int entityNum);  //added for COOP by Stradex
-	int						getFreeEntityNumber(void); //added for COOP by Stradex
-	bool					duplicateEntity(idEntity* ent); //added for Coop by stradex
 
 };
 

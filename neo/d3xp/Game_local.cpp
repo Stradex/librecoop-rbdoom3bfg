@@ -3889,7 +3889,7 @@ void idGameLocal::RegisterEntity( idEntity* ent, int forceSpawnId, const idDict&
 	}
 
 	if (ent->fl.coopNetworkSync || spawnArgsToCopy.GetInt("coop_entnum", "0")) {
-		RegisterCoopEntity(ent); //for coop only
+		RegisterCoopEntity(ent, 0, ent->spawnArgs); //for coop only
 	}
 	
 	entities[ spawn_entnum ] = ent;

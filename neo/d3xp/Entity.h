@@ -95,6 +95,9 @@ typedef enum
 // for now, I'm allowing multiple threads.  We should reevaluate this later in the project
 #define MAX_SIGNAL_THREADS 16		// probably overkill, but idList uses a granularity of 16
 
+static const int DEFAULT_SNAPSHOT_PRIORITY = 5; //COOP: All snapshotPriority values behind are top priority
+static const int MAX_MISSING_SNAPSHOTS = 10; //COOP by stradex
+
 struct signal_t
 {
 	int					threadnum;
@@ -182,10 +185,13 @@ public:
 	
 	int						entityNumber;			// index into the entity list
 	int						entityDefNumber;		// index into the entity def list
+	int						entityCoopNumber;		// index into the entity coop list
 	
 	idLinkList<idEntity>	spawnNode;				// for being linked into spawnedEntities list
 	idLinkList<idEntity>	activeNode;				// for being linked into activeEntities list
 	idLinkList<idEntity>	aimAssistNode;			// linked into gameLocal.aimAssistEntities
+	idLinkList<idEntity>	coopNode;				// for being linked into coopSyncEntities list by Stradex for Coop
+	idLinkList<idEntity>	clientsideNode;			// for being linked into clientsideEntities list (added by Stradex)
 	
 	idLinkList<idEntity>	snapshotNode;			// for being linked into snapshotEntities list
 	int						snapshotChanged;		// used to detect snapshot state changes
@@ -206,6 +212,16 @@ public:
 	idList< idEntityPtr<idEntity>, TAG_ENTITY >	targets;		// when this entity is activated these entities entity are activated
 	
 	int						health;					// FIXME: do all objects really need health?
+
+	bool					spawnedByServer;		// When entity is spawned by the server, added by stradex for COOP
+	bool					clientSideEntity;		// FIXME: I think there's no need of this but well... for COOP
+	bool					firstTimeInClientPVS[MAX_CLIENTS]; //added for Netcode optimization for COOP (Stradex)
+	bool					forceNetworkSync;		//FIXME: I think there's no need of this. Just duct tape to fix the new netcode 
+	bool					inSnapshotQueue[MAX_CLIENTS];		//IF there's a snapshot overflow (see net_serverSnapshotLimit) we're going to need a snapshotqueue
+	bool					readByServer;			//if the entity was already tried to be sent in the snapshot
+	int						snapshotPriority;		//The priority of this entity (useful when snapshot overflow
+	int						snapshotMissingCount[MAX_CLIENTS];	//Missing snapshots count for coop
+	bool					spawnSnapShot;			 //first snapshot send by server
 	
 	struct entityFlags_s
 	{
@@ -223,6 +239,8 @@ public:
 		bool				networkSync			: 1; // if true the entity is synchronized over the network
 		bool				grabbed				: 1;	// if true object is currently being grabbed
 		bool				skipReplication		: 1; // don't replicate this entity over the network.
+		bool				coopNetworkSync		: 1; // if true the entity is synchronized over the network BUT SPECIFIC FOR COOP
+		bool				useOldNetcode		: 1; // if true the entity use oldnetcode  SPECIFIC FOR COOP
 	} fl;
 	
 	int						timeGroup;
@@ -342,6 +360,9 @@ public:
 	idVec3					GetWorldCoordinates( const idVec3& vec ) const;
 	bool					GetMasterPosition( idVec3& masterOrigin, idMat3& masterAxis ) const;
 	void					GetWorldVelocities( idVec3& linearVelocity, idVec3& angularVelocity ) const;
+
+	bool					IsMasterActive(void) const; //added for coop netcode
+	bool					MasterUseOldNetcode(void) const; //added for coop netcode
 	
 	// physics
 	// set a new physics object to be used by this entity
@@ -425,6 +446,7 @@ public:
 	// misc
 	virtual void			Teleport( const idVec3& origin, const idAngles& angles, idEntity* destination );
 	bool					TouchTriggers() const;
+	bool					ClientTouchTriggers(void) const; //added for Coop
 	idCurve_Spline<idVec3>* GetSpline() const;
 	virtual void			ShowEditingDialog();
 	
@@ -453,7 +475,7 @@ public:
 	void					WriteGUIToSnapshot( idBitMsg& msg ) const;
 	void					ReadGUIFromSnapshot( const idBitMsg& msg );
 	
-	void					ServerSendEvent( int eventId, const idBitMsg* msg, bool saveEvent, lobbyUserID_t excluding = lobbyUserID_t() ) const;
+	void					ServerSendEvent( int eventId, const idBitMsg* msg, bool saveEvent, lobbyUserID_t excluding = lobbyUserID_t() , bool saveLastOnly = false);  //COOP: was const, saveLastOnly added
 	void					ClientSendEvent( int eventId, const idBitMsg* msg ) const;
 	
 	void					SetUseClientInterpolation( bool use )

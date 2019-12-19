@@ -438,10 +438,14 @@ idEntity::idEntity():
 {
 
 	entityNumber	= ENTITYNUM_NONE;
+	entityCoopNumber = ENTITYNUM_NONE;
 	entityDefNumber = -1;
 	
 	spawnNode.SetOwner( this );
 	activeNode.SetOwner( this );
+
+	coopNode.SetOwner(this); //added by Stradex for Coop
+	clientsideNode.SetOwner(this); //for clientside entities
 	
 	snapshotNode.SetOwner( this );
 	snapshotChanged = -1;
@@ -484,6 +488,21 @@ idEntity::idEntity():
 	xraySkin = NULL;
 	
 	noGrab = false;
+
+	spawnedByServer = false; //added by Stradex for Coop
+	clientSideEntity = false; //added by Stradex for Coop
+	forceNetworkSync = false; //added by Stradex for Coop
+	readByServer = false; //added by Stradex for Coop netcode optimization
+	snapshotPriority = DEFAULT_SNAPSHOT_PRIORITY;
+	fl.useOldNetcode = false; //added by Stradex for Coop netcode
+
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		firstTimeInClientPVS[i] = true; //added by Stradex for Coop netcode optimization
+		inSnapshotQueue[i] = false; //added by Stradex for Coop netcode optimization
+		snapshotMissingCount[i] = 0;  //added by Stradex for Coop netcode optimization
+	}
+
+	spawnSnapShot = true;
 }
 
 /*
@@ -514,10 +533,21 @@ void idEntity::Spawn()
 	const char*			temp;
 	idVec3				origin;
 	idMat3				axis;
-	const idKeyValue*	networkSync;
+	const idKeyValue* networkSync, * coopNetworkSync;
 	const char*			classname;
 	const char*			scriptObjectName;
 	
+	networkSync = spawnArgs.FindKey("networkSync");
+	if (networkSync) {
+		fl.networkSync = (atoi(networkSync->GetValue()) != 0);
+		fl.coopNetworkSync = (atoi(networkSync->GetValue()) != 0); //FIXME LATER: not good idea, we should read the coopNetworkSync key
+	}
+
+	coopNetworkSync = spawnArgs.FindKey("coopNetworkSync"); //new KEY for specific coop entities
+	if (coopNetworkSync) {
+		fl.coopNetworkSync = (atoi(networkSync->GetValue()) != 0);
+	}
+
 	gameLocal.RegisterEntity( this, -1, gameLocal.GetSpawnArgs() );
 	
 	spawnArgs.GetString( "classname", NULL, &classname );
@@ -580,12 +610,6 @@ void idEntity::Spawn()
 		PostEventMS( &EV_Hide, 0 );
 	}
 	cinematic = spawnArgs.GetBool( "cinematic", "0" );
-	
-	networkSync = spawnArgs.FindKey( "networkSync" );
-	if( networkSync )
-	{
-		fl.networkSync = ( atoi( networkSync->GetValue() ) != 0 );
-	}
 	
 #if 0
 	if( !common->IsClient() )
@@ -1090,6 +1114,11 @@ void idEntity::BecomeActive( int flags )
 		if( !IsActive() )
 		{
 			activeNode.AddToEnd( gameLocal.activeEntities );
+
+			//addded for Coop
+			for (int i = 0; i < MAX_CLIENTS; i++) {
+				firstTimeInClientPVS[i] = true; //reset this so players who weren't present while this entity was active are forced to receive the changes.
+			}
 		}
 		else if( !oldFlags )
 		{
@@ -2057,7 +2086,11 @@ bool idEntity::InitBind( idEntity* master )
 
 	if( master == this )
 	{
-		gameLocal.Error( "Tried to bind an object to itself." );
+		if (common->IsClient() && gameLocal.mpGame.IsGametypeCoopBased()) {
+			gameLocal.Warning("[COOP] Fatal! Tried to bind an object to itself.");
+		} else {
+			gameLocal.Error("Tried to bind an object to itself.");
+		}
 		return false;
 	}
 	
@@ -2284,7 +2317,14 @@ void idEntity::Unbind()
 		prev = ent;
 	}
 	
-	assert( ent == this ); // If ent is not pointing to this, then something is very wrong.
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		if (ent != this) {
+			common->Warning("[COOP] Fatal! Unable to unbind entity! %s\n ", this->GetName());
+			return;
+		}
+	} else {
+		assert(ent == this); // If ent is not pointing to this, then something is very wrong.
+	}
 	
 	// Find the last node in my team that is bound to me.
 	// Also find the first node not bound to me, if one exists.
@@ -2360,7 +2400,14 @@ void idEntity::RemoveBinds()
 		if( ent->bindMaster == this )
 		{
 			ent->Unbind();
-			ent->PostEventMS( &EV_Remove, 0 );
+			if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient() && !ent->fl.coopNetworkSync) {
+				//get ride manually of nonsync bind entities to avoid duplicated entities in snapshot
+				//common->Printf("[COOP] Getting ride of %s\n", ent->GetName()); 
+				ent->CS_PostEventMS(&EV_Remove, 0); //probably this causing problems in coop
+			}
+			else {
+				ent->PostEventMS(&EV_Remove, 0); //probably this causing problems in coop
+			}
 			next = teamChain;
 		}
 	}
@@ -2403,6 +2450,42 @@ bool idEntity::IsBoundTo( idEntity* master ) const
 	}
 	
 	return false;
+}
+
+/*
+================
+idEntity::IsMasterActive
+Coop stuff
+================
+*/
+bool idEntity::IsMasterActive(void) const {
+	if (!bindMaster) {
+		return false;
+	}
+	if (bindMaster->entityNumber == this->entityNumber) { //this shouldn't never happen but weird shit can happen in this Coop tech demo
+		return IsActive();
+	}
+	if (!bindMaster->IsActive()) {
+		return bindMaster->IsMasterActive(); //may the master of our master is active... or the master of the master of the master of the master .... :P
+	}
+	return true;
+}
+
+/*
+================
+idEntity::MasterUseOldNetcode
+Coop stuff
+================
+*/
+bool idEntity::MasterUseOldNetcode(void) const {
+	if (!bindMaster) {
+		return this->fl.useOldNetcode; //FIXME: Probably not a good idea but now it works by returning the current entity value when there's no master
+	}
+	if ((bindMaster->entityNumber == this->entityNumber) || this->fl.useOldNetcode) { //this shouldn't never happen but weird shit can happen in this Coop tech demo
+		return this->fl.useOldNetcode;
+	}
+
+	return bindMaster->MasterUseOldNetcode();
 }
 
 /*
@@ -4361,6 +4444,18 @@ void idEntity::FindTargets()
 		{
 			gameLocal.Error( "Entity '%s' is targeting itself", name.c_str() );
 		}
+
+		//extra for coop: FIXME Search for a clientside workaround for this better
+		if (gameLocal.mpGame.IsGametypeCoopBased() && targets[i].GetEntity() && !targets[i].GetEntity()->fl.coopNetworkSync && (targets[i].GetEntity()->IsType(idAnimated::Type) || targets[i].GetEntity()->IsType(idFuncEmitter::Type))) {
+			//causing pvs areas crash
+
+			targets[i].GetEntity()->forceNetworkSync = false;
+			targets[i].GetEntity()->fl.coopNetworkSync = true;
+			gameLocal.RegisterCoopEntity(targets[i].GetEntity(), 0, targets[i].GetEntity()->spawnArgs); //just lol
+			targets[i].SetCoopId(gameLocal.GetCoopId(targets[i].GetEntity())); //Dirty dirty hack
+			common->Printf("[COOP] Adding %s to the coopentities array\n", targets[i].GetEntity()->GetName());
+
+		}
 	}
 }
 
@@ -4499,6 +4594,71 @@ bool idEntity::TouchTriggers() const
 	
 	return ( numEntities != 0 );
 }
+
+/*
+============
+idEntity::ClientTouchTriggers
+  Activate all trigger entities touched at the current position. (Clientside for coop)
+============
+*/
+bool idEntity::ClientTouchTriggers(void) const {
+	int				i, numClipModels, numEntities;
+	idClipModel* cm;
+	idClipModel* clipModels[MAX_GENTITIES];
+	idEntity* ent;
+	trace_t			trace;
+
+	memset(&trace, 0, sizeof(trace));
+	trace.endpos = GetPhysics()->GetOrigin();
+	trace.endAxis = GetPhysics()->GetAxis();
+
+	numClipModels = gameLocal.clip.ClipModelsTouchingBounds(GetPhysics()->GetAbsBounds(), CONTENTS_TRIGGER, clipModels, MAX_GENTITIES);
+	numEntities = 0;
+
+	for (i = 0; i < numClipModels; i++) {
+		cm = clipModels[i];
+
+		// don't touch it if we're the owner
+		if (cm->GetOwner() == this) {
+			continue;
+		}
+
+		ent = cm->GetEntity();
+
+		if (!ent->RespondsTo(EV_Touch) && !ent->HasSignal(SIG_TOUCH)) {
+			continue;
+		}
+
+		if (!GetPhysics()->ClipContents(cm)) {
+			continue;
+		}
+
+		if (!ent->IsType(idDoor::Type) && !ent->IsType(idItem::Type)) {
+			continue; //only touch doors and items clientside
+		}
+		if (!ent->clientSideEntity) { //don't dare to touch snapshot entities
+			continue;
+		}
+
+		numEntities++;
+
+		trace.c.contents = cm->GetContents();
+		trace.c.entityNum = cm->GetEntity()->entityNumber;
+		trace.c.id = cm->GetId();
+
+		ent->Signal(SIG_TOUCH); //oh god
+		ent->ProcessEvent(&EV_Touch, this, &trace);  //oh god
+		//gameLocal.Printf("Client touching trigger: %s\n", ent->GetName());
+
+		if (!gameLocal.entities[entityNumber]) {
+			gameLocal.Printf("entity was removed while touching triggers\n");
+			return true;
+		}
+	}
+
+	return (numEntities != 0);
+}
+
 
 /*
 ================
@@ -5468,6 +5628,9 @@ idEntity::Event_StartFx
 */
 void idEntity::Event_StartFx( const char* fx )
 {
+	if (common->IsClient() && gameLocal.mpGame.IsGametypeCoopBased()) {
+		return; //Avoid FX spawn when via scripting for clients in coop, test
+	}
 	idEntityFx::StartFx( fx, NULL, NULL, this, true );
 }
 
@@ -5686,7 +5849,18 @@ void idEntity::WriteBindToSnapshot( idBitMsg& msg ) const
 	
 	if( bindMaster )
 	{
-		bindInfo = bindMaster->entityNumber;
+		if (gameLocal.mpGame.IsGametypeCoopBased()) {
+			if (bindMaster->fl.coopNetworkSync) {
+				bindInfo = bindMaster->entityCoopNumber;
+			}
+			else {
+				bindInfo = bindMaster->entityNumber;
+			}
+		}
+		else {
+			bindInfo = bindMaster->entityNumber;
+		}
+
 		bindInfo |= ( fl.bindOrientated & 1 ) << GENTITYNUM_BITS;
 		if( bindJoint != INVALID_JOINT )
 		{
@@ -5722,7 +5896,12 @@ void idEntity::ReadBindFromSnapshot( const idBitMsg& msg )
 	
 	if( ( bindEntityNum != ENTITYNUM_NONE ) && ( bindEntityNum < MAX_GENTITIES ) )
 	{
-		master = gameLocal.entities[ bindEntityNum ];
+		if (gameLocal.mpGame.IsGametypeCoopBased()) {
+			master = (gameLocal.coopentities[bindEntityNum] != NULL) ? gameLocal.coopentities[bindEntityNum] : gameLocal.entities[bindEntityNum];
+		}
+		else {
+			master = gameLocal.entities[bindEntityNum];
+		}
 		
 		bindOrientated = ( bindInfo >> GENTITYNUM_BITS ) & 1;
 		bindPos = ( bindInfo >> ( GENTITYNUM_BITS + 3 ) );
@@ -5886,7 +6065,7 @@ idEntity::ServerSendEvent
    always receive the events nomatter what time they join the game.
 ================
 */
-void idEntity::ServerSendEvent( int eventId, const idBitMsg* msg, bool saveEvent, lobbyUserID_t excluding ) const
+void idEntity::ServerSendEvent( int eventId, const idBitMsg* msg, bool saveEvent, lobbyUserID_t excluding, bool saveLastOnly)
 {
 	idBitMsg	outMsg;
 	byte		msgBuf[MAX_GAME_MESSAGE_SIZE];
@@ -5902,9 +6081,25 @@ void idEntity::ServerSendEvent( int eventId, const idBitMsg* msg, bool saveEvent
 		return;
 	}
 	
+	if (clientsideNode.InList()) { //ignore client-side entities only
+		return;
+	}
+	
+	if ((gameLocal.serverEventsCount >= MAX_SERVER_EVENTS_PER_FRAME) && gameLocal.mpGame.IsGametypeCoopBased()) {
+		gameLocal.addToServerEventOverFlowList(eventId, msg, saveEvent, excluding, gameLocal.time, this, saveLastOnly); //Avoid serverSendEvent overflow in coop
+		return;
+	}
+
 	outMsg.InitWrite( msgBuf, sizeof( msgBuf ) );
 	outMsg.BeginWriting();
-	outMsg.WriteBits( gameLocal.GetSpawnId( this ), 32 );
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		outMsg.WriteBits(gameLocal.GetCoopId(this), 32);
+		outMsg.WriteBits(gameLocal.GetSpawnId(this), 32); //added for coop
+		//common->Printf("idEntity::ServerSendEvent entity %s with coopid %d\n", GetName(), gameLocal.GetCoopId( this ));
+	}
+	else {
+		outMsg.WriteBits(gameLocal.GetSpawnId(this), 32);
+	}
 	outMsg.WriteByte( eventId );
 	outMsg.WriteLong( gameLocal.time );
 	if( msg )
@@ -5927,8 +6122,10 @@ void idEntity::ServerSendEvent( int eventId, const idBitMsg* msg, bool saveEvent
 	
 	if( saveEvent )
 	{
-		gameLocal.SaveEntityNetworkEvent( this, eventId, msg );
+		gameLocal.SaveEntityNetworkEvent(this, eventId, msg, saveLastOnly);
 	}
+
+	gameLocal.serverEventsCount++; //COOP DEEBUG ONLY
 }
 
 /*
@@ -5954,7 +6151,14 @@ void idEntity::ClientSendEvent( int eventId, const idBitMsg* msg ) const
 	
 	outMsg.InitWrite( msgBuf, sizeof( msgBuf ) );
 	outMsg.BeginWriting();
-	outMsg.WriteBits( gameLocal.GetSpawnId( this ), 32 );
+
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		outMsg.WriteBits(gameLocal.GetCoopId(this), 32);
+		outMsg.WriteBits(gameLocal.GetSpawnId(this), 32); //added for coop
+	}
+	else {
+		outMsg.WriteBits(gameLocal.GetSpawnId(this), 32);
+	}
 	outMsg.WriteByte( eventId );
 	outMsg.WriteLong( gameLocal.serverTime );
 	if( msg )
@@ -5968,6 +6172,8 @@ void idEntity::ClientSendEvent( int eventId, const idBitMsg* msg ) const
 	}
 	
 	session->GetActingGameStateLobbyBase().SendReliableToHost( GAME_RELIABLE_MESSAGE_EVENT, outMsg );
+
+	gameLocal.clientEventsCount++; //COOP DEBUG ONLY
 }
 
 /*
@@ -6599,6 +6805,20 @@ bool idAnimatedEntity::ClientReceiveEvent( int event, int time, const idBitMsg& 
 			localDir = msg.ReadDir( 24 );
 			damageDefIndex = gameLocal.ClientRemapDecl( DECL_ENTITYDEF, msg.ReadLong() );
 			materialIndex = gameLocal.ClientRemapDecl( DECL_MATERIAL, msg.ReadLong() );
+
+			//ugly avoid crash in coop
+			int declTypeCount = declManager->GetNumDecls(DECL_ENTITYDEF);
+			if (damageDefIndex < 0 || damageDefIndex >= declTypeCount) {
+				common->Warning("[COOP] index declType out of range at idAnimatedEntity::ClientReceiveEvent\n");
+				return true;
+			}
+			declTypeCount = declManager->GetNumDecls(DECL_MATERIAL);
+			if (materialIndex < 0 || materialIndex >= declTypeCount) {
+				common->Warning("[COOP] index declType out of range at idAnimatedEntity::ClientReceiveEvent\n");
+				return true;
+			}
+			//avoid crash in coop
+
 			const idDeclEntityDef* damageDef = static_cast<const idDeclEntityDef*>( declManager->DeclByIndex( DECL_ENTITYDEF, damageDefIndex ) );
 			const idMaterial* collisionMaterial = static_cast<const idMaterial*>( declManager->DeclByIndex( DECL_MATERIAL, materialIndex ) );
 			AddLocalDamageEffect( jointNum, localOrigin, localNormal, localDir, damageDef, collisionMaterial );
