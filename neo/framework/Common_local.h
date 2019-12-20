@@ -452,7 +452,7 @@ private:
 	// used for comparisons with the new snapshot for com_drawSnapshot
 	
 	// This is ultimately controlled by net_maxBufferedSnapshots by running double speed, but this is the hard max before seeing visual popping
-	static const int RECEIVE_SNAPSHOT_BUFFER_SIZE = 64; //Stradex: changed to 64
+	static const int RECEIVE_SNAPSHOT_BUFFER_SIZE = 2; //Stradex: changed to 2 for coop only
 	
 	int				readSnapshotIndex;
 	int				writeSnapshotIndex;

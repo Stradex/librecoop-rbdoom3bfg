@@ -1382,7 +1382,7 @@ void idGameLocal::ClientRunFrame( idUserCmdMgr& cmdMgr, bool lastPredictFrame, g
 	
 	DemoWriteGameInfo();
 	
-	if (!mpGame.IsGametypeCoopBased()) { //non-coop original netcode
+	if (!mpGame.IsGametypeCoopBased()) { //non-coop original netcode //testing original netcode, change later to: !mpGame.IsGametypeCoopBased()
 	// run prediction on all active entities
 		for (ent = activeEntities.Next(); ent != NULL; ent = ent->activeNode.Next())
 		{
@@ -1398,12 +1398,16 @@ void idGameLocal::ClientRunFrame( idUserCmdMgr& cmdMgr, bool lastPredictFrame, g
 			}
 		}
 	} else { //COOP Netcode
-		if (isNewFrame) {
-			RunClientSideFrame(player);
-		} 
-		
+
+		RunAllUserCmdsForPlayer(cmdMgr, player->entityNumber); //test
+		RunClientSideFrame(player); //testing
+
+		/*
 		for (ent = activeEntities.Next(); ent != NULL; ent = ent->activeNode.Next())
 		{
+			if (ent->fl.coopNetworkSync) { //don't run coopNetworkSync entities here, to avoid duplicated thinking
+				continue;
+			}
 			ent->thinkFlags |= TH_PHYSICS;
 
 			if (ent->entityCoopNumber == GetLocalClientNum()) {
@@ -1418,6 +1422,7 @@ void idGameLocal::ClientRunFrame( idUserCmdMgr& cmdMgr, bool lastPredictFrame, g
 				ent->ClientThink(netInterpolationInfo.serverGameMs, netInterpolationInfo.pct, true);
 			}
 		}
+		*/
 	}
 	
 	// service any pending events

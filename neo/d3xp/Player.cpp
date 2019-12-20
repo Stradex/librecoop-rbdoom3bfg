@@ -1723,6 +1723,11 @@ void idPlayer::SetupWeaponEntity()
 	int w;
 	const char* weap;
 	
+	if (gameLocal.mpGame.IsGametypeCoopBased()) { //should I use this? idk
+		weapon.forceCoopEntity = true;
+		flashlight.forceCoopEntity = true;
+	}
+
 	if( weapon.GetEntity() )
 	{
 		// get rid of old weapon
@@ -1733,6 +1738,7 @@ void idPlayer::SetupWeaponEntity()
 	{
 		weapon = static_cast<idWeapon*>( gameLocal.SpawnEntityType( idWeapon::Type, NULL ) );
 		weapon.GetEntity()->SetOwner( this );
+
 		currentWeapon = -1;
 		
 		// flashlight
@@ -6009,9 +6015,9 @@ void idPlayer::UpdateFlashlight()
 		return;
 	}
 	
-	if (gameLocal.mpGame.IsGametypeCoopBased()) {
-		return; //disable flashlight in coop by now
-	}
+	//if (gameLocal.mpGame.IsGametypeCoopBased()) {
+	//	return; //disable flashlight in coop by now
+	//}
 
 	if( !flashlight.GetEntity()->GetOwner() )
 	{
@@ -11882,11 +11888,13 @@ void idPlayer::WriteToSnapshot( idBitMsg& msg ) const
 	msg.WriteBits( inventory.weapons, MAX_WEAPONS );
 	if (gameLocal.mpGame.IsGametypeCoopBased()) {
 		msg.WriteBits(weapon.GetCoopId(), 32);
+		msg.WriteBits(flashlight.GetCoopId(), 32);
 	}
 	else {
 		msg.WriteBits(weapon.GetSpawnId(), 32);
+		msg.WriteBits(flashlight.GetSpawnId(), 32);
 	}
-	msg.WriteBits( flashlight.GetSpawnId(), 32 );
+	
 	msg.WriteBits( spectator, idMath::BitsForInteger( MAX_CLIENTS ) );
 	msg.WriteBits( lastHitToggle, 1 );
 	msg.WriteBits( weaponGone, 1 );
@@ -11926,7 +11934,7 @@ idPlayer::ReadFromSnapshot
 void idPlayer::ReadFromSnapshot( const idBitMsg& msg )
 {
 	int		oldHealth, newIdealWeapon, weaponSpawnId, weaponCoopId;
-	int		flashlightSpawnId;
+	int		flashlightSpawnId, flashlightCoopId;
 	bool	newHitToggle;
 	
 	oldHealth = health;
@@ -11956,12 +11964,13 @@ void idPlayer::ReadFromSnapshot( const idBitMsg& msg )
 
 	if (gameLocal.mpGame.IsGametypeCoopBased()) {
 		weaponCoopId = msg.ReadBits(32);
+		flashlightCoopId = msg.ReadBits(32);
 	}
 	else {
 		weaponSpawnId = msg.ReadBits(32);
+		flashlightSpawnId = msg.ReadBits(32);
 	}
 
-	flashlightSpawnId = msg.ReadBits( 32 );
 	spectator = msg.ReadBits( idMath::BitsForInteger( MAX_CLIENTS ) );
 	newHitToggle = msg.ReadBits( 1 ) != 0;
 	weaponGone = msg.ReadBits( 1 ) != 0;
@@ -12029,12 +12038,20 @@ void idPlayer::ReadFromSnapshot( const idBitMsg& msg )
 
 		if ( weapon.SetCoopId(weaponCoopId) )
 		{
-			if (weapon.GetEntity())
+			if (weapon.GetCoopEntity())
 			{
 				// maintain ownership locally
 				weapon.GetCoopEntity()->SetOwner(this);
 			}
 			currentWeapon = -1;
+		}
+
+		if (flashlight.SetCoopId(flashlightCoopId))
+		{
+			if (flashlight.GetCoopEntity())
+			{
+				flashlight.GetCoopEntity()->SetFlashlightOwner(this);
+			}
 		}
 
 	}
@@ -12048,13 +12065,12 @@ void idPlayer::ReadFromSnapshot( const idBitMsg& msg )
 			}
 			currentWeapon = -1;
 		}
-	}
-	
-	if( flashlight.SetSpawnId( flashlightSpawnId ) )
-	{
-		if( flashlight.GetEntity() )
+		if (flashlight.SetSpawnId(flashlightSpawnId))
 		{
-			flashlight.GetEntity()->SetFlashlightOwner( this );
+			if (flashlight.GetEntity())
+			{
+				flashlight.GetEntity()->SetFlashlightOwner(this);
+			}
 		}
 	}
 	
