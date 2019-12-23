@@ -113,7 +113,7 @@ void idMoveable::Spawn()
 	
 	if( !collisionModelManager->TrmFromModel( clipModelName, trm ) )
 	{
-		gameLocal.Error( "idMoveable '%s': cannot load collision model %s", name.c_str(), clipModelName.c_str() );
+		gameLocal.Error("idMoveable '%s': cannot load collision model %s", name.c_str(), clipModelName.c_str());
 		return;
 	}
 	

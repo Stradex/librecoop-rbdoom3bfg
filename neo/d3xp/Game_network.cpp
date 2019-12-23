@@ -1608,32 +1608,10 @@ gameReturn_t	idGameLocal::RunClientSideFrame(idPlayer* clientPlayer)
 		if (!ent->fl.coopNetworkSync) {
 			ent->clientSideEntity = true; //this entity is now clientside
 		}
+
 		ent->thinkFlags |= TH_PHYSICS;
 		ent->ClientThink(netInterpolationInfo.serverGameMs, netInterpolationInfo.pct, true);
 	}
-
-	//FIXME: AVOID UGLY COOP IN BUG START
-	for (ent = coopSyncEntities.Next(); ent != NULL; ent = ent->coopNode.Next()) {
-		if (!ent->forceNetworkSync || (ent->entityCoopNumber == clientPlayer->entityCoopNumber)) {
-			continue;
-		}
-
-		if (!ent->fl.hidden && !isSnapshotEntity(ent) && (ent->snapshotMissingCount[GetLocalClientNum()] >= MAX_MISSING_SNAPSHOTS)) { //probably outside pvs area and not beign sended by Snapshot
-			ent->Hide();
-		}
-	}
-	//players: Now that players are forceNetworkSync = true this could be deleted I think
-	for (int i = 0; i < MAX_CLIENTS; i++) {
-		if (!coopentities[i] || (coopentities[i]->entityCoopNumber == clientPlayer->entityCoopNumber)) {
-			continue;
-		}
-
-		if (!coopentities[i]->fl.hidden && !isSnapshotEntity(coopentities[i]) && (coopentities[i]->snapshotMissingCount[GetLocalClientNum()] >= MAX_MISSING_SNAPSHOTS)) {  //probably outside pvs area and not beign sended by Snapshot
-			coopentities[i]->Hide();
-			//common->Printf("[COOP] Hiding: %s\n", coopentities[i]->GetName());
-		}
-	}
-	//AVOID UGLY COOP IN BUG END
 
 	// remove any entities that have stopped thinking
 	if (numEntitiesToDeactivate) {
@@ -1649,12 +1627,6 @@ gameReturn_t	idGameLocal::RunClientSideFrame(idPlayer* clientPlayer)
 		//assert( numEntitiesToDeactivate == c );
 		numEntitiesToDeactivate = 0;
 	}
-
-	//COOP DEBUG
-	if (clientEventsCount > 10) {
-		common->Printf("Client sending events: %d\n", serverEventsCount);
-	}
-	//END COOP DEBU
 
 	return ret;
 }
@@ -1869,15 +1841,18 @@ void idGameLocal::ClientReadSnapshotCoop(const idSnapShot& ss) {
 					}
 					const char* classname = declManager->DeclByIndex(DECL_ENTITYDEF, entityDefNumber, false)->GetName();
 					args.Set("classname", classname);
+					Printf("[COOP DEBUG (1)] Spawning: %s\n", classname);
 					if (!SpawnEntityDef(args, &ent) || !coopentities[entityNumber] || coopentities[entityNumber]->GetType()->typeNum != typeNum) {
 						Error("Failed to spawn entity with classname '%s' of type '%s'", classname, typeInfo->classname);
 					}
 				}
 				else {
+					Printf("[COOP DEBUG (2)] Spawning: %s\n", typeInfo->classname);
 					ent = SpawnEntityType(*typeInfo, &args, true);
 					if (!coopentities[entityNumber] || coopentities[entityNumber]->GetType()->typeNum != typeNum) {
 						Error("Failed to spawn entity of type '%s'", typeInfo->classname);
 					}
+
 				}
 				if (ent != NULL) {
 					// Fixme: for now, force all think flags on. We'll need to figure out how we want dormancy to work on clients
@@ -2128,6 +2103,11 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 		if (!entInPvsHandle) { //Stradex why I have to do this?
 			continue;
 		}
+		if (!idStr::Icmp(ent->GetEntityDefName(), "moveable_base")) { //UGLY SHITTY FIX, FUCK YOU STRADEX PIECE OF SHIT. (Maybe we should move this hack to the idMoveable::spawn method)
+			common->Printf("Avoiding to send this fucking %s\n", ent->GetEntityDefName());
+			ent->fl.coopNetworkSync = false; //disable network sync to this shit :(
+			continue;
+		}
 
 		//Since sorting it's a pretty expensive stuff, let's try to have this list the less filled with entities possible
 		sortsnapshotentities[sortSnapCount++] = ent;
@@ -2147,6 +2127,11 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 			ent->inSnapshotQueue = true;
 			continue;
 		}
+
+		/*if (ent->IsType(idMoveable::Type)) {
+			common->Printf("::Sending entity moveable (%s || %s):: \nentityCoopNumber: %d\nentityDefNumber: %d\n:------------:\n", ent->GetClassname(), ent->GetEntityDefName(), ent->entityCoopNumber, ent->entityDefNumber);
+		}
+		*/
 		ent->inSnapshotQueue = false; 
 		ent->firstTimeInClientPVS = false;
 		serverSendEntitiesCount++;
@@ -2158,10 +2143,8 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 
 		msg.WriteBits(ent->GetPredictedKey(), 32);
 
-		if (ent->fl.coopNetworkSync) {
-			// write the class specific data to the snapshot
-			ent->WriteToSnapshot(msg);
-		}
+		// write the class specific data to the snapshot
+		ent->WriteToSnapshot(msg); //Stradex: check if all entities have aproper write  and read snapshot... look for possible desync (writing data different from reading data)
 
 		ss.S_AddObject(SNAP_ENTITIES + ent->entityCoopNumber, ~0U, msg, ent->GetName());
 	}
@@ -2174,7 +2157,7 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 		pvs.FreeCurrentPVS(pvsHandles[i]);
 	}
 
-	common->Printf("Sending %d snapshots...\n", serverSendEntitiesCount);
+	//common->Printf("Sending %d snapshots...\n", serverSendEntitiesCount);
 }
 
 

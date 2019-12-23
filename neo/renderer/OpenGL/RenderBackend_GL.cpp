@@ -94,6 +94,7 @@ bool GL_CheckErrors_( const char* filename, int line )
 				break;
 			case GL_INVALID_OPERATION:
 				strcpy( s, "GL_INVALID_OPERATION" );
+				//assert(0); //to force crash
 				break;
 #if !defined(USE_GLES2) && !defined(USE_GLES3)
 			case GL_STACK_OVERFLOW:
@@ -110,7 +111,6 @@ bool GL_CheckErrors_( const char* filename, int line )
 				idStr::snPrintf( s, sizeof( s ), "%i", err );
 				break;
 		}
-		
 		common->Printf( "caught OpenGL error: %s in file %s line %i\n", s, filename, line );
 	}
 	

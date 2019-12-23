@@ -5919,6 +5919,9 @@ void idPlayer::UpdateWeapon()
 	assert( !spectating );
 	
 	if (gameLocal.mpGame.IsGametypeCoopBased() && weapon.GetEntity() == NULL) { //added for COOP
+		if (common->IsClient()) {
+			common->Printf("Client: No  weapon entity\n");
+		}
 		return;
 	}
 
@@ -5928,6 +5931,7 @@ void idPlayer::UpdateWeapon()
 		// are present and synchronized ( weapon.worldModel idEntityPtr to idAnimatedEntity )
 		if( !weapon.GetEntity()->IsWorldModelReady() )
 		{
+			common->Printf("Client: World model not ready\n");
 			return;
 		}
 	}
@@ -5946,6 +5950,14 @@ void idPlayer::UpdateWeapon()
 				// a clip of ammo for their initial weapon upon respawn.
 				ammoInClip = 0;
 			}
+
+			if (common->IsClient()) { //fix for coop netcode
+				if (weapon.GetEntity()->GetOwner() == NULL) {
+					weapon.GetEntity()->SetOwner(this); //forcing fix
+					common->Printf("[COOP FATAL] Forcing owner at idPlayer::UpdateWeapon\n");
+				}
+			}
+
 			weapon.GetEntity()->GetWeaponDef( animPrefix, ammoInClip );
 			if (gameLocal.mpGame.IsGametypeCoopBased()) {
 				if (!weapon.GetEntity()->IsLinked()) {
@@ -6012,6 +6024,7 @@ void idPlayer::UpdateFlashlight()
 	
 	if( !flashlight.IsValid() )
 	{
+		common->Printf("[COOP FATAL] Invalid flashlight\n");
 		return;
 	}
 	
@@ -6021,6 +6034,7 @@ void idPlayer::UpdateFlashlight()
 
 	if( !flashlight.GetEntity()->GetOwner() )
 	{
+		common->Printf("[COOP FATAL] Flashlight without owner\n");
 		return;
 	}
 	
@@ -6073,6 +6087,7 @@ void idPlayer::UpdateFlashlight()
 		// are present and synchronized ( weapon.worldModel idEntityPtr to idAnimatedEntity )
 		if( !flashlight.GetEntity()->IsWorldModelReady() )
 		{
+			common->Printf("[COOP FATAL] Flashlight world model not ready\n");
 			return;
 		}
 	}

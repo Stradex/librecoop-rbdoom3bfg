@@ -1027,6 +1027,7 @@ void idWeapon::GetWeaponDef( const char* objectname, int ammoinclip )
 	{
 		return;
 	}
+
 	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient() && (owner == NULL)) {
 		common->Printf("[COOP FATAL] weapon without owner! at idWeapon::GetWeaponDef\n");
 		return;
