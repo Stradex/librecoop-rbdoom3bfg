@@ -2103,7 +2103,8 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 		if (!entInPvsHandle) { //Stradex why I have to do this?
 			continue;
 		}
-		if (!idStr::Icmp(ent->GetEntityDefName(), "moveable_base")) { //UGLY SHITTY FIX, FUCK YOU STRADEX PIECE OF SHIT. (Maybe we should move this hack to the idMoveable::spawn method)
+		
+		if (idStr::FindText(ent->GetEntityDefName(), "moveable_base", false) != -1) { //UGLY SHITTY FIX, FUCK YOU STRADEX PIECE OF SHIT. (Maybe we should move this hack to the idMoveable::spawn method)
 			common->Printf("Avoiding to send this fucking %s\n", ent->GetEntityDefName());
 			ent->fl.coopNetworkSync = false; //disable network sync to this shit :(
 			continue;
