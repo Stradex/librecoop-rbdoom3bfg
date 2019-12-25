@@ -1695,6 +1695,7 @@ void idProjectile::ReadFromSnapshot( const idBitMsg& msg )
 	else {
 		owner.SetSpawnId(msg.ReadBits(32));
 	}
+
 	newState = ( projectileState_t ) msg.ReadBits( 3 );
 	
 	if( msg.ReadBits( 1 ) )
@@ -1712,7 +1713,12 @@ void idProjectile::ReadFromSnapshot( const idBitMsg& msg )
 		{
 			case SPAWNED:
 			{
-				Create( owner.GetEntity(), vec3_origin, idVec3( 1, 0, 0 ) );
+				if (gameLocal.mpGame.IsGametypeCoopBased()) {
+					Create(owner.GetCoopEntity(), vec3_origin, idVec3(1, 0, 0));
+				}
+				else {
+					Create(owner.GetEntity(), vec3_origin, idVec3(1, 0, 0));
+				}
 				break;
 			}
 			case CREATED:
@@ -2201,44 +2207,51 @@ idGuidedProjectile::ReadFromSnapshot
 ================
 */
 void idGuidedProjectile::ReadFromSnapshot(const idBitMsg& msg) {
+
 	if (!gameLocal.mpGame.IsGametypeCoopBased()) {
+
 		idProjectile::ReadFromSnapshot(msg);
 		return;
 	}
 
 	projectileState_t newState;
 
-	if (gameLocal.mpGame.IsGametypeCoopBased()) {
-		owner.SetCoopId(msg.ReadBits(32));
-	}
-	else {
-		owner.SetSpawnId(msg.ReadBits(32));
-	}
+	owner.SetCoopId(msg.ReadBits(32));
 
 	newState = (projectileState_t)msg.ReadBits(3);
-	if (msg.ReadBits(1)) {
+
+	if (msg.ReadBits(1))
+	{
 		Hide();
 	}
-	else {
+	else
+	{
 		Show();
 	}
 
-	while (state != newState) {
-		switch (state) {
-		case SPAWNED: {
-			Create(owner.GetEntity(), vec3_origin, idVec3(1, 0, 0));
+	while (state != newState)
+	{
+		switch (state)
+		{
+		case SPAWNED:
+		{
+			Create(owner.GetCoopEntity(), vec3_origin, idVec3(1, 0, 0));
 			break;
 		}
-		case CREATED: {
+		case CREATED:
+		{
 			// the right origin and direction are required if you want bullet traces
 			Launch(vec3_origin, idVec3(1, 0, 0), vec3_origin);
 			break;
 		}
-		case LAUNCHED: {
-			if (newState == FIZZLED) {
+		case LAUNCHED:
+		{
+			if (newState == FIZZLED)
+			{
 				Fizzle();
 			}
-			else {
+			else
+			{
 				trace_t collision;
 				memset(&collision, 0, sizeof(collision));
 				collision.endAxis = GetPhysics()->GetAxis();
@@ -2250,7 +2263,8 @@ void idGuidedProjectile::ReadFromSnapshot(const idBitMsg& msg) {
 			break;
 		}
 		case FIZZLED:
-		case EXPLODED: {
+		case EXPLODED:
+		{
 			StopSound(SND_CHANNEL_BODY2, false);
 			gameEdit->ParseSpawnArgsToRenderEntity(&spawnArgs, &renderEntity);
 			state = SPAWNED;
@@ -2259,34 +2273,7 @@ void idGuidedProjectile::ReadFromSnapshot(const idBitMsg& msg) {
 		}
 	}
 
-	if (msg.ReadBits(1)) {
-		physicsObj.ReadFromSnapshot(msg);
-	}
-	else {
-		idVec3 origin;
-		idVec3 velocity;
-		idVec3 tmp;
-		idMat3 axis;
-
-		origin.x = msg.ReadFloat();
-		origin.y = msg.ReadFloat();
-		origin.z = msg.ReadFloat();
-
-		velocity.x = msg.ReadDeltaFloat(0.0f, RB_VELOCITY_EXPONENT_BITS, RB_VELOCITY_MANTISSA_BITS);
-		velocity.y = msg.ReadDeltaFloat(0.0f, RB_VELOCITY_EXPONENT_BITS, RB_VELOCITY_MANTISSA_BITS);
-		velocity.z = msg.ReadDeltaFloat(0.0f, RB_VELOCITY_EXPONENT_BITS, RB_VELOCITY_MANTISSA_BITS);
-
-		physicsObj.SetOrigin(origin);
-		physicsObj.SetLinearVelocity(velocity);
-
-		// align z-axis of model with the direction
-		velocity.NormalizeFast();
-		axis = velocity.ToMat3();
-		tmp = axis[2];
-		axis[2] = axis[0];
-		axis[0] = -tmp;
-		physicsObj.SetAxis(axis);
-	}
+	physicsObj.ReadFromSnapshot(msg);
 
 	//NEW For coop
 

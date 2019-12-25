@@ -2427,20 +2427,33 @@ idPhysics_Player::ReadFromSnapshot
 */
 void idPhysics_Player::ReadFromSnapshot( const idBitMsg& msg )
 {
-
 	previous = next;
-	
-	next.origin = ReadFloatArray< idVec3 >( msg );
-	next.velocity[0] = msg.ReadFloat( PLAYER_VELOCITY_EXPONENT_BITS, PLAYER_VELOCITY_MANTISSA_BITS );
-	next.velocity[1] = msg.ReadFloat( PLAYER_VELOCITY_EXPONENT_BITS, PLAYER_VELOCITY_MANTISSA_BITS );
-	next.velocity[2] = msg.ReadFloat( PLAYER_VELOCITY_EXPONENT_BITS, PLAYER_VELOCITY_MANTISSA_BITS );
+
+	next.origin = ReadFloatArray< idVec3 >(msg);
+	next.velocity[0] = msg.ReadFloat(PLAYER_VELOCITY_EXPONENT_BITS, PLAYER_VELOCITY_MANTISSA_BITS);
+	next.velocity[1] = msg.ReadFloat(PLAYER_VELOCITY_EXPONENT_BITS, PLAYER_VELOCITY_MANTISSA_BITS);
+	next.velocity[2] = msg.ReadFloat(PLAYER_VELOCITY_EXPONENT_BITS, PLAYER_VELOCITY_MANTISSA_BITS);
 	//idLib::Printf("Reading Velocity: x %2f, y %2f, z %2f \n", next.velocity[0], next.velocity[1], next.velocity[2] );
-	next.localOrigin = ReadDeltaFloatArray( msg, next.origin );
-	
-	if( clipModel )
-	{
-		clipModel->Link( gameLocal.clip, self, 0, next.origin, clipModel->GetAxis() );
+	next.localOrigin = ReadDeltaFloatArray(msg, next.origin);
+
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && self && self->IsType(idPlayer::Type) && static_cast<idPlayer*>(self)->IsLocallyControlled()) {
+
+		//Fix this: Not smooth
+		current.localOrigin = next.localOrigin;
+		current.origin = next.origin;
+		if (clipModel)
+		{
+			clipModel->Link(gameLocal.clip, self, 0, next.origin, clipModel->GetAxis());
+		}
+		//SetOrigin(next.origin); //or localOrigin?
 	}
-	
+	else {
+		if (clipModel)
+		{
+			clipModel->Link(gameLocal.clip, self, 0, next.origin, clipModel->GetAxis());
+		}
+
+	}
 }
 
