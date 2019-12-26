@@ -9080,7 +9080,7 @@ void idPlayer::Think()
 		CopyJointsFromBodyToHead();
 	}
 	
-	if( IsLocallyControlled() || gameLocal.mpGame.IsGametypeCoopBased() ) //use old movement netcode for coop, avoid using RunPhysics_RemoteClientCorrection by now
+	if( IsLocallyControlled() ) //use old movement netcode for coop, avoid using RunPhysics_RemoteClientCorrection by now
 	{
 		// Local player on the server. Do normal movement.
 		Move();

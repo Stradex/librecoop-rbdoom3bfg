@@ -3876,17 +3876,21 @@ void idDoor::Spawn()
 
 /*
 ================
-idDoor::Think
+idDoor::ClientThink
 ================
 */
 void idDoor::ClientThink( const int curTime, const float fraction, const bool predict )
 {
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		idEntity::ClientThink(curTime, fraction, predict);
+		return;
+	}
 	idVec3 masterOrigin;
 	idMat3 masterAxis;
 	
 	idMover_Binary::ClientThink( curTime, fraction, predict );
 	
-	if( thinkFlags & TH_PHYSICS )
+	if( thinkFlags & TH_PHYSICS ) //do this prediction only in coop
 	{
 		// update trigger position
 		if( GetMasterPosition( masterOrigin, masterAxis ) )

@@ -686,6 +686,22 @@ idEntity::~idEntity
 */
 idEntity::~idEntity()
 {
+
+	//back from original netcode
+	if (gameLocal.GameState() != GAMESTATE_SHUTDOWN && !common->IsClient() && fl.coopNetworkSync && gameLocal.mpGame.IsGametypeCoopBased() && entityNumber >= MAX_CLIENTS) { //only in coop
+		idBitMsg	outMsg;
+		byte		msgBuf[MAX_GAME_MESSAGE_SIZE];
+
+		outMsg.InitWrite(msgBuf, sizeof(msgBuf));
+		outMsg.BeginWriting();
+
+		outMsg.WriteBits(gameLocal.GetCoopId(this), 32);
+		outMsg.WriteBits(gameLocal.GetSpawnId(this), 32);
+
+		common->Printf("Sending delete entity event: %s\n", GetName());
+		session->GetActingGameStateLobbyBase().SendReliable(GAME_RELIABLE_MESSAGE_DELETE_ENT, outMsg, false);
+	}
+
 	DeconstructScriptObject();
 	scriptObject.Free();
 	

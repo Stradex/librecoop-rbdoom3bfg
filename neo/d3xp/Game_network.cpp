@@ -1322,6 +1322,30 @@ void idGameLocal::ClientProcessReliableMessage( int type, const idBitMsg& msg )
 			mpGame.ClientReadAchievementUnlock( msg );
 			break;
 		}
+		case GAME_RELIABLE_MESSAGE_DELETE_ENT: { //added by Stradex for coop
+			idEntityPtr< idEntity > entPtr;
+
+			int coopId, spawnId;
+			coopId = msg.ReadBits(32);
+			spawnId = msg.ReadBits(32);
+
+			if (coopId >= 0) {
+
+				if (!entPtr.SetCoopId(coopId)) {
+					break;
+				}
+				delete entPtr.GetCoopEntity();
+			}
+			else {
+
+				if (!entPtr.SetSpawnId(spawnId)) {
+					break;
+				}
+				delete entPtr.GetEntity();
+			}
+			Printf("GAME_RELIABLE_MESSAGE_DELETE_ENT...\n");
+			break;
+		}
 		default:
 		{
 			Error( "Unknown reliable message (%d) from host", type );
@@ -1600,11 +1624,6 @@ gameReturn_t	idGameLocal::RunClientSideFrame(idPlayer* clientPlayer)
 			continue;
 		}
 
-		if (ent->forceNetworkSync && (ent->snapshotMissingCount[GetLocalClientNum()] >= MAX_MISSING_SNAPSHOTS)) {
-			ent->snapshotMissingCount[GetLocalClientNum()] = MAX_MISSING_SNAPSHOTS;
-			continue; //don't touch these entities here
-		}
-
 		if (!ent->fl.coopNetworkSync) {
 			ent->clientSideEntity = true; //this entity is now clientside
 		}
@@ -1752,7 +1771,6 @@ void idGameLocal::ClientReadSnapshotCoop(const idSnapShot& ss) {
 		int entityNumber = snapObjectNum - SNAP_ENTITIES;
 
 		if (msg.GetSize() == 0) {
-			delete coopentities[entityNumber];
 			continue;
 		}
 
