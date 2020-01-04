@@ -268,7 +268,6 @@ void idItem::Think()
 			SetOrigin( org );
 		}
 	}
-	
 	Present();
 }
 
@@ -352,7 +351,7 @@ void idItem::Spawn()
 	}
 	
 	// idItemTeam does not rotate and bob
-	if( spawnArgs.GetBool( "spin" ) || ( common->IsMultiplayer() && !this->IsType( idItemTeam::Type ) ) )
+	if( spawnArgs.GetBool( "spin" ) || ( common->IsMultiplayer() && !this->IsType( idItemTeam::Type ) && !gameLocal.mpGame.IsGametypeCoopBased() ) )
 	{
 		spin = true;
 		BecomeActive( TH_THINK );
@@ -485,6 +484,7 @@ bool idItem::Pickup( idPlayer* player )
 	const bool didGiveSucceed = GiveToPlayer( player, ITEM_GIVE_FEEDBACK );
 	if( !didGiveSucceed )
 	{
+		
 		return false;
 	}
 	
@@ -527,11 +527,13 @@ bool idItem::Pickup( idPlayer* player )
 		// will be updated in the next snapshot.
 		if (common->IsClient())
 		{
+			common->Printf("didGiveSucceed false (2)\n");
 			return didGiveSucceed;
 		}
 
 		if (!GiveToPlayer(player, ITEM_GIVE_UPDATE_STATE))
 		{
+			common->Printf("GiveToPlayer Failed\n");
 			return false;
 		}
 
@@ -697,7 +699,6 @@ void idItem::Event_Touch( idEntity* other, trace_t* trace )
 	{
 		return;
 	}
-	
 	if( !canPickUp )
 	{
 		return;

@@ -4647,7 +4647,7 @@ bool idEntity::ClientTouchTriggers(void) const {
 			continue;
 		}
 
-		if (!ent->IsType(idDoor::Type) && !ent->IsType(idItem::Type)) {
+		if (!ent->IsType(idItem::Type)) {
 			continue; //only touch doors and items clientside
 		}
 		if (!ent->clientSideEntity) { //don't dare to touch snapshot entities

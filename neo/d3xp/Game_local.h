@@ -895,6 +895,9 @@ ID_INLINE bool idEntityPtr<type>::SetSpawnId( int id )
 template< class type >
 ID_INLINE bool idEntityPtr<type>::IsValid() const
 {
+	if (forceCoopEntity) {
+		return (gameLocal.coopIds[coopId & ((1 << GENTITYNUM_BITS) - 1)] == (coopId >> GENTITYNUM_BITS)); //evil stuff, forgive me god
+	}
 	return ( gameLocal.spawnIds[ spawnId & ( ( 1 << GENTITYNUM_BITS ) - 1 ) ] == ( spawnId >> GENTITYNUM_BITS ) );
 }
 

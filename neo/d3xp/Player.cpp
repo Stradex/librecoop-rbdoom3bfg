@@ -6028,10 +6028,6 @@ void idPlayer::UpdateFlashlight()
 		return;
 	}
 	
-	//if (gameLocal.mpGame.IsGametypeCoopBased()) {
-	//	return; //disable flashlight in coop by now
-	//}
-
 	if( !flashlight.GetEntity()->GetOwner() )
 	{
 		common->Printf("[COOP FATAL] Flashlight without owner\n");
@@ -12065,7 +12061,11 @@ void idPlayer::ReadFromSnapshot( const idBitMsg& msg )
 		{
 			if (flashlight.GetCoopEntity())
 			{
+				common->Printf("Setting flashlight coop...\n");
 				flashlight.GetCoopEntity()->SetFlashlightOwner(this);
+			}
+			else {
+				common->Printf("Unable to set flashlight coop...\n");
 			}
 		}
 
