@@ -507,6 +507,14 @@ bool idItem::Pickup( idPlayer* player )
 		// clear our contents so the object isn't picked up twice
 		GetPhysics()->SetContents(0);
 	}
+
+	if (gameLocal.serverInfo.GetBool("si_onePickupPerPlayer") && gameLocal.mpGame.IsGametypeCoopBased()) {
+
+		if (!GiveToPlayer(player, ITEM_GIVE_UPDATE_STATE))
+		{
+			return false;
+		}
+	}
 	
 	//COOP: if si_onePickupPerPlayer enabled, then only hide the model when the local player pick it.
 	if (!gameLocal.serverInfo.GetBool("si_onePickupPerPlayer") || (player->entityNumber == gameLocal.GetLocalClientNum()) || !gameLocal.mpGame.IsGametypeCoopBased())
@@ -521,20 +529,21 @@ bool idItem::Pickup( idPlayer* player )
 			gameRenderWorld->FreeEntityDef(itemShellHandle);
 			itemShellHandle = -1;
 		}
+		
+		if (!gameLocal.serverInfo.GetBool("si_onePickupPerPlayer") && gameLocal.mpGame.IsGametypeCoopBased()) {
+			// Clients need to bail out after some feedback, but
+			// before actually changing any values. The values
+			// will be updated in the next snapshot.
+			if (common->IsClient())
+			{
+				return didGiveSucceed;
+			}
 
-		// Clients need to bail out after some feedback, but
-		// before actually changing any values. The values
-		// will be updated in the next snapshot.
-		if (common->IsClient())
-		{
-			common->Printf("didGiveSucceed false (2)\n");
-			return didGiveSucceed;
-		}
+			if (!GiveToPlayer(player, ITEM_GIVE_UPDATE_STATE))
+			{
+				return false;
+			}
 
-		if (!GiveToPlayer(player, ITEM_GIVE_UPDATE_STATE))
-		{
-			common->Printf("GiveToPlayer Failed\n");
-			return false;
 		}
 
 		// trigger our targets
