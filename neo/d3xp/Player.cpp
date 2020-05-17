@@ -215,6 +215,47 @@ void idInventory::Clear()
 
 /*
 ==============
+idInventory::CoopClear
+==============
+*/
+void idInventory::CoopClear(void) {
+	maxHealth = 0;
+	weapons = 0;
+	powerups = 0;
+	armor = 0;
+	maxarmor = 0;
+	deplete_armor = 0;
+	deplete_rate = 0.0f;
+	deplete_ammount = 0;
+	nextArmorDepleteTime = 0;
+
+	ClearPowerUps();
+
+	// set to -1 so that the gun knows to have a full clip the first time we get it and at the start of the level
+
+	selVideo = 0;
+	selEMail = 0;
+	selPDA = 0;
+	selAudio = 0;
+	pdaOpened = false;
+
+	nextItemPickup = 0;
+	nextItemNum = 1;
+	onePickupTime = 0;
+	pickupItemNames.Clear();
+	objectiveNames.Clear();
+
+	ammoPredictTime = 0;
+
+	lastGiveTime = 0;
+
+	ammoPulse = false;
+	weaponPulse = false;
+	armorPulse = false;
+}
+
+/*
+==============
 idInventory::GivePowerUp
 ==============
 */
@@ -369,7 +410,12 @@ void idInventory::RestoreInventory( idPlayer* owner, const idDict& dict )
 	const idKeyValue* kv;
 	const char*	name;
 	
-	Clear();
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		CoopClear();
+	}
+	else {
+		Clear();
+	}
 	
 	// health/armor
 	maxHealth		= dict.GetInt( "maxhealth", "100" );
@@ -397,28 +443,31 @@ void idInventory::RestoreInventory( idPlayer* owner, const idDict& dict )
 		clip[i] = dict.GetInt( va( "clip%i", i ), "-1" );
 	}
 	
-	// items
-	num = dict.GetInt( "items" );
-	items.SetNum( num );
-	for( i = 0; i < num; i++ )
-	{
-		item = new( TAG_ENTITY ) idDict();
-		items[ i ] = item;
-		sprintf( itemname, "item_%i ", i );
-		kv = dict.MatchPrefix( itemname );
-		while( kv )
+	if (!gameLocal.mpGame.IsGametypeCoopBased()) {
+		// items
+		num = dict.GetInt("items");
+		items.SetNum(num);
+		for (i = 0; i < num; i++)
 		{
-			key = kv->GetKey();
-			key.Strip( itemname );
-			item->Set( key, kv->GetValue() );
-			kv = dict.MatchPrefix( itemname, kv );
+			item = new(TAG_ENTITY) idDict();
+			items[i] = item;
+			sprintf(itemname, "item_%i ", i);
+			kv = dict.MatchPrefix(itemname);
+			while (kv)
+			{
+				key = kv->GetKey();
+				key.Strip(itemname);
+				item->Set(key, kv->GetValue());
+				kv = dict.MatchPrefix(itemname, kv);
+			}
 		}
-	}
-	
-	// pdas viewed
-	for( i = 0; i < 4; i++ )
-	{
-		pdasViewed[i] = dict.GetInt( va( "pdasViewed_%i", i ) );
+
+		// pdas viewed
+		for (i = 0; i < 4; i++)
+		{
+			pdasViewed[i] = dict.GetInt(va("pdasViewed_%i", i));
+		}
+
 	}
 	
 	selPDA = dict.GetInt( "selPDA" );
@@ -427,31 +476,34 @@ void idInventory::RestoreInventory( idPlayer* owner, const idDict& dict )
 	selAudio = dict.GetInt( "selAudio" );
 	pdaOpened = dict.GetBool( "pdaOpened" );
 	
-	// pdas
-	num = dict.GetInt( "pdas" );
-	pdas.SetNum( num );
-	for( i = 0; i < num; i++ )
-	{
-		sprintf( itemname, "pda_%i", i );
-		pdas[i] = static_cast<const idDeclPDA*>( declManager->FindType( DECL_PDA, dict.GetString( itemname, "default" ) ) );
-	}
-	
-	// videos
-	num = dict.GetInt( "videos" );
-	videos.SetNum( num );
-	for( i = 0; i < num; i++ )
-	{
-		sprintf( itemname, "video_%i", i );
-		videos[i] = static_cast<const idDeclVideo*>( declManager->FindType( DECL_VIDEO, dict.GetString( itemname, "default" ) ) );
-	}
-	
-	// emails
-	num = dict.GetInt( "emails" );
-	emails.SetNum( num );
-	for( i = 0; i < num; i++ )
-	{
-		sprintf( itemname, "email_%i", i );
-		emails[i] = static_cast<const idDeclEmail*>( declManager->FindType( DECL_EMAIL, dict.GetString( itemname, "default" ) ) );
+	if (!gameLocal.mpGame.IsGametypeCoopBased()) {
+		// pdas
+		num = dict.GetInt("pdas");
+		pdas.SetNum(num);
+		for (i = 0; i < num; i++)
+		{
+			sprintf(itemname, "pda_%i", i);
+			pdas[i] = static_cast<const idDeclPDA*>(declManager->FindType(DECL_PDA, dict.GetString(itemname, "default")));
+		}
+
+		// videos
+		num = dict.GetInt("videos");
+		videos.SetNum(num);
+		for (i = 0; i < num; i++)
+		{
+			sprintf(itemname, "video_%i", i);
+			videos[i] = static_cast<const idDeclVideo*>(declManager->FindType(DECL_VIDEO, dict.GetString(itemname, "default")));
+		}
+
+		// emails
+		num = dict.GetInt("emails");
+		emails.SetNum(num);
+		for (i = 0; i < num; i++)
+		{
+			sprintf(itemname, "email_%i", i);
+			emails[i] = static_cast<const idDeclEmail*>(declManager->FindType(DECL_EMAIL, dict.GetString(itemname, "default")));
+		}
+
 	}
 	
 	// weapons are stored as a number for persistant data, but as strings in the entityDef
@@ -466,15 +518,21 @@ void idInventory::RestoreInventory( idPlayer* owner, const idDict& dict )
 		Give( owner, dict, "weapon", dict.GetString( "weapon" ), NULL, false, ITEM_GIVE_FEEDBACK | ITEM_GIVE_UPDATE_STATE );
 	}
 	
-	num = dict.GetInt( "levelTriggers" );
-	for( i = 0; i < num; i++ )
-	{
-		sprintf( itemname, "levelTrigger_Level_%i", i );
-		idLevelTriggerInfo lti;
-		lti.levelName = dict.GetString( itemname );
-		sprintf( itemname, "levelTrigger_Trigger_%i", i );
-		lti.triggerName = dict.GetString( itemname );
-		levelTriggers.Append( lti );
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		GiveSpawnItemsToPlayer(owner, dict);
+	}
+
+	if (!gameLocal.mpGame.IsGametypeCoopBased()) {
+		num = dict.GetInt("levelTriggers");
+		for (i = 0; i < num; i++)
+		{
+			sprintf(itemname, "levelTrigger_Level_%i", i);
+			idLevelTriggerInfo lti;
+			lti.levelName = dict.GetString(itemname);
+			sprintf(itemname, "levelTrigger_Trigger_%i", i);
+			lti.triggerName = dict.GetString(itemname);
+			levelTriggers.Append(lti);
+		}
 	}
 	
 }
@@ -1081,7 +1139,22 @@ bool idInventory::Give( idPlayer* owner, const idDict& spawnArgs, const char* st
 		}
 		return tookWeapon;
 	}
-	else if( !idStr::Icmp( statname, "item" ) || !idStr::Icmp( statname, "icon" ) || !idStr::Icmp( statname, "name" ) )
+	else if (!idStr::Icmp(statname, "ammospawn")) { //added for coop
+		for (pos = value; pos != NULL; pos = end) {
+			end = strchr(pos, ',');
+			if (end) {
+				len = end - pos;
+				end++;
+			}
+			else {
+				len = strlen(pos);
+			}
+
+			idStr ammoName(pos, 0, len);
+			owner->GiveItem(ammoName);
+		}
+		return true;
+	} else if( !idStr::Icmp( statname, "item" ) || !idStr::Icmp( statname, "icon" ) || !idStr::Icmp( statname, "name" ) )
 	{
 		// ignore these as they're handled elsewhere
 		return false;
@@ -1364,6 +1437,144 @@ bool idInventory::CanGive( idPlayer* owner, const idDict& spawnArgs, const char*
 }
 
 /*
+==============
+idInventory::CS_CoopClear
+==============
+*/
+void idInventory::CS_CoopClear(void) {
+	memset(pdasViewed, 0, 4 * sizeof(pdasViewed[0]));
+	pdas.Clear();
+	videos.Clear();
+	emails.Clear();
+}
+
+
+/*
+==============
+idInventory::CS_GetPersistantData
+==============
+*/
+void idInventory::CS_GetPersistantData(idDict& dict) {
+	int		i;
+	int		num;
+	idDict* item;
+	idStr	key;
+	const idKeyValue* kv;
+	const char* name;
+
+	// pdas viewed
+	for (i = 0; i < 4; i++)
+	{
+		dict.SetInt(va("pdasViewed_%i", i), pdasViewed[i]);
+	}
+
+	// pdas
+	for (i = 0; i < pdas.Num(); i++)
+	{
+		sprintf(key, "pda_%i", i);
+		dict.Set(key, pdas[i]->GetName());
+	}
+	dict.SetInt("pdas", pdas.Num());
+
+	// video cds
+	for (i = 0; i < videos.Num(); i++)
+	{
+		sprintf(key, "video_%i", i);
+		dict.Set(key, videos[i]->GetName());
+	}
+	dict.SetInt("videos", videos.Num());
+
+	// emails
+	for (i = 0; i < emails.Num(); i++)
+	{
+		sprintf(key, "email_%i", i);
+		dict.Set(key, emails[i]->GetName());
+	}
+	dict.SetInt("emails", emails.Num());
+}
+
+/*
+==============
+idInventory::CS_RestoreInventory
+==============
+*/
+void idInventory::CS_RestoreInventory(idPlayer* owner, const idDict& dict) {
+	int			i;
+	int			num;
+	idDict* item;
+	idStr		key;
+	idStr		itemname;
+	const idKeyValue* kv;
+	const char* name;
+
+	CS_CoopClear();
+
+	// pdas viewed
+	for (i = 0; i < 4; i++)
+	{
+		pdasViewed[i] = dict.GetInt(va("pdasViewed_%i", i));
+	}
+
+	// pdas
+	num = dict.GetInt("pdas");
+	pdas.SetNum(num);
+	for (i = 0; i < num; i++)
+	{
+		sprintf(itemname, "pda_%i", i);
+		pdas[i] = static_cast<const idDeclPDA*>(declManager->FindType(DECL_PDA, dict.GetString(itemname, "default")));
+	}
+
+	// videos
+	num = dict.GetInt("videos");
+	videos.SetNum(num);
+	for (i = 0; i < num; i++)
+	{
+		sprintf(itemname, "video_%i", i);
+		videos[i] = static_cast<const idDeclVideo*>(declManager->FindType(DECL_VIDEO, dict.GetString(itemname, "default")));
+	}
+
+	// emails
+	num = dict.GetInt("emails");
+	emails.SetNum(num);
+	for (i = 0; i < num; i++)
+	{
+		sprintf(itemname, "email_%i", i);
+		emails[i] = static_cast<const idDeclEmail*>(declManager->FindType(DECL_EMAIL, dict.GetString(itemname, "default")));
+	}
+}
+
+/*
+===============
+idInventory::GiveSpawnItemsToPlayer
+Give items defined at "spawn_items" to the current player
+===============
+*/
+void idInventory::GiveSpawnItemsToPlayer(idPlayer* owner, const idDict& dict) {
+	idStr map = gameLocal.serverInfo.GetString("si_map");
+
+	map.StripFileExtension();
+
+	int num = declManager->GetNumDecls(DECL_MAPDEF);
+	int i, j;
+
+	for (i = 0; i < num; i++) {
+		const idDeclEntityDef* mapDef = static_cast<const idDeclEntityDef*>(declManager->DeclByIndex(DECL_MAPDEF, i));
+
+		if (mapDef && idStr::Icmp(mapDef->GetName(), map.c_str()) == 0) {
+			if (mapDef->dict.GetString("spawn_weapons")) {
+				gameLocal.DebugPrintf("Giving weapons to player %d\n", owner->entityNumber);
+				Give(owner, dict, "weapon", mapDef->dict.GetString("spawn_weapons"), NULL, false, ITEM_GIVE_UPDATE_STATE);
+			}
+			if (mapDef->dict.GetString("spawn_ammo")) {
+				gameLocal.DebugPrintf("Giving ammo to player %d\n", owner->entityNumber);
+				Give(owner, dict, "ammospawn", mapDef->dict.GetString("spawn_ammo"), NULL, false, ITEM_GIVE_UPDATE_STATE);
+			}
+			return;
+		}
+	}
+}
+
+/*
 ===============
 idInventory::SetClipAmmoForWeapon
 
@@ -1477,6 +1688,7 @@ idPlayer::idPlayer():
 
 	noclip					= false;
 	godmode					= false;
+	forceSPSpawnPoint		= false; //added for coop
 	
 	spawnAnglesSet			= false;
 	spawnAngles				= ang_zero;
@@ -1846,6 +2058,7 @@ void idPlayer::Init()
 	
 	// restore persistent data
 	RestorePersistantInfo();
+	CS_RestorePersistantInfo();
 	
 	bobCycle		= 0;
 	stamina			= 0.0f;
@@ -2043,7 +2256,6 @@ void idPlayer::Spawn()
 
 	if (common->IsServer() && gameLocal.mpGame.IsGametypeCoopBased()) {
 		originalSpawnArgs.Copy(spawnArgs); //I think there's no need for this
-		gameLocal.firstClientToSpawn = true; //addded for COOP
 	}
 	
 	if( common->IsMultiplayer() )
@@ -2142,6 +2354,10 @@ void idPlayer::Spawn()
 		{
 			// set yourself ready to spawn. idMultiplayerGame will decide when/if appropriate and call SpawnFromSpawnSpot
 			SetupWeaponEntity();
+			if (!gameLocal.firstClientToSpawn && !spectating) {
+				forceSPSpawnPoint = true;
+				gameLocal.firstClientToSpawn = true;
+			}
 			SpawnFromSpawnSpot();
 			forceRespawn = true;
 			wantSpectate = true;
@@ -3072,6 +3288,10 @@ void idPlayer::ServerSpectate( bool spectate )
 	}
 	if( !spectate )
 	{
+		if (!gameLocal.firstClientToSpawn && !spectating) {
+			forceSPSpawnPoint = true;
+			gameLocal.firstClientToSpawn = true;
+		}
 		SpawnFromSpawnSpot();
 	}
 	
@@ -3130,25 +3350,42 @@ use normal spawn selection.
 void idPlayer::SelectInitialSpawnPoint( idVec3& origin, idAngles& angles )
 {
 	idEntity* spot;
+	idEntity* infoPlayerStartSpot;
 	idStr skin;
+
+	infoPlayerStartSpot = gameLocal.FindEntityUsingDef(NULL, "info_player_start");
 	
-	spot = gameLocal.SelectInitialSpawnPoint( this );
+	if (forceSPSpawnPoint && !spectating) { //added to ensure that info_player_start it is used atleast once
+		spot = infoPlayerStartSpot;
+		if (!spot) {
+			gameLocal.Error("No info_player_start on map.\n");
+		}
+
+		// activate the spawn locations targets
+		spot->PostEventMS(&EV_ActivateTargets, 0, this);
+
+		forceSPSpawnPoint = false;
+	}
+	else {
+		spot = gameLocal.SelectInitialSpawnPoint(this);
+		if (infoPlayerStartSpot->entityNumber != spot->entityNumber) {
+			spot->PostEventMS(&EV_ActivateTargets, 0, this); //do not activate this again is this is a info_player_start spawn and it was activated already.
+		}
+	}
 	
 	// set the player skin from the spawn location
 	if( spot->spawnArgs.GetString( "skin", NULL, skin ) )
 	{
 		spawnArgs.Set( "spawn_skin", skin );
 	}
-	
-	// activate the spawn locations targets
-	spot->PostEventMS( &EV_ActivateTargets, 0, this );
 
-	if (gameLocal.mpGame.IsGametypeCoopBased() && gameLocal.mpGame.playerUseCheckpoints[this->entityNumber] && common->IsServer()) {
+	if (g_spawnInCheckpoints.GetBool() && gameLocal.mpGame.IsGametypeCoopBased() && gameLocal.mpGame.playerUseCheckpoints[this->entityNumber] && common->IsServer()) {
 		origin = gameLocal.mpGame.playerCheckpoints[this->entityNumber];
 		origin[2] += 4.0f + CM_BOX_EPSILON;
 		angles = spot->GetPhysics()->GetAxis().ToAngles();
 		return;
 	}
+
 	
 	origin = spot->GetPhysics()->GetOrigin();
 	origin[2] += 4.0f + CM_BOX_EPSILON;		// move up to make sure the player is at least an epsilon above the floor
@@ -3354,6 +3591,11 @@ void idPlayer::RestorePersistantInfo()
 	
 	inventory.RestoreInventory( this, spawnArgs );
 	health = spawnArgs.GetInt( "health", "100" );
+
+	if (health <= 0) { //to avoid bug
+		health = originalSpawnArgs.GetInt("health", "100");
+	}
+
 	idealWeapon = spawnArgs.GetInt( "current_weapon", "1" );
 	
 	playedTimeSecs = spawnArgs.GetInt( "playedTime" );
@@ -4748,6 +4990,10 @@ bool idPlayer::GiveInventoryItem( idDict* item, unsigned int giveFlags )
 	{
 		return false;
 	}
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		return false;
+	}
 	
 	if( giveFlags & ITEM_GIVE_UPDATE_STATE )
 	{
@@ -4828,6 +5074,10 @@ void idPlayer::GiveObjective( const char* title, const char* text, const idMater
 		hud->ShowObjective( false );
 		objectiveUp = true;
 	}
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		gameLocal.CS_SavePersistentPlayerInfo();
+	}
 }
 
 /*
@@ -4853,6 +5103,10 @@ void idPlayer::CompleteObjective( const char* title )
 	{
 		hud->SetupObjectiveComplete( title );
 		hud->ShowObjective( true );
+	}
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		gameLocal.CS_SavePersistentPlayerInfo();
 	}
 }
 
@@ -4886,6 +5140,10 @@ void idPlayer::GiveVideo( const idDeclVideo* video, const char* itemName )
 	{
 		hud->DownloadVideo();
 	}
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		gameLocal.CS_SavePersistentPlayerInfo();
+	}
 }
 
 /*
@@ -4896,7 +5154,7 @@ idPlayer::GiveSecurity
 void idPlayer::GiveSecurity( const char* security )
 {
 	if (gameLocal.mpGame.IsGametypeCoopBased()) {
-		return; //disable this in  coop
+		return CS_GiveSecurity(security);
 	}
 
 	GetPDA()->SetSecurity( security );
@@ -4905,6 +5163,7 @@ void idPlayer::GiveSecurity( const char* security )
 	{
 		hud->UpdatedSecurity();
 	}
+
 }
 
 /*
@@ -4922,7 +5181,7 @@ void idPlayer::GiveEmail( const idDeclEmail* email )
 	inventory.emails.AddUnique( email );
 
 	if (gameLocal.mpGame.IsGametypeCoopBased()) {
-		return; //disable this in  coop
+		return CS_GiveEmail(email);
 	}
 
 	GetPDA()->AddEmail( email );
@@ -4942,6 +5201,9 @@ void idPlayer::GivePDA( const idDeclPDA* pda, const char* securityItem )
 {
 	if( common->IsMultiplayer() && (spectating || common->IsClient()))
 	{
+		if (common->IsClient() && gameLocal.mpGame.IsGametypeCoopBased()) {
+			return CS_GivePDA(pda, securityItem);
+		}
 		return;
 	}
 	
@@ -4968,7 +5230,7 @@ void idPlayer::GivePDA( const idDeclPDA* pda, const char* securityItem )
 		}
 	}
 
-	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+	if (gameLocal.mpGame.IsGametypeCoopBased()) { //allows pda later in BFG Edition
 		return; //No PDAs in Coop yet
 	}
 	
@@ -6524,6 +6786,7 @@ void idPlayer::UpdateFocus()
 	idUserInterface* oldUI;
 	idAI*		oldChar;
 	int			oldTalkCursor;
+	int			oldMPAim; //for coop
 	idAFEntity_Vehicle* oldVehicle;
 	int			i, j;
 	idVec3		start, end;
@@ -6542,7 +6805,7 @@ void idPlayer::UpdateFocus()
 	
 	// only update the focus character when attack button isn't pressed so players
 	// can still chainsaw NPC's
-	if( common->IsMultiplayer() || ( !focusCharacter && ( usercmd.buttons & BUTTON_ATTACK ) ) )
+	if((common->IsMultiplayer() && !gameLocal.mpGame.IsGametypeCoopBased()) || ( !focusCharacter && ( usercmd.buttons & BUTTON_ATTACK ) ) )
 	{
 		allowFocus = false;
 	}
@@ -6556,6 +6819,14 @@ void idPlayer::UpdateFocus()
 	oldChar			= focusCharacter;
 	oldTalkCursor	= talkCursor;
 	oldVehicle		= focusVehicle;
+
+	int realGameLocalTime;
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		realGameLocalTime = gameLocal.clientsideTime;
+	}
+	else {
+		realGameLocalTime = gameLocal.time;
+	}
 	
 	if( focusTime <= gameLocal.time )
 	{
@@ -6574,7 +6845,14 @@ void idPlayer::UpdateFocus()
 	// player identification -> names to the hud
 	if( common->IsMultiplayer() && IsLocallyControlled() )
 	{
-		idVec3 end = start + viewAngles.ToForward() * 768.0f;
+		oldMPAim = MPAim;
+		idVec3 end;
+		if (gameLocal.mpGame.IsGametypeCoopBased()) {
+			end = start + viewAngles.ToForward() * 80.0f;
+		}
+		else {
+			end = start + viewAngles.ToForward() * 768.0f;
+		}
 		gameLocal.clip.TracePoint( trace, start, end, MASK_SHOT_BOUNDINGBOX, this );
 		int iclient = -1;
 		if( ( trace.fraction < 1.0f ) && ( trace.c.entityNum < MAX_CLIENTS ) )
@@ -6619,7 +6897,7 @@ void idPlayer::UpdateFocus()
 						ClearFocus();
 						focusCharacter = static_cast<idAI*>( body );
 						talkCursor = 1;
-						focusTime = gameLocal.time + FOCUS_TIME;
+						focusTime = realGameLocalTime + FOCUS_TIME;
 						break;
 					}
 				}
@@ -6636,7 +6914,7 @@ void idPlayer::UpdateFocus()
 						ClearFocus();
 						focusCharacter = static_cast<idAI*>( ent );
 						talkCursor = 1;
-						focusTime = gameLocal.time + FOCUS_TIME;
+						focusTime = realGameLocalTime + FOCUS_TIME;
 						break;
 					}
 				}
@@ -6650,7 +6928,7 @@ void idPlayer::UpdateFocus()
 				{
 					ClearFocus();
 					focusVehicle = static_cast<idAFEntity_Vehicle*>( ent );
-					focusTime = gameLocal.time + FOCUS_TIME;
+					focusTime = realGameLocalTime + FOCUS_TIME;
 					break;
 				}
 				continue;
@@ -6767,7 +7045,7 @@ void idPlayer::UpdateFocus()
 			ev = sys->GenerateMouseMoveEvent( pt.x * SCREEN_WIDTH, pt.y * SCREEN_HEIGHT );
 			command = focusUI->HandleEvent( &ev, gameLocal.time );
 			HandleGuiCommands( focusGUIent, command );
-			focusTime = gameLocal.time + FOCUS_GUI_TIME;
+			focusTime = realGameLocalTime + FOCUS_GUI_TIME;
 			break;
 		}
 	}
@@ -8783,8 +9061,7 @@ void idPlayer::UpdateHud()
 			hud->TriggerHitTarget( true, session->GetActingGameStateLobbyBase().GetLobbyUserName( gameLocal.lobbyUserIDs[ MPAim ] ), aimed->team + 1 );
 			MPAimHighlight = true;
 			MPAimFadeTime = 0;	// no fade till loosing focus
-		}
-		else if( MPAimHighlight )
+		} else if( MPAimHighlight )
 		{
 			hud->TriggerHitTarget( false, "" );
 			MPAimFadeTime = gameLocal.realClientTime;
@@ -9577,8 +9854,13 @@ void idPlayer::Killed( idEntity* inflictor, idEntity* attacker, int damage, cons
 	if (gameLocal.mpGame.IsGametypeCoopBased()) {
 		spawnArgs.Clear(); //with this only should be enough
 		spawnArgs.Copy(originalSpawnArgs); //I think there's no need for this.
-		inventory.Clear(); //this maybe is not a good idea
-		gameLocal.persistentPlayerInfo[entityNumber].Clear(); //reset persistant info
+		if (g_keepItemsAfterRespawn.GetBool()) {
+			gameLocal.GetPersistentPlayerInfo(entityNumber);
+		}
+		else {
+			inventory.CoopClear();
+			gameLocal.persistentPlayerInfo[entityNumber].Clear();
+		}
 	}
 	
 	// stop taking knockback once dead
@@ -12960,4 +13242,122 @@ void idPlayer::Teleport(const idVec3& origin, const idAngles& angles) {
 	}
 
 	UpdateVisuals();
+}
+
+/*
+================
+idPlayer::Event_GetLinearVelocity
+================
+*/
+void idPlayer::Event_GetLinearVelocity(void) {
+	if (common->IsServer() && gameLocal.mpGame.IsGametypeCoopBased() && spectating) {
+		for (int i = 0; i < gameLocal.numClients; i++) {
+			if (gameLocal.entities[i] && gameLocal.entities[i]->IsType(idPlayer::Type) && !static_cast<idPlayer*>(gameLocal.entities[i])->spectating) {
+				idThread::ReturnVector(gameLocal.entities[i]->GetPhysics()->GetLinearVelocity());
+				gameLocal.DebugPrintf("This is good: %s\n", gameLocal.entities[i]->GetPhysics()->GetLinearVelocity().ToString());
+				break;
+			}
+		}
+	}
+	else {
+		idThread::ReturnVector(GetPhysics()->GetLinearVelocity());
+	}
+	gameLocal.DebugPrintf("Aca llego: %s\n", GetPhysics()->GetLinearVelocity().ToString());
+}
+
+/*
+================
+idPlayer::GetFocusCharacter
+================
+*/
+idAI* idPlayer::GetFocusCharacter(void) {
+	return focusCharacter;
+}
+
+/*
+================
+idPlayer::CS_GivePDA
+================
+*/
+void idPlayer::CS_GivePDA(const idDeclPDA* pda, const char* securityItem) {
+	return; //nothing yet
+}
+
+/*
+================
+idPlayer::CS_GiveVideo
+================
+*/
+void idPlayer::CS_GiveVideo(const idDeclVideo* video, const char* itemName) {
+	return;
+}
+
+/*
+================
+idPlayer::CS_GiveEmail
+================
+*/
+void idPlayer::CS_GiveEmail(const idDeclEmail* email) {
+	return;
+}
+
+/*
+================
+idPlayer::CS_GiveSecurity
+================
+*/
+void idPlayer::CS_GiveSecurity(const char* security) {
+	return;
+}
+
+/*
+================
+idPlayer::CS_GiveObjective
+================
+*/
+void idPlayer::CS_GiveObjective(const char* title, const char* text, const char* screenshot) {
+	return;
+}
+
+/*
+================
+idPlayer::CS_GiveObjective
+================
+*/
+void idPlayer::CS_CompleteObjective(const char* title) {
+	return;
+}
+
+
+/*
+===============
+idPlayer::CS_SavePersistantInfo
+Saves any inventory and player stats when changing levels.
+===============
+*/
+void idPlayer::CS_SavePersistantInfo(void) {
+	assert(common->IsClient());
+
+	if (spectating)
+		return;
+
+	idDict& playerInfo = gameLocal.persistentPlayerInfoClientside;
+	playerInfo.Clear();
+	inventory.CS_GetPersistantData(playerInfo);
+}
+
+/*
+===============
+idPlayer::CS_RestorePersistantInfo
+Restores any inventory and player stats when changing levels.
+===============
+*/
+void idPlayer::CS_RestorePersistantInfo(void) {
+	if (!gameLocal.mpGame.IsGametypeCoopBased() || common->IsServer() || gameLocal.GetLocalClientNum() != entityNumber)
+		return;
+
+	idDict tmpArgs;
+	tmpArgs.Copy(gameLocal.persistentPlayerInfoClientside);
+
+	inventory.CS_RestoreInventory(this, tmpArgs);
 }

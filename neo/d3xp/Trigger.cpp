@@ -156,7 +156,7 @@ void idTrigger::Disable()
 idTrigger::CallScript
 ================
 */
-void idTrigger::CallScript() const
+void idTrigger::CallScript()
 {
 	idThread* thread;
 	
@@ -306,6 +306,7 @@ idTrigger_Multi::idTrigger_Multi()
 	touchOther = false;
 	triggerFirst = false;
 	triggerWithSelf = false;
+	eventSyncVital = false;
 }
 
 /*

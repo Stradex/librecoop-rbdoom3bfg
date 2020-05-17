@@ -65,7 +65,6 @@ idCVar si_midnight(                 "si_midnight",              "0",            
 
 //fluff start (Thanks fluff :3)
 // coop
-idCVar si_shootDoors("si_shootDoors", "0", CVAR_GAME | CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_BOOL, "all doors can be opened by shooting them, even if they're locked");
 idCVar si_itemRespawn("si_itemRespawn", "0", CVAR_GAME | CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_BOOL, "items will respawn in coop modes");
 //fluff end
 
@@ -73,9 +72,10 @@ idCVar si_itemRespawn("si_itemRespawn", "0", CVAR_GAME | CVAR_SERVERINFO | CVAR_
 idCVar si_onePickupPerPlayer("si_onePickupPerPlayer", "1", CVAR_GAME | CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_BOOL | CVAR_NETWORKSYNC, "Items pickups are indivual for each player in server");
 idCVar net_serverSnapshotLimit("net_serverSnapshotLimit", "50", CVAR_GAME | CVAR_ARCHIVE | CVAR_INTEGER, "How many snapshots can we send in total as limit (per client)", 8, 64); //64 = RECEIVE_SNAPSHOT_BUFFER_SIZE, never suprass this limit
 idCVar g_unblockPlayers("g_unblockPlayers", "0", CVAR_GAME | CVAR_BOOL | CVAR_NETWORKSYNC | CVAR_NOCHEAT, "If player are solid between them or not");
-idCVar g_freezeUntilClientJoins("g_freezeUntilClientJoins", "0", CVAR_GAME | CVAR_BOOL, "(Dedicated server only) used to wait until a clients join to the game start running or not");
 idCVar si_lives("si_lives", "2", CVAR_GAME | CVAR_ARCHIVE | CVAR_INTEGER, "How many lives can the players have in Survival mode", 1, 100);
 idCVar net_clientSideMovement("net_clientSideMovement", "0", CVAR_GAME | CVAR_BOOL | CVAR_NOCHEAT, "Clientside movement, use only if you're suffering lag");
+idCVar g_spawnInCheckpoints("g_spawnInCheckpoints", "0", CVAR_GAME | CVAR_BOOL | CVAR_NETWORKSYNC | CVAR_NOCHEAT, "Players can spawn in user checkpoints");
+idCVar g_keepItemsAfterRespawn("g_keepItemsAfterRespawn", "0", CVAR_GAME | CVAR_BOOL | CVAR_NETWORKSYNC | CVAR_NOCHEAT, "Keep items after respawning");
 //stradex end
 
 // change anytime vars

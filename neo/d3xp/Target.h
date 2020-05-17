@@ -168,6 +168,8 @@ class idTarget_SetGlobalShaderTime : public idTarget
 public:
 	CLASS_PROTOTYPE( idTarget_SetGlobalShaderTime );
 	
+	idTarget_SetGlobalShaderTime(void);
+
 private:
 	void				Event_Activate( idEntity* activator );
 };
@@ -186,6 +188,8 @@ class idTarget_SetShaderParm : public idTarget
 public:
 	CLASS_PROTOTYPE( idTarget_SetShaderParm );
 	
+	idTarget_SetShaderParm(void);
+
 private:
 	void				Event_Activate( idEntity* activator );
 };
@@ -204,6 +208,8 @@ class idTarget_SetShaderTime : public idTarget
 public:
 	CLASS_PROTOTYPE( idTarget_SetShaderTime );
 	
+	idTarget_SetShaderTime(void);
+
 private:
 	void				Event_Activate( idEntity* activator );
 };
@@ -227,6 +233,7 @@ public:
 	void				Restore( idRestoreGame* savefile );
 	
 	void				Think();
+	virtual void		ClientPredictionThink(void); //added for COOP
 	
 private:
 	idVec4				fadeFrom;
@@ -248,6 +255,8 @@ class idTarget_LightFadeIn : public idTarget
 {
 public:
 	CLASS_PROTOTYPE( idTarget_LightFadeIn );
+
+	idTarget_LightFadeIn(void);
 	
 private:
 	void				Event_Activate( idEntity* activator );
@@ -265,6 +274,8 @@ class idTarget_LightFadeOut : public idTarget
 {
 public:
 	CLASS_PROTOTYPE( idTarget_LightFadeOut );
+
+	idTarget_LightFadeOut(void);
 	
 private:
 	void				Event_Activate( idEntity* activator );
@@ -320,6 +331,8 @@ class idTarget_SetModel : public idTarget
 public:
 	CLASS_PROTOTYPE( idTarget_SetModel );
 	
+	idTarget_SetModel(void);
+
 	void				Spawn();
 	
 private:

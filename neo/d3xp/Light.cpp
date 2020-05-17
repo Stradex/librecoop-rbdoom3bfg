@@ -221,6 +221,8 @@ idLight::idLight():
 	fadeStart			= 0;
 	fadeEnd				= 0;
 	soundWasPlaying		= false;
+	canBeCsTarget		= true; //added for coop
+	eventSyncVital = false;
 }
 
 /*
@@ -1066,6 +1068,10 @@ idLight::Event_On
 void idLight::Event_On()
 {
 	On();
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsServer() && !this->coopNode.InList()) { //lets sync this event
+		ServerSendEvent(EVENT_ON, NULL, true, lobbyUserID_t(), true);
+	}
 }
 
 /*
@@ -1076,6 +1082,10 @@ idLight::Event_Off
 void idLight::Event_Off()
 {
 	Off();
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsServer() && !this->coopNode.InList()) { //lets sync this event
+		ServerSendEvent(EVENT_OFF, NULL, true, lobbyUserID_t(), true);
+	}
 }
 
 /*
@@ -1085,6 +1095,12 @@ idLight::Event_ToggleOnOff
 */
 void idLight::Event_ToggleOnOff( idEntity* activator )
 {
+
+	//hack for coop start
+	bool wasCalledViaScript = calledViaScriptThread;
+	calledViaScriptThread = false;
+	//hack for coop ends 
+
 	triggercount++;
 	if( triggercount < count )
 	{
@@ -1103,6 +1119,9 @@ void idLight::Event_ToggleOnOff( idEntity* activator )
 	
 	if( !currentLevel )
 	{
+		if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsServer() && !this->coopNode.InList() && wasCalledViaScript) {
+			ServerSendEvent(EVENT_ON, NULL, true, lobbyUserID_t(), true);
+		}
 		On();
 	}
 	else
@@ -1110,6 +1129,9 @@ void idLight::Event_ToggleOnOff( idEntity* activator )
 		currentLevel--;
 		if( !currentLevel )
 		{
+			if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsServer() && !this->coopNode.InList() && wasCalledViaScript) {
+				ServerSendEvent(EVENT_OFF, NULL, true, lobbyUserID_t(), true);
+			}
 			Off();
 		}
 		else
@@ -1164,6 +1186,16 @@ idLight::Event_FadeOut
 void idLight::Event_FadeOut( float time )
 {
 	FadeOut( time );
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsServer() && !this->coopNode.InList()) { //lets sync this event
+		idBitMsg	msg;
+		byte		msgBuf[MAX_EVENT_PARAM_SIZE];
+
+		msg.InitWrite(msgBuf, sizeof(msgBuf));
+		msg.BeginWriting();
+		msg.WriteFloat(time);
+		ServerSendEvent(EVENT_FADEOUT, &msg, true, lobbyUserID_t(), true);
+	}
 }
 
 /*
@@ -1174,6 +1206,16 @@ idLight::Event_FadeIn
 void idLight::Event_FadeIn( float time )
 {
 	FadeIn( time );
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsServer() && !this->coopNode.InList()) { //lets sync this event
+		idBitMsg	msg;
+		byte		msgBuf[MAX_EVENT_PARAM_SIZE];
+
+		msg.InitWrite(msgBuf, sizeof(msgBuf));
+		msg.BeginWriting();
+		msg.WriteFloat(time);
+		ServerSendEvent(EVENT_FADEIN, &msg, true, lobbyUserID_t(), true);
+	}
 }
 
 /*
@@ -1314,6 +1356,24 @@ bool idLight::ClientReceiveEvent( int event, int time, const idBitMsg& msg )
 		case EVENT_BECOMEBROKEN:
 		{
 			BecomeBroken( NULL );
+			return true;
+		}
+		case EVENT_ON: {
+			On();
+			return true;
+		}
+		case EVENT_OFF: {
+			Off();
+			return true;
+		}
+		case EVENT_FADEIN: {
+			float eventTime = msg.ReadFloat();
+			FadeIn(eventTime);
+			return true;
+		}
+		case EVENT_FADEOUT: {
+			float eventTime = msg.ReadFloat();
+			FadeOut(eventTime);
 			return true;
 		}
 		default:

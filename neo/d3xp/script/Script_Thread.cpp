@@ -116,6 +116,11 @@ const idEventDef EV_Thread_DebugCircle( "debugCircle", "vvvfdf" );
 const idEventDef EV_Thread_DebugBounds( "debugBounds", "vvvf" );
 const idEventDef EV_Thread_DrawText( "drawText", "svfvdf" );
 const idEventDef EV_Thread_InfluenceActive( "influenceActive", NULL, 'd' );
+const idEventDef EV_Thread_GetSkill("getSkill", NULL, 'd'); //added for OpenCoop maps support
+const idEventDef EV_Thread_NumPlayers("numPlayers", NULL, 'd'); //added for OpenCoop maps support
+const idEventDef EV_Thread_GetClosestPlayer("getClosestPlayer", "v", 'e'); //added for OpenCoop maps support
+const idEventDef EV_Thread_KillEntities("killEntities", "ss"); //added for OpenCoop maps support
+const idEventDef EV_Thread_GiveItemToPlayers("giveItemToPlayers", "s"); //to fix powercells in d3xp
 
 CLASS_DECLARATION( idClass, idThread )
 EVENT( EV_Thread_Execute,				idThread::Event_Execute )
@@ -201,6 +206,11 @@ EVENT( EV_Thread_DebugCircle,			idThread::Event_DebugCircle )
 EVENT( EV_Thread_DebugBounds,			idThread::Event_DebugBounds )
 EVENT( EV_Thread_DrawText,				idThread::Event_DrawText )
 EVENT( EV_Thread_InfluenceActive,		idThread::Event_InfluenceActive )
+EVENT(EV_Thread_GetSkill, idThread::Event_GetSkill)
+EVENT(EV_Thread_NumPlayers, idThread::Event_NumPlayers)
+EVENT(EV_Thread_GetClosestPlayer, idThread::Event_GetClosestPlayer)
+EVENT(EV_Thread_KillEntities, idThread::Event_KillEntities)
+EVENT(EV_Thread_GiveItemToPlayers, idThread::Event_GiveItemToPlayers)
 END_CLASS
 
 idThread*			idThread::currentThread = NULL;
@@ -1168,7 +1178,14 @@ void idThread::Event_Trigger( idEntity* ent )
 	if( ent )
 	{
 		ent->Signal( SIG_TRIGGER );
-		ent->ProcessEvent( &EV_Activate, gameLocal.GetLocalPlayer() );
+		//little hack for coop
+		ent->calledViaScriptThread = true;
+		if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsServer() && !gameLocal.GetLocalPlayer()) {
+			ent->ProcessEvent(&EV_Activate, gameLocal.GetCoopPlayer()); //little hack for coop
+		}
+		else {
+			ent->ProcessEvent(&EV_Activate, gameLocal.GetLocalPlayer());
+		}
 		ent->TriggerGuis();
 	}
 }
@@ -2154,5 +2171,108 @@ void idThread::Event_InfluenceActive()
 	else
 	{
 		idThread::ReturnInt( false );
+	}
+}
+
+/*
+================
+idThread::Event_GetSkill
+================
+*/
+void idThread::Event_GetSkill(void)
+{
+	int gSkill = common->IsMultiplayer() ? gameLocal.serverInfo.GetInt("g_skill") : g_skill.GetInteger();
+
+	idThread::ReturnInt(gSkill);
+
+}
+
+/*
+================
+idThread::Event_NumPlayers
+================
+*/
+
+void idThread::Event_NumPlayers(void)
+{
+	int playersPlaying = 0;
+	for (int i = 0; i < gameLocal.numClients; i++) {
+		idPlayer* client = gameLocal.GetClientByNum(i);
+
+		if (!client || client->spectating) {
+			continue;
+		}
+
+		playersPlaying++;
+	}
+
+	idThread::ReturnInt(playersPlaying);
+}
+
+/*
+================
+idThread::Event_GetClosestPlayer
+================
+*/
+
+void idThread::Event_GetClosestPlayer(const idVec3& pos)
+{
+	idPlayer* closestPlayer = NULL;
+	float shortestDist = idMath::INFINITY;
+	idPlayer* player;
+	float dist;
+	idVec3	delta;
+	for (int i = 0; i < gameLocal.numClients; i++) {
+		player = gameLocal.GetClientByNum(i);
+
+		if (!player || player->spectating || player->health <= 0) {
+			continue;
+		}
+
+		delta = pos - player->GetPhysics()->GetOrigin();
+		dist = delta.LengthSqr();
+
+		if (dist < shortestDist) {
+			shortestDist = dist;
+			closestPlayer = player;
+		}
+	}
+
+	idThread::ReturnEntity(closestPlayer);
+}
+
+/*
+================
+idThread::Event_GetClosestPlayer
+================
+*/
+
+void idThread::Event_KillEntities(const char* key, const char* value)
+{
+	//EMPTY BY NOW. FIXME Stradex
+}
+
+/*
+================
+idThread::Event_GiveItemToPlayers
+================
+*/
+
+void idThread::Event_GiveItemToPlayers(const char* itemName)
+{
+	if (common->IsClient()) { //clients cannot reach this part
+		return;
+	}
+
+	cmdSystem->BufferCommandText(CMD_EXEC_NOW, va("say Giving item: %s to all players!\n", itemName));
+
+	idPlayer* player;
+	for (int i = 0; i < gameLocal.numClients; i++) {
+		player = gameLocal.GetClientByNum(i);
+
+		if (!player || player->spectating || player->health <= 0) {
+			continue;
+		}
+		player->GiveInventoryItem(itemName);
 	}
 }

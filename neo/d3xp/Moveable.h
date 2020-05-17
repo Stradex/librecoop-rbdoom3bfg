@@ -64,6 +64,9 @@ public:
 	virtual void			Killed( idEntity* inflictor, idEntity* attacker, int damage, const idVec3& dir, int location );
 	virtual void			WriteToSnapshot( idBitMsg& msg ) const;
 	virtual void			ReadFromSnapshot( const idBitMsg& msg );
+
+	void					Event_Bind(idEntity* master);
+	void					Event_Unbind(void);
 	
 	void					SetAttacker( idEntity* ent );
 	const idEntity* 		GetAttacker()

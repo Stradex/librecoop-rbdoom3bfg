@@ -81,6 +81,8 @@ public:
 	
 	void				Save( idSaveGame* savefile ) const;
 	void				Restore( idRestoreGame* savefile );
+	void				Event_Enable(void); //added for OpenCoop maps Compability
+	void				Event_Disable(void); //added for OpenCoop maps Compability
 	
 	virtual bool		ClientReceiveEvent( int event, int time, const idBitMsg& msg );
 	
@@ -345,6 +347,8 @@ public:
 	//added for coop
 	enum {
 		EVENT_STATIC_ACTIVATE = idEntity::EVENT_MAXEVENTS,
+		EVENT_STATIC_HIDE,
+		EVENT_STATIC_SHOW,
 		EVENT_STATIC_REMOVE,
 		EVENT_MAXEVENTS
 	};
@@ -353,11 +357,14 @@ public:
 	virtual void		WriteToSnapshot( idBitMsg& msg ) const;
 	virtual void		ReadFromSnapshot( const idBitMsg& msg );
 	virtual bool		ClientReceiveEvent(int event, int time, const idBitMsg& msg); //added for coop
+	virtual void		ClientPredictionThink(void); //added for COOP
 	
 private:
 	void				Event_Activate( idEntity* activator );
 	void				Event_Remove( void ); //added for coop
-	
+	void				Event_Hide(void); //added for coop
+	void				Event_Show(void); //added for coop
+
 	int					spawnTime;
 	bool				active;
 	idVec4				fadeFrom;
@@ -530,6 +537,10 @@ public:
 	void				Spawn();
 	
 	const char* 		GetLocation() const;
+	int					GetPlayersIn(void) const; //added for OpenCoop maps support
+	void				Event_NumPlayers(void); //added for OpenCoop maps support
+	void				Event_AllPlayersIn(void); //added for OpenCoop maps support
+	void				Event_NoPlayersIn(void); //added for OpenCoop maps support
 	
 private:
 };

@@ -118,13 +118,17 @@ idPhysics_Parametric::idPhysics_Parametric()
 	current.axis.Identity();
 	current.localOrigin.Zero();
 	current.localAngles.Zero();
+	current.snapshotOrigin.Zero();  //added for coop
+	current.snapshotAngles.Zero();  //added for coop
+	current.snapshotAxis.Identity();  //added for coop
 	current.linearExtrapolation.Init( 0, 0, vec3_zero, vec3_zero, vec3_zero, EXTRAPOLATION_NONE );
 	current.angularExtrapolation.Init( 0, 0, ang_zero, ang_zero, ang_zero, EXTRAPOLATION_NONE );
 	current.linearInterpolation.Init( 0, 0, 0, 0, vec3_zero, vec3_zero );
 	current.angularInterpolation.Init( 0, 0, 0, 0, ang_zero, ang_zero );
 	current.spline = NULL;
 	current.splineInterpolate.Init( 0, 1, 1, 2, 0, 0 );
-	
+	firstSnapshotReceived = false;
+
 	saved = current;
 	
 	isPusher = false;
@@ -686,6 +690,12 @@ bool idPhysics_Parametric::Evaluate( int timeStepMSec, int endTimeMSec )
 		}
 	}
 	
+	if (hasMaster && gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient() && self && self->IsBoundToMover() && self->GetTeamMaster() != self && firstSnapshotReceived) {
+		current.origin = current.snapshotOrigin;  //added for coop
+		current.angles = current.snapshotAngles;  //added for coop
+		current.axis = current.snapshotAxis;  //added for coop
+	}
+
 	if( isPusher )
 	{
 	
@@ -1212,5 +1222,9 @@ void idPhysics_Parametric::ReadFromSnapshot( const idBitMsg& msg )
 		previous.origin = next.origin;
 		current.axis = next.axis.ToMat3();
 		previous.axis = next.axis;
+		firstSnapshotReceived = true; //shitty hack
+		current.snapshotOrigin = current.origin;  //added for coop
+		current.snapshotAngles = current.angles;  //added for coop
+		current.snapshotAxis = current.axis;  //added for coop
 	}
 }

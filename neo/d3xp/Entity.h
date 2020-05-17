@@ -97,6 +97,7 @@ typedef enum
 
 static const int DEFAULT_SNAPSHOT_PRIORITY = 5; //COOP: All snapshotPriority values behind are top priority
 static const int MAX_MISSING_SNAPSHOTS = 10; //COOP by stradex
+static const int MAX_ENTITY_EVENTS_PER_SEC = 3; //MAX events an non-high priority entity can send per second
 
 struct signal_t
 {
@@ -186,6 +187,7 @@ public:
 	int						entityNumber;			// index into the entity list
 	int						entityDefNumber;		// index into the entity def list
 	int						entityCoopNumber;		// index into the entity coop list
+	int						entityTargetNumber;		// index into the entity target list
 	
 	idLinkList<idEntity>	spawnNode;				// for being linked into spawnedEntities list
 	idLinkList<idEntity>	activeNode;				// for being linked into activeEntities list
@@ -205,6 +207,8 @@ public:
 	int						thinkFlags;				// TH_? flags
 	int						dormantStart;			// time that the entity was first closed off from player
 	bool					cinematic;				// during cinematics, entity will only think if cinematic is set
+	bool					allowClientsideThink;	// added for coop
+	bool					canBeCsTarget;			// added for coop
 	
 	renderView_t* 			renderView;				// for camera views from this entity
 	idEntity* 				cameraTarget;			// any remoteRenderMap shaders will use this
@@ -217,11 +221,20 @@ public:
 	bool					clientSideEntity;		// FIXME: I think there's no need of this but well... for COOP
 	bool					firstTimeInClientPVS;	//added for Netcode optimization for COOP (Stradex)
 	bool					forceNetworkSync;		//FIXME: I think there's no need of this. Just duct tape to fix the new netcode 
-	bool					inSnapshotQueue;		//IF there's a snapshot overflow (see net_serverSnapshotLimit) we're going to need a snapshotqueue
+	int						inSnapshotQueue;		//IF there's a snapshot overflow (see net_serverSnapshotLimit) we're going to need a snapshotqueue
 	bool					readByServer;			//if the entity was already tried to be sent in the snapshot
 	int						snapshotPriority;		//The priority of this entity (useful when snapshot overflow
 	int						snapshotMissingCount[MAX_CLIENTS];	//Missing snapshots count for coop
 	bool					spawnSnapShot;			 //first snapshot send by server
+	idVec3					lastSnapshotOrigin[MAX_CLIENTS]; // COOP: last origin position sended to a client via snapshot
+	bool					forceSnapshotUpdateOrigin;
+	bool					calledViaScriptThread; // Dirty hack for coop
+	bool					scriptAlreadyConstructed; //to fix a bug at localMapRestart
+	bool					findTargetsAlreadyCalled; //to fix a bug at localMapRestart
+	int						eventsSend;					//to debug
+	bool					eventSyncVital;				//if is vital that this entity always sync events
+	int						nextSendEventTime;			//next time to send event in case of overflow.
+	int						nextResetEventCountTime;
 	
 	struct entityFlags_s
 	{
@@ -317,6 +330,11 @@ public:
 	const int* 				GetPVSAreas();
 	void					ClearPVSAreas();
 	bool					PhysicsTeamInPVS( pvsHandle_t pvsHandle );
+	int						GetNumPVSAreas_snapshot(int clientNum);
+	const int*				GetPVSAreas_snapshot(int clientNum);
+	void					ClearPVSAreas_snapshot(int clientNum);
+	bool					PhysicsTeamInPVS_snapshot(pvsHandle_t pvsHandle, int clientNum); //dirty code for coop optimization
+
 	
 	// animation
 	virtual bool			UpdateAnimationControllers();
@@ -362,7 +380,12 @@ public:
 	void					GetWorldVelocities( idVec3& linearVelocity, idVec3& angularVelocity ) const;
 
 	bool					IsMasterActive(void) const; //added for coop netcode
+	bool					IsMasterCoopSync(void) const; //added for coop netcode
+	bool					IsMasterInSnapshot(void) const; //added for coop netcode
 	bool					MasterUseOldNetcode(void) const; //added for coop netcode
+	bool					IsBoundToMover(void) const; //added for coop netcode
+	void					Call_ConstructScriptObject(void); //added by stradex to fix a bug at localMapRestart
+	void					Call_FindTargets(void); //added by stradex to fix a bug at localMapRestart
 	
 	// physics
 	// set a new physics object to be used by this entity
@@ -441,7 +464,7 @@ public:
 	// targets
 	void					FindTargets();
 	void					RemoveNullTargets();
-	void					ActivateTargets( idEntity* activator ) const;
+	void					ActivateTargets( idEntity* activator );
 	
 	// misc
 	virtual void			Teleport( const idVec3& origin, const idAngles& angles, idEntity* destination );
@@ -454,6 +477,10 @@ public:
 	{
 		EVENT_STARTSOUNDSHADER,
 		EVENT_STOPSOUNDSHADER,
+		EVENT_ACTIVATE_TARGETS,
+		EVENT_SETNETSHADERPARM,
+		EVENT_SETGUI,
+		EVENT_GUINAMEDEVENT,
 		EVENT_MAXEVENTS
 	};
 	
@@ -556,6 +583,8 @@ private:
 	bool					useClientInterpolation;				// disables interpolation for some objects (handy for weapon world models)
 	int						numPVSAreas;						// number of renderer areas the entity covers
 	int						PVSAreas[MAX_PVS_AREAS];			// numbers of the renderer areas the entity covers
+	int						numPVSAreas_snapshot[MAX_CLIENTS];				// COOP: number of renderer areas the entity covers
+	int						PVSAreas_snapshot[MAX_CLIENTS][MAX_PVS_AREAS];	// COOP: numbers of the renderer areas the entity covers
 	
 	signalList_t* 			signals;
 	
@@ -591,6 +620,7 @@ private:
 	void					QuitTeam();					// leave the current team
 	
 	void					UpdatePVSAreas();
+	void					UpdatePVSAreas_snapshot(int clientNum);
 	
 	// events
 	void					Event_GetName();
@@ -605,6 +635,7 @@ private:
 	void					Event_BindToJoint( idEntity* master, const char* jointname, float orientated );
 	void					Event_Unbind();
 	void					Event_RemoveBinds();
+	void					Event_SafeRemove(void);  //added for coop 
 	void					Event_SpawnBind();
 	void					Event_SetOwner( idEntity* owner );
 	void					Event_SetModel( const char* modelname );
@@ -661,6 +692,8 @@ private:
 	void					Event_GetGuiParm( int guiNum, const char* key );
 	void					Event_GetGuiParmFloat( int guiNum, const char* key );
 	void					Event_GuiNamedEvent( int guiNum, const char* event );
+	void					Event_SetNetShaderParm(int parmnum, float value); //added for OpenCoop Compatibility
+	void					Event_StartNetSoundShader(const char* soundName, int channel, int netSync); //added for OpenCoop Compatibility
 };
 
 /*

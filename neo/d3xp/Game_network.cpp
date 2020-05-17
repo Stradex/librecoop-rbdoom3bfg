@@ -1629,7 +1629,13 @@ gameReturn_t	idGameLocal::RunClientSideFrame(idPlayer* clientPlayer)
 		}
 
 		ent->thinkFlags |= TH_PHYSICS;
-		ent->ClientThink(netInterpolationInfo.serverGameMs, netInterpolationInfo.pct, true);
+		if (ent->allowClientsideThink && !ent->fl.coopNetworkSync) {
+			ent->Think(); //this is maybe a mistake, but who knows
+		}
+		else {
+			ent->ClientThink(netInterpolationInfo.serverGameMs, netInterpolationInfo.pct, true);
+		}
+		
 	}
 
 	/*
@@ -1941,10 +1947,10 @@ void idGameLocal::snapshotsort_swap(idEntity* entities[], int lhs, int rhs) {
 bool idGameLocal::snapshotsort_notInOrder(idEntity* lhs, idEntity* rhs) {
 
 	// 1 - elements in snapshot queue should be left
-	if (!lhs->inSnapshotQueue && rhs->inSnapshotQueue) {
+	if (lhs->inSnapshotQueue < rhs->inSnapshotQueue) {
 		return true;
 	}
-	else if (lhs->inSnapshotQueue && !rhs->inSnapshotQueue) {
+	else if (lhs->inSnapshotQueue > rhs->inSnapshotQueue) {
 		return false;
 	}
 
@@ -2099,22 +2105,32 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 		bool entInPvsHandle = false;
 		ent->readByServer = false;
 
-		if (ent->clientsideNode.InList()) { //Stradex: ignore clientside only entities to avoid weird shit
+		if (ent->clientsideNode.InList() || !ent->fl.coopNetworkSync) { //Stradex: ignore clientside only entities to avoid weird shit
 			continue;
 		}
 
 		if (!ent->IsActive() && !ent->IsMasterActive() && !ent->forceNetworkSync && !ent->MasterUseOldNetcode() && !ent->inSnapshotQueue && !ent->firstTimeInClientPVS) { //ignore inactive entities that the player already saw before
 				continue;
 		}
+		if (ent->IsHidden() && !ent->firstTimeInClientPVS && !ent->inSnapshotQueue) { //this shit is really important to improve server netcode
+			continue;
+		}
 		// if that entity is not marked for network synchronization
 		if (!ent->fl.coopNetworkSync) {
 			continue;
 		}
 		for (int i = 0; i < MAX_PLAYERS; i++) {
-			if (pvsHandles[i].i == -1) {
+			if (!entities[i] || pvsHandles[i].i == -1) {
 				continue;
 			}
-			if (ent->PhysicsTeamInPVS(pvsHandles[i])) {
+			if (!ent->PhysicsTeamInPVS(pvsHandles[i])) {
+				if (!ent->forceSnapshotUpdateOrigin && ent->PhysicsTeamInPVS_snapshot(pvsHandles[i], i)) {
+					ent->inSnapshotQueue++; //hack?
+					ent->forceSnapshotUpdateOrigin = true;
+					entInPvsHandle = true;
+					break;
+				}
+			} else {
 				entInPvsHandle = true;
 				break;
 			}
@@ -2144,7 +2160,7 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 		}
 
 		if (serverSendEntitiesCount >= serverEntitiesLimit) {
-			ent->inSnapshotQueue = true;
+			ent->inSnapshotQueue++;
 			continue;
 		}
 
@@ -2154,6 +2170,11 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 		*/
 		ent->inSnapshotQueue = false; 
 		ent->firstTimeInClientPVS = false;
+		ent->forceSnapshotUpdateOrigin = false;
+		for (int i = 0; i < MAX_PLAYERS; i++) {
+			ent->ClearPVSAreas_snapshot(i);
+			ent->lastSnapshotOrigin[i] = ent->GetRenderEntity()->origin;
+		}
 		serverSendEntitiesCount++;
 
 		msg.InitWrite(buffer, sizeof(buffer));

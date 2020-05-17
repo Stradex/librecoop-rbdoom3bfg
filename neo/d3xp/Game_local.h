@@ -333,6 +333,7 @@ public:
 	int						numClients;				// pulled from serverInfo and verified
 	idArray< lobbyUserID_t, MAX_CLIENTS >	lobbyUserIDs;	// Maps from a client (player) number to a lobby user
 	idDict					persistentPlayerInfo[MAX_CLIENTS];
+	idDict					persistentPlayerInfoClientside; //added for Coop (pdas data mostly)
 	idEntity* 				entities[MAX_GENTITIES];// index to entities
 	int						spawnIds[MAX_GENTITIES];// for use in idEntityPtr
 	idArray< int, 2 >		firstFreeEntityIndex;	// first free index in the entities array. [0] for replicated entities, [1] for non-replicated
@@ -350,14 +351,17 @@ public:
 	//start: stradex for coop netcode
 	idArray< int, 2 >		firstFreeEntityCoopIndex;		// first free index in the entities array for coop
 	idArray< int, 2 >		firstFreeEntityCsIndex;		// first free index in the entities array for clientsideEntities
-	idEntity* coopentities[MAX_GENTITIES];	//For coop netcode only by Stradex
-	idEntity* sortsnapshotentities[MAX_GENTITIES]; //for coop only to sort the priority of snapshot
+	idArray< int, 2 >		firstFreeTargetIndex;	// first free index in the targetentities array
+	idEntity*				targetentities[MAX_GENTITIES];	//For coop netcode only by Stradex
+	idEntity*				coopentities[MAX_GENTITIES];	//For coop netcode only by Stradex
+	idEntity*				sortsnapshotentities[MAX_GENTITIES]; //for coop only to sort the priority of snapshot
 	int						coopIds[MAX_GENTITIES];			// for use in idEntityPtr in coop
 	int						num_coopentities;				//for coop netcode only by stradex 
 	idLinkList<idEntity>	coopSyncEntities;				// all net-synced (used by Coop only)
 	idLinkList<idEntity>	serverPriorityEntities;			// coopSyncEnities but sort by snapshotPriority (used by Coop only)
 	int						serverEventsCount;				//just to debug delete later
 	int						clientEventsCount;				//just to debug, delete later
+	bool					isRestartingMap;				//added for coop to fix a script bug after serverMapRestart
 	serverEvent_t			serverOverflowEvents[SERVER_EVENTS_QUEUE_SIZE]; //To avoid server reliabe messages overflow
 	void					addToServerEventOverFlowList(int eventId, const idBitMsg* msg, bool saveEvent, lobbyUserID_t excludeClient, int eventTime, idEntity* ent, bool saveLastOnly = false); //To avoid server reliabe messages overflow
 	void					addToServerEventOverFlowList(entityNetEvent_t* event, lobbyUserID_t excludeClient); //To avoid server reliabe messages overflow
@@ -501,6 +505,7 @@ public:
 	
 	void					Printf( VERIFY_FORMAT_STRING const char* fmt, ... ) const;
 	void					DPrintf( VERIFY_FORMAT_STRING const char* fmt, ... ) const;
+	void					DebugPrintf(VERIFY_FORMAT_STRING const char* fmt, ...) const;
 	void					Warning( VERIFY_FORMAT_STRING const char* fmt, ... ) const;
 	void					DWarning( VERIFY_FORMAT_STRING const char* fmt, ... ) const;
 	void					Error( VERIFY_FORMAT_STRING const char* fmt, ... ) const;
@@ -534,6 +539,7 @@ public:
 	const idDict* 			FindEntityDefDict( const char* name, bool makeDefault = true ) const;
 	
 	void					RegisterCoopEntity(idEntity* ent, int forceSpawnId, const idDict& spawnArgsToCopy); //added by Stradex for coop
+	void					RegisterTargetEntity(idEntity* ent); //added by Stradex for coop
 	void					RegisterEntity( idEntity* ent, int forceSpawnId, const idDict& spawnArgsToCopy );
 	void					UnregisterEntity( idEntity* ent );
 	const idDict& 			GetSpawnArgs() const
@@ -561,6 +567,7 @@ public:
 	
 	void					AddEntityToHash( const char* name, idEntity* ent );
 	bool					RemoveEntityFromHash( const char* name, idEntity* ent );
+	bool					EntityFromHashExists(const char* name);
 	int						GetTargets( const idDict& args, idList< idEntityPtr<idEntity> >& list, const char* ref ) const;
 	
 	// returns the master entity of a trace.  for example, if the trace entity is the player's head, it will return the player.
@@ -600,6 +607,7 @@ public:
 	
 	idPlayer* 				GetLocalPlayer() const;
 	idPlayer*				GetCoopPlayer() const; //added for Coop
+	idEntity*				GetCoopPlayerScriptHack() const; //added for Coop
 	
 	void					SpreadLocations();
 	idLocationEntity* 		LocationForPoint( const idVec3& point );	// May return NULL
@@ -699,9 +707,13 @@ public:
 	const char* 			GetMPPlayerDefName() const;
 	
 	//specific coop stuff
+	bool					isNPC(idEntity* ent) const; //added for COOP hack
+	const idDict&			CS_SavePersistentPlayerInfo(void);
 	bool					firstClientToSpawn; //used in coop for dedicated server not starting scripts until a player joins
 	bool					coopMapScriptLoad; //used in coop for dedicated server not starting scripts until a player joins
 	spawnSpot_t				spPlayerStartSpot; //added for COOP
+	idStaticList<spawnSpot_t, MAX_GENTITIES> spawnSpots; //public for coop
+	idStaticList<idEntity*, MAX_GENTITIES> initialSpots; //public for coop
 
 private:
 	const static int		INITIAL_SPAWN_COUNT = 1;
@@ -743,8 +755,6 @@ private:
 	idEventQueue			eventQueue;
 	idEventQueue			savedEventQueue;
 	
-	idStaticList<spawnSpot_t, MAX_GENTITIES> spawnSpots;
-	idStaticList<idEntity*, MAX_GENTITIES> initialSpots;
 	int						currentInitialSpot;
 	
 	idStaticList<spawnSpot_t, MAX_GENTITIES> teamSpawnSpots[2];

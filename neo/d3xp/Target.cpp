@@ -399,6 +399,15 @@ END_CLASS
 
 /*
 ================
+idTarget_SetGlobalShaderTime::idTarget_SetGlobalShaderTime
+================
+*/
+idTarget_SetGlobalShaderTime::idTarget_SetGlobalShaderTime(void) {
+	//canBeCsTarget = true;
+}
+
+/*
+================
 idTarget_SetGlobalShaderTime::Event_Activate
 ================
 */
@@ -423,6 +432,15 @@ idTarget_SetShaderParm
 CLASS_DECLARATION( idTarget, idTarget_SetShaderParm )
 EVENT( EV_Activate,	idTarget_SetShaderParm::Event_Activate )
 END_CLASS
+
+/*
+================
+idTarget_SetShaderParm::idTarget_SetShaderParm
+================
+*/
+idTarget_SetShaderParm::idTarget_SetShaderParm(void) {
+	canBeCsTarget = true;
+}
 
 /*
 ================
@@ -486,6 +504,17 @@ idTarget_SetShaderTime
 CLASS_DECLARATION( idTarget, idTarget_SetShaderTime )
 EVENT( EV_Activate,	idTarget_SetShaderTime::Event_Activate )
 END_CLASS
+
+/*
+================
+idTarget_SetShaderTime::idTarget_SetShaderTime
+================
+*/
+
+idTarget_SetShaderTime::idTarget_SetShaderTime(void) {
+	canBeCsTarget = true;
+}
+
 
 /*
 ================
@@ -639,6 +668,16 @@ void idTarget_FadeEntity::Think()
 }
 
 /*
+================
+idTarget_FadeEntity::ClientPredictionThink
+================
+*/
+void idTarget_FadeEntity::ClientPredictionThink(void) {
+	Think();
+}
+
+
+/*
 ===============================================================================
 
 idTarget_LightFadeIn
@@ -649,6 +688,16 @@ idTarget_LightFadeIn
 CLASS_DECLARATION( idTarget, idTarget_LightFadeIn )
 EVENT( EV_Activate,				idTarget_LightFadeIn::Event_Activate )
 END_CLASS
+
+/*
+================
+idTarget_LightFadeIn::idTarget_LightFadeIn
+================
+*/
+
+idTarget_LightFadeIn::idTarget_LightFadeIn(void) {
+	canBeCsTarget = true;
+}
 
 /*
 ================
@@ -699,6 +748,17 @@ idTarget_LightFadeOut
 CLASS_DECLARATION( idTarget, idTarget_LightFadeOut )
 EVENT( EV_Activate,				idTarget_LightFadeOut::Event_Activate )
 END_CLASS
+
+/*
+================
+idTarget_LightFadeOut::idTarget_LightFadeOut
+================
+*/
+
+idTarget_LightFadeOut::idTarget_LightFadeOut(void) {
+	canBeCsTarget = true;
+}
+
 
 /*
 ================
@@ -759,7 +819,7 @@ void idTarget_Give::Spawn()
 {
 	if( spawnArgs.GetBool( "onSpawn" ) )
 	{
-		PostEventMS( &EV_Activate, 50 );
+		PostEventMS( &EV_Activate, 50 , this);
 	}
 }
 
@@ -848,6 +908,17 @@ idTarget_SetModel
 CLASS_DECLARATION( idTarget, idTarget_SetModel )
 EVENT( EV_Activate,	idTarget_SetModel::Event_Activate )
 END_CLASS
+
+/*
+================
+idTarget_SetModel::idTarget_SetModel
+================
+*/
+
+idTarget_SetModel::idTarget_SetModel(void) {
+	canBeCsTarget = true;
+}
+
 
 /*
 ================

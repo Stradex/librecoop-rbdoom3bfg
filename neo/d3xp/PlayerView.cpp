@@ -440,7 +440,7 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 	gameSoundWorld->PlaceListener( view->vieworg, view->viewaxis, player->entityNumber + 1 );
 	
 	// if the objective system is up, don't do normal drawing
-	if( player->objectiveSystemOpen )
+	if( player->objectiveSystemOpen && (!gameLocal.mpGame.IsGametypeCoopBased() || player->entityNumber == gameLocal.GetLocalClientNum()))
 	{
 		if( player->pdaMenu != NULL )
 		{

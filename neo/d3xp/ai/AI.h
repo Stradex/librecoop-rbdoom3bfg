@@ -319,9 +319,13 @@ public:
 	virtual bool			ServerReceiveEvent(int event, int time, const idBitMsg& msg); //Added for COOP by Stradex
 	virtual bool			ClientReceiveEvent(int event, int time, const idBitMsg& msg); //Added for COOP by Stradex
 	void					ClientProcessNetAction(netActionType_t newAction);  //Added for COOP by Stradex
-	idPlayer* GetClosestPlayerEnemy(void);
+	idPlayer*				GetClosestPlayerEnemy(void);
+	idPlayer*				GetClosestPlayer(void);
+	idPlayer*				GetFocusPlayer(void); //for coop with characters AI
 
 	void					TriggerWeaponEffects(const idVec3& muzzle); //moved to public by Stradex for COOP
+
+	void					Init_CoopScriptFix(void); //dirty hack for coop fix
 	
 protected:
 	// navigation
@@ -458,6 +462,7 @@ protected:
 	idVec3					turnTowardPos;
 	bool					thereWasEnemy;
 	int						currentChannelOverride;
+	int						currentHeadAnim;
 	
 	idHashTable<funcEmitter_t> funcEmitters;
 	
@@ -505,6 +510,7 @@ protected:
 	idVec3					FirstVisiblePointOnPath( const idVec3 origin, const idVec3& target, int travelFlags ) const;
 	void					CalculateAttackOffsets();
 	void					PlayCinematic();
+	void					LinkScriptVariables(void);
 	
 	// movement
 	virtual void			ApplyImpulse( idEntity* ent, int id, const idVec3& point, const idVec3& impulse );
@@ -605,7 +611,6 @@ protected:
 	void					StopEmitter( const char* name );
 	
 	// AI script state management
-	void					LinkScriptVariables();
 	void					UpdateAIScript();
 	
 	//

@@ -1798,17 +1798,7 @@ void idMultiplayerGame::Run()
 	
 	pureReady = true;
 
-	/*
-	//REMOVE ME LATER (Stradex)
-	if (!gameLocal.coopMapScriptLoad && gameLocal.firstClientToSpawn && IsGametypeCoopBased() && gameLocal.GetLocalClientNum() < 0 && g_freezeUntilClientJoins.GetBool()) { //first player joined by the dedicated server
-		gameLocal.coopMapScriptLoad = true;
-		gameLocal.world->InitializateMapScript();
-	}	else if (!gameLocal.firstClientToSpawn && IsGametypeCoopBased() && gameLocal.GetLocalClientNum() < 0 && g_freezeUntilClientJoins.GetBool()) {
-		//return; //Freeze time until a player joins in a dedicated server in coop
-	}
-	//END REMOVE
-	*/
-	
+
 	if( gameState == INACTIVE )
 	{
 		if (gameLocal.gameType == GAME_COOP) {
@@ -2936,7 +2926,6 @@ void idMultiplayerGame::CheckRespawns( idPlayer* spectator )
 					}
 					else if (gameState == GAMEON || gameState == SUDDENDEATH) { //FIXME: SUDDENDEATH IN SURVIVAL?
 						if (playerState[i].livesLeft <= 0) { //this player is out of lives
-							//common->Printf("[SURVIVAL] player %d is out of lives...\n", i);
 							p->ServerSpectate(true);
 							CheckAbortGame(); //may all players are dead so restart the map is important
 						}
@@ -3159,6 +3148,12 @@ void idMultiplayerGame::MapRestart()
 	teamPoints[0] = 0;
 	teamPoints[1] = 0;
 	
+	if (gameLocal.gameType == GAME_SURVIVAL) {
+		for (int clientNum = 0; clientNum < gameLocal.numClients; clientNum++) {
+			playerState[clientNum].livesLeft = si_lives.GetInteger(); //added for Survival
+		}
+	}
+
 	BalanceTeams();
 }
 

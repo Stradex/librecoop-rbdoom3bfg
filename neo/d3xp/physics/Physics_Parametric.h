@@ -49,6 +49,9 @@ typedef struct parametricPState_s
 	idVec3									origin;					// world origin
 	idAngles								angles;					// world angles
 	idMat3									axis;					// world axis
+	idVec3									snapshotOrigin;			// added for coop fix
+	idAngles								snapshotAngles;			// added for coop fix
+	idMat3									snapshotAxis;			// added for coop fix
 	idVec3									localOrigin;			// local origin
 	idAngles								localAngles;			// local angles
 	idExtrapolate<idVec3>					linearExtrapolation;	// extrapolation based description of the position over time
@@ -173,6 +176,8 @@ private:
 	// master
 	bool					hasMaster;
 	bool					isOrientated;
+
+	bool					firstSnapshotReceived; //dirty shitty hack
 	
 private:
 	bool					TestIfAtRest() const;

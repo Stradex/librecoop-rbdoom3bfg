@@ -430,7 +430,7 @@ void idAI::Event_FindEnemyAI( int useFOV )
 	bestEnemy = NULL;
 	for( ent = gameLocal.activeEntities.Next(); ent != NULL; ent = ent->activeNode.Next() )
 	{
-		if( ent->fl.hidden || ent->fl.isDormant || !ent->IsType( idActor::Type ) || !ent->IsType(idPlayer::Type))
+		if( ent->fl.hidden || ent->fl.isDormant || !ent->IsType( idActor::Type ) )
 		{
 			continue;
 		}
@@ -1645,6 +1645,11 @@ idAI::Event_CanSeeEntity
 */
 void idAI::Event_CanSeeEntity( idEntity* ent )
 {
+
+	if (!ent && gameLocal.mpGame.IsGametypeCoopBased() && ((idStr::FindText(GetEntityDefName(), "char_sentry") != -1) || (idStr::FindText(GetEntityDefName(), "comm1_sentry") != -1))) {
+		ent = GetClosestPlayer();
+	}
+
 	if( !ent )
 	{
 		idThread::ReturnInt( false );
@@ -1662,6 +1667,11 @@ idAI::Event_SetTalkTarget
 */
 void idAI::Event_SetTalkTarget( idEntity* target )
 {
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && gameLocal.isNPC(this)) {
+		target = GetFocusPlayer();
+	}
+
 	if( target && !target->IsType( idActor::Type ) )
 	{
 		gameLocal.Error( "Cannot set talk target to '%s'.  Not a character or player.", target->GetName() );
@@ -2759,6 +2769,16 @@ idAI::Event_LookAtEntity
 */
 void idAI::Event_LookAtEntity( idEntity* ent, float duration )
 {
+
+	if (gameLocal.mpGame.IsGametypeCoopBased()) { //Hack for sentrybot and/or npc
+		if (!ent && ((idStr::FindText(GetEntityDefName(), "char_sentry") != -1) || (idStr::FindText(GetEntityDefName(), "comm1_sentry") != -1))) {
+			ent = GetClosestPlayer();
+		}
+		else if ((!focusEntity.GetEntity() || (focusEntity.GetEntity() && (focusTime < gameLocal.time))) && gameLocal.isNPC(this)) {
+			ent = GetFocusPlayer();
+		}
+	}
+
 	if( ent == this )
 	{
 		ent = NULL;
@@ -3195,6 +3215,11 @@ void idAI::Event_CanReachEntity( idEntity* ent )
 	int			toAreaNum;
 	int			areaNum;
 	idVec3		pos;
+
+	if (!ent && gameLocal.mpGame.IsGametypeCoopBased() && ((idStr::FindText(GetEntityDefName(), "char_sentry") != -1) || (idStr::FindText(GetEntityDefName(), "comm1_sentry") != -1))) {
+		ent = GetClosestPlayer();
+	}
+
 	
 	if( !ent )
 	{
@@ -3301,18 +3326,22 @@ void idAI::Event_GetReachableEntityPosition( idEntity* ent )
 {
 	int		toAreaNum;
 	idVec3	pos;
+
+	if (!ent && gameLocal.mpGame.IsGametypeCoopBased() && ((idStr::FindText(GetEntityDefName(), "char_sentry") != -1) || (idStr::FindText(GetEntityDefName(), "comm1_sentry") != -1))) {
+		ent = GetClosestPlayer();
+	}
+
+	bool returnStatus = true;
 	
 	if( move.moveType != MOVETYPE_FLY )
 	{
 		if( !ent->GetFloorPos( 64.0f, pos ) )
 		{
-			// NOTE: not a good way to return 'false'
-			return idThread::ReturnVector( vec3_zero );
+			returnStatus = false;
 		}
 		if( ent->IsType( idActor::Type ) && static_cast<idActor*>( ent )->OnLadder() )
 		{
-			// NOTE: not a good way to return 'false'
-			return idThread::ReturnVector( vec3_zero );
+			returnStatus = false;
 		}
 	}
 	else
@@ -3320,6 +3349,16 @@ void idAI::Event_GetReachableEntityPosition( idEntity* ent )
 		pos = ent->GetPhysics()->GetOrigin();
 	}
 	
+	if (!returnStatus) {
+		if (ent->IsType(idPlayer::Type) && ((idStr::FindText(GetEntityDefName(), "char_sentry") != -1) || (idStr::FindText(GetEntityDefName(), "comm1_sentry") != -1))) {
+			pos = ent->GetPhysics()->GetOrigin();
+		}
+		else {
+			// NOTE: not a good way to return 'false'
+			return idThread::ReturnVector(vec3_zero);
+		}
+	}
+
 	if( aas )
 	{
 		toAreaNum = PointReachableAreaNum( pos );

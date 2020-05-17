@@ -990,6 +990,19 @@ idTeleporter::Event_DoAction
 */
 void idTeleporter::Event_DoAction( idEntity* activator )
 {
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && !activator) {
+		activator = gameLocal.GetCoopPlayer();
+	}
+	if (!activator) {
+		return;
+	}
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsServer() && activator->IsType(idPlayer::Type)) { //create a new global checkpoint at this position for Coop
+		gameLocal.mpGame.CreateNewCheckpoint(GetPhysics()->GetOrigin());
+	}
+
+
 	float angle;
 	
 	angle = spawnArgs.GetFloat( "angle" );

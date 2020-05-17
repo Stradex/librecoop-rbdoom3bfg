@@ -59,7 +59,7 @@ public:
 	virtual void		Disable();
 	
 protected:
-	void				CallScript() const;
+	void				CallScript();
 	
 	void				Event_Enable();
 	void				Event_Disable();

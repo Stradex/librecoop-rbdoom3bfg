@@ -199,6 +199,7 @@ public:
 	void					Restore( idRestoreGame* savefile );					// unarchives object from save game file
 	
 	void					Clear();
+	void					CoopClear(void); //To keep pda security, keys, etc... (and all related to inv_carry)
 	void					GivePowerUp( idPlayer* player, int powerup, int msec );
 	void					ClearPowerUps();
 	void					GetPersistantData( idDict& dict );
@@ -223,6 +224,10 @@ public:
 
 	//COOP specific functions
 	bool					CS_Give(idPlayer* owner, const idDict& spawnArgs, const char* statname, const char* value, int* idealWeapon, bool updateHud);
+	void					CS_GetPersistantData(idDict& dict);
+	void					CS_RestoreInventory(idPlayer* owner, const idDict& dict);
+	void					CS_CoopClear(void); //To keep pda security, keys, etc... (and all related to inv_carry)
+	void					GiveSpawnItemsToPlayer(idPlayer* owner, const idDict& dict); //coop specific
 
 	
 	void					SetInventoryAmmoForType( const int ammoType, const int amount );
@@ -746,10 +751,19 @@ public:
 	idDict					originalSpawnArgs;	//used for coop inventory
 	idAngles				GetViewAngles(void); //added for coop checkpoint teleport
 	bool					allowClientsideMovement; //used to let the server send info for some seconds after spawning, to avoid spawn in void
+	idAI*					GetFocusCharacter(void); // COOP
 
 	//Client-side stuff for coop
 	bool					CS_Give(const char* statname, const char* value);
 	bool					CS_GiveItem(idItem* item);
+	void					CS_GivePDA(const idDeclPDA* pda, const char* securityItem);
+	void					CS_GiveVideo(const idDeclVideo* video, const char* itemName);
+	void					CS_GiveEmail(const idDeclEmail* email);
+	void					CS_GiveSecurity(const char* security);
+	void					CS_GiveObjective(const char* title, const char* text, const char* screenshot);
+	void					CS_CompleteObjective(const char* title);
+	void					CS_SavePersistantInfo(void);
+	void					CS_RestorePersistantInfo(void);
 
 	//END COOP SPECIFIC
 	
@@ -847,6 +861,8 @@ private:
 	int						weaponSwitchTime;
 	bool					weaponEnabled;
 	
+	bool					forceSPSpawnPoint;  // COOP
+
 	int						skinIndex;
 	const idDeclSkin* 		skin;
 	const idDeclSkin* 		powerUpSkin;
@@ -1000,6 +1016,7 @@ private:
 	void					Event_HideTip();
 	void					Event_LevelTrigger();
 	void					Event_Gibbed();
+	void					Event_GetLinearVelocity(void); //for sentry bot coop hack
 	void					Event_ForceOrigin( idVec3& origin, idAngles& angles );
 	void					Event_GiveInventoryItem( const char* name );
 	void					Event_RemoveInventoryItem( const char* name );
