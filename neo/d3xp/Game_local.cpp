@@ -3997,8 +3997,8 @@ void idGameLocal::RegisterEntity( idEntity* ent, int forceSpawnId, const idDict&
 {
 	int spawn_entnum;
 	
-	ent->fl.skipReplication = spawnArgsToCopy.GetBool( "net_skip_replication", false );
-	
+	ent->fl.skipReplication = spawnArgsToCopy.GetBool("net_skip_replication", false);
+
 	if( spawnCount >= ( 1 << ( 32 - GENTITYNUM_BITS ) ) )
 	{
 		Error( "idGameLocal::RegisterEntity: spawn count overflow" );

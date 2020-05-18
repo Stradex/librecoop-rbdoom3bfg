@@ -2093,10 +2093,7 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 		if (ent->IsHidden() && !ent->firstTimeInClientPVS && !ent->inSnapshotQueue) { //this shit is really important to improve server netcode
 			continue;
 		}
-		// if that entity is not marked for network synchronization
-		if (!ent->fl.coopNetworkSync) {
-			continue;
-		}
+
 		for (int i = 0; i < MAX_PLAYERS; i++) {
 			if (!entities[i] || pvsHandles[i].i == -1) {
 				continue;

@@ -174,6 +174,76 @@ void idCommonLocal::StartNewGame( const char* mapName, bool devmap, int gameMode
 	}
 }
 
+
+/*
+===============
+idCommonLocal::ChangeNetGame
+===============
+*/
+void idCommonLocal::ChangeNetGame(const char* mapName, bool devmap, int gameMode)
+{
+	if (session->GetSignInManager().GetMasterLocalUser() == NULL)
+	{
+		// For development make sure a controller is registered
+		// Can't just register the local user because it will be removed because of it's persistent state
+		session->GetSignInManager().SetDesiredLocalUsers(1, 1);
+		session->GetSignInManager().Pump();
+	}
+
+	idStr mapNameClean = mapName;
+	mapNameClean.StripFileExtension();
+	mapNameClean.BackSlashesToSlashes();
+
+	idMatchParameters matchParameters;
+	matchParameters.mapName = mapNameClean;
+	if (gameMode == GAME_MODE_SINGLEPLAYER)
+	{
+		matchParameters.numSlots = 1;
+		matchParameters.gameMode = GAME_MODE_SINGLEPLAYER;
+		matchParameters.gameMap = GAME_MAP_SINGLEPLAYER;
+	}
+	else
+	{
+		matchParameters.gameMap = mpGameMaps.Num();	// If this map isn't found in mpGameMaps, then set it to some undefined value (this happens when, for example, we load a box map with netmap)
+		matchParameters.gameMode = gameMode;
+		matchParameters.matchFlags = DefaultPartyFlags;
+		for (int i = 0; i < mpGameMaps.Num(); i++)
+		{
+			if (idStr::Icmp(mpGameMaps[i].mapFile, mapNameClean) == 0)
+			{
+				matchParameters.gameMap = i;
+				break;
+			}
+		}
+		matchParameters.numSlots = session->GetTitleStorageInt("MAX_PLAYERS_ALLOWED", 4);
+	}
+
+	cvarSystem->MoveCVarsToDict(CVAR_SERVERINFO, matchParameters.serverInfo);
+	if (devmap)
+	{
+		matchParameters.serverInfo.Set("devmap", "1");
+	}
+	else
+	{
+		matchParameters.serverInfo.Delete("devmap");
+	}
+
+	session->QuitMatchToTitle();
+	if (WaitForSessionState(idSession::IDLE))
+	{
+		session->CreatePartyLobby(matchParameters);
+		if (WaitForSessionState(idSession::PARTY_LOBBY))
+		{
+			session->CreateMatch(matchParameters);
+			if (WaitForSessionState(idSession::GAME_LOBBY))
+			{
+				cvarSystem->SetCVarBool("developer", devmap);
+				session->StartMatch();
+			}
+		}
+	}
+}
+
 /*
 ===============
 idCommonLocal::MoveToNewMap
@@ -1397,6 +1467,23 @@ CONSOLE_COMMAND_SHIP( netmap, "loads a map in multiplayer mode", idCmdSystem::Ar
 		gameMode = atoi( args.Argv( 2 ) );
 	}
 	commonLocal.StartNewGame( args.Argv( 1 ), true, gameMode );
+}
+
+/*
+==================
+Common_ChangeNetMap_f
+
+Restart the server on a different map in multiplayer mode
+==================
+*/
+CONSOLE_COMMAND_SHIP(netchangemap, "change a map in multiplayer mode (coop)", idCmdSystem::ArgCompletion_MapName)
+{
+	int gameMode = 0; // Default to deathmatch
+	if (args.Argc() > 2)
+	{
+		gameMode = atoi(args.Argv(2));
+	}
+	commonLocal.ChangeNetGame(args.Argv(1), true, gameMode);
 }
 
 /*

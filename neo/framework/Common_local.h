@@ -346,6 +346,7 @@ public:	// These are public because they are called directly by static functions
 	
 	// loads a map and starts a new game on it
 	void	StartNewGame( const char* mapName, bool devmap, int gameMode );
+	void	ChangeNetGame(const char* mapName, bool devmap, int gameMode);
 	void	LeaveGame();
 	
 	void	DemoShot( const char* name );
@@ -364,6 +365,8 @@ public:	// These are public because they are called directly by static functions
 	void	LocalizeMapData( const char* fileName, idLangDict& langDict );
 	void	LocalizeSpecificMapData( const char* fileName, idLangDict& langDict, const idLangDict& replaceArgs );
 	
+	bool	WaitForSessionState(idSession::sessionState_t desiredState); //moved to public for coop
+
 	idUserCmdMgr& GetUCmdMgr()
 	{
 		return userCmdMgr;
@@ -619,7 +622,6 @@ private:
 	// Meant to be used like:
 	// while ( waiting ) { BusyWait(); }
 	void	BusyWait();
-	bool	WaitForSessionState( idSession::sessionState_t desiredState );
 	
 	void	ExecuteMapChange();
 	void	UnloadMap();

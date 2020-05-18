@@ -34,7 +34,12 @@ Invisible entities that affect other entities or the world when activated.
 #include "precompiled.h"
 #pragma hdrstop
 
+#include "../framework/Common_local.h" //added for coop
 #include "Game_local.h"
+
+extern idCVar net_inviteOnly;
+extern idCVar si_map;
+extern idCVar si_mode;
 
 /*
 ===============================================================================
@@ -307,10 +312,12 @@ void idTarget_EndLevel::Event_Activate( idEntity* activator )
 		return;
 	}
 	
-	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsServer()) {
 		gameLocal.mpGame.SavePersistentPlayersInfo();
-		//si_map.SetString(nextMap); //FIXME: Search a way to exit a map in rbdoom3bfg
-		gameLocal.MapRestart();
+		
+
+		//commonLocal.StartNewGame(nextMap.c_str(), true, si_mode.GetInteger());
+		cmdSystem->AppendCommandText(va("netmap %s %d\n", nextMap.c_str(), si_mode.GetInteger())); //todo: fix netchangemap to be able to change a map without clients disconnecting the server
 	}
 	else {
 
