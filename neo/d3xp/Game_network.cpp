@@ -1612,7 +1612,7 @@ gameReturn_t	idGameLocal::RunClientSideFrame(idPlayer* clientPlayer)
 		ent->ClientThink(netInterpolationInfo.serverGameMs, netInterpolationInfo.pct, true);
 	}
 
-	//SortActiveEntityList();
+	SortActiveEntityList();
 
 	//Non-sync clientside think
 	for (ent = activeEntities.Next(); ent != NULL; ent = ent->activeNode.Next()) {
@@ -1638,7 +1638,7 @@ gameReturn_t	idGameLocal::RunClientSideFrame(idPlayer* clientPlayer)
 		
 	}
 
-	/*
+
 	// remove any entities that have stopped thinking
 	if (numEntitiesToDeactivate) {
 		idEntity* next_ent;
@@ -1653,7 +1653,7 @@ gameReturn_t	idGameLocal::RunClientSideFrame(idPlayer* clientPlayer)
 		//assert( numEntitiesToDeactivate == c );
 		numEntitiesToDeactivate = 0;
 	}
-	*/
+
 	return ret;
 }
 

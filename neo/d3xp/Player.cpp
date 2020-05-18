@@ -9357,6 +9357,7 @@ void idPlayer::Think()
 	{
 		// Local player on the server. Do normal movement.
 		Move();
+
 	}
 	else
 	{
