@@ -880,6 +880,10 @@ idInventory::AddPickupName
 */
 void idInventory::AddPickupName( const char* name, idPlayer* owner )     //_D3XP
 {
+	if (!name) {
+		return; //rbdoom3bfg coop ugly fix
+	}
+
 	int num = pickupItemNames.Num();
 	if( ( num == 0 ) || ( pickupItemNames[ num - 1 ].Icmp( name ) != 0 ) )
 	{
@@ -11893,7 +11897,7 @@ void idPlayer::ClientThink( const int curTime, const float fraction, const bool 
 		}
 	}
 	
-	if( !g_stopTime.GetBool() )
+	if( !g_stopTime.GetBool() && !gameLocal.mpGame.IsGametypeCoopBased()) //don't touch triggers clientside in coop!
 	{
 		if( !noclip && !spectating && ( health > 0 ) && !IsHidden() )
 		{

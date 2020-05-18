@@ -3720,6 +3720,10 @@ void idMultiplayerGame::ClientReadStartState( const idBitMsg& msg )
 			continue;
 		}
 		
+		if (this->IsGametypeCoopBased() && !gameLocal.entities[client]->IsType(idPlayer::Type)) {
+			continue;
+		}
+
 		assert( gameLocal.entities[ client ] && gameLocal.entities[ client ]->IsType( idPlayer::Type ) );
 		int powerup = msg.ReadBits( 15 );
 		for( int i = 0; i < MAX_POWERUPS; i++ )

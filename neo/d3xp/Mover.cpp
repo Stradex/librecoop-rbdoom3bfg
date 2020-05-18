@@ -404,7 +404,7 @@ void idMover::Spawn()
 	{
 		fl.takedamage = true;
 	}
-	
+
 }
 
 /*
@@ -582,14 +582,22 @@ void idMover::ClientThink( const int curTime, const float fraction, const bool p
 	// but because we interpolate the master, we don't want to run evaluate on the mover itself.
 	// sending in true to the interpolatePhysicsOnly will run the TeamChain Evaluate, but only on
 	// Objects bound to the entity.
-	if( this->name == "blueshotty_door" || this->name == "redshotty_door" ||
-			this->name == "Red_blastshield_mover" || this->name == "Blue_blastshield_mover" )
-	{
-		InterpolatePhysicsOnly( fraction, true );
+
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		InterpolatePhysicsOnly(fraction, true);
 	}
-	else
-	{
-		InterpolatePhysicsOnly( fraction );
+	else {
+
+		if (this->name == "bººlueshotty_door" || this->name == "redshotty_door" ||
+			this->name == "Red_blastshield_mover" || this->name == "Blue_blastshield_mover")
+		{
+			InterpolatePhysicsOnly(fraction, true);
+		}
+		else
+		{
+			InterpolatePhysicsOnly(fraction);
+		}
+
 	}
 	
 	Present();
@@ -3890,8 +3898,7 @@ idDoor::ClientThink
 void idDoor::ClientThink( const int curTime, const float fraction, const bool predict )
 {
 	if (gameLocal.mpGame.IsGametypeCoopBased()) {
-		idEntity::ClientThink(curTime, fraction, predict);
-		return;
+		return idEntity::ClientThink(curTime, fraction, predict);
 	}
 	idVec3 masterOrigin;
 	idMat3 masterAxis;
