@@ -2471,6 +2471,7 @@ idMover_Binary::idMover_Binary()
 	fl.networkSync = true;
 	fl.coopNetworkSync = true;
 	fl.useOldNetcode = true;
+	this->SetUseClientInterpolation(false);  //test stradex for coop
 }
 
 /*
