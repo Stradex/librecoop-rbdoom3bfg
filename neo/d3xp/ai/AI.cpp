@@ -6053,12 +6053,12 @@ AI COOP Stuff
 
 /*
 ================
-idAI::ClientPredictionThink
+idAI::ClientThink
 ================
 */
 void idAI::ClientThink(const int curTime, const float fraction, const bool predict) {
 	if (!gameLocal.mpGame.IsGametypeCoopBased()) {
-		return idEntity::ClientPredictionThink(); //original non-coop
+		return idEntity::ClientThink(curTime, fraction, predict);  //original non-coop
 	}
 
 	//this->Think();

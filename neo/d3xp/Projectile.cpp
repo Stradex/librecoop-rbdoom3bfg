@@ -2168,7 +2168,7 @@ void idGuidedProjectile::Event_SetEnemy( idEntity* ent )
 
 /*
 ================
-idGuidedProjectile::ClientPredictionThink
+idGuidedProjectile::ClientThink
 ================
 */
 void idGuidedProjectile::ClientThink(const int curTime, const float fraction, const bool predict) {
@@ -2547,7 +2547,7 @@ void idSoulCubeMissile::Launch( const idVec3& start, const idVec3& dir, const id
 
 /*
 ================
-idSoulCubeMissile::ClientPredictionThink
+idSoulCubeMissile::ClientThink
 ================
 */
 void idSoulCubeMissile::ClientThink(const int curTime, const float fraction, const bool predict) {
@@ -3361,7 +3361,7 @@ void idDebris::Think()
 
 /*
 ================
-idDebris::ClientPredictionThink
+idDebris::ClientThink
 ================
 */
 void idDebris::ClientThink(const int curTime, const float fraction, const bool predict) {

@@ -233,7 +233,7 @@ public:
 	void				Restore( idRestoreGame* savefile );
 	
 	void				Think();
-	virtual void		ClientPredictionThink(void); //added for COOP
+	virtual void		ClientThink(const int curTime, const float fraction, const bool predict);
 	
 private:
 	idVec4				fadeFrom;

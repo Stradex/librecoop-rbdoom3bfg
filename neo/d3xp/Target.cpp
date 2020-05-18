@@ -669,10 +669,10 @@ void idTarget_FadeEntity::Think()
 
 /*
 ================
-idTarget_FadeEntity::ClientPredictionThink
+idTarget_FadeEntity::ClientThink
 ================
 */
-void idTarget_FadeEntity::ClientPredictionThink(void) {
+void idTarget_FadeEntity::ClientThink(const int curTime, const float fraction, const bool predict) {
 	Think();
 }
 

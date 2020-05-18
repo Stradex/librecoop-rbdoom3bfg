@@ -2040,10 +2040,10 @@ void idStaticEntity::Event_Activate( idEntity* activator )
 
 /*
 ================
-idStaticEntity::ClientPredictionThink
+idStaticEntity::ClientThink( const int curTime, const float fraction, const bool predict );
 ================
 */
-void idStaticEntity::ClientPredictionThink(void) {
+void idStaticEntity::ClientThink(const int curTime, const float fraction, const bool predict) {
 	Think();
 }
 
