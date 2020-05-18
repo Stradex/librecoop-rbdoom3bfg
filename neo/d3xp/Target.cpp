@@ -34,11 +34,8 @@ Invisible entities that affect other entities or the world when activated.
 #include "precompiled.h"
 #pragma hdrstop
 
-#include "../framework/Common_local.h" //added for coop
 #include "Game_local.h"
 
-extern idCVar net_inviteOnly;
-extern idCVar si_map;
 extern idCVar si_mode;
 
 /*
