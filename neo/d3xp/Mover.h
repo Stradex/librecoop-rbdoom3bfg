@@ -119,6 +119,8 @@ protected:
 	} rotationState_t;
 	
 	idPhysics_Parametric	physicsObj;
+	idMat3					snapshotLastAxis; //last snapshot axis
+	idVec3					snapshotLastOrigin; //last snapshot origin
 	
 	void					Event_OpenPortal();
 	void					Event_ClosePortal();

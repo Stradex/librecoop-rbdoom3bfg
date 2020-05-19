@@ -690,7 +690,9 @@ bool idPhysics_Parametric::Evaluate( int timeStepMSec, int endTimeMSec )
 		}
 	}
 	
-	if (hasMaster && gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient() && self && self->IsBoundToMover() && self->GetTeamMaster() != self && firstSnapshotReceived) {
+	//if (hasMaster && gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient() && self && self->IsBoundToMover() && self->GetTeamMaster() != self && firstSnapshotReceived) {
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient() && firstSnapshotReceived && self &&
+		((hasMaster && self->IsBoundToMover() && self->GetTeamMaster() != self) || (!self->snapshotNode.InList() && self->receivedInfoFromServer))) {
 		current.origin = current.snapshotOrigin;  //added for coop
 		current.angles = current.snapshotAngles;  //added for coop
 		current.axis = current.snapshotAxis;  //added for coop
@@ -1216,15 +1218,16 @@ void idPhysics_Parametric::ReadFromSnapshot( const idBitMsg& msg )
 	next.origin = ReadFloatArray< idVec3 >( msg );
 	next.axis = ReadFloatArray< idQuat >( msg );
 	
+	current.snapshotOrigin = next.origin;  //added for coop
+	current.snapshotAngles = next.axis.ToAngles();  //added for coop
+	current.snapshotAxis = next.axis.ToMat3();  //added for coop
+	firstSnapshotReceived = true; //shitty hack
+
 	if( self->GetNumSnapshotsReceived() <= 1 )
 	{
 		current.origin = next.origin;
 		previous.origin = next.origin;
 		current.axis = next.axis.ToMat3();
 		previous.axis = next.axis;
-		firstSnapshotReceived = true; //shitty hack
-		current.snapshotOrigin = current.origin;  //added for coop
-		current.snapshotAngles = current.angles;  //added for coop
-		current.snapshotAxis = current.axis;  //added for coop
 	}
 }

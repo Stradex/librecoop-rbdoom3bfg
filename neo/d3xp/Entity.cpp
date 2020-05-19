@@ -509,6 +509,7 @@ idEntity::idEntity():
 	calledViaScriptThread = false;
 	inSnapshotQueue = 0;
 	firstTimeInClientPVS = true;
+	receivedInfoFromServer = false;//added for coop
 
 	for (int i = 0; i < MAX_CLIENTS; i++) {
 		snapshotMissingCount[i] = 0;  //added by Stradex for Coop netcode optimization

@@ -371,6 +371,10 @@ void idMover::Spawn()
 	physicsObj.SetOrigin( GetPhysics()->GetOrigin() );
 	physicsObj.SetAxis( GetPhysics()->GetAxis() );
 	physicsObj.SetClipMask( MASK_SOLID );
+
+	snapshotLastOrigin = GetPhysics()->GetOrigin();
+	snapshotLastAxis = GetPhysics()->GetAxis();
+
 	if( !spawnArgs.GetBool( "solid", "1" ) )
 	{
 		physicsObj.SetContents( 0 );
@@ -584,7 +588,14 @@ void idMover::ClientThink( const int curTime, const float fraction, const bool p
 	// Objects bound to the entity.
 
 	if (gameLocal.mpGame.IsGametypeCoopBased()) {
-		InterpolatePhysicsOnly(fraction, true);
+		if (this->snapshotNode.InList() || !this->fl.coopNetworkSync || !this->receivedInfoFromServer) {
+			this->SetUseClientInterpolation(true);
+			InterpolatePhysicsOnly(fraction, true);
+		}
+		else {
+			this->SetUseClientInterpolation(false);
+			InterpolatePhysicsOnly(fraction, true);
+		}
 	}
 	else {
 
@@ -1762,6 +1773,8 @@ void idMover::ReadFromSnapshot( const idBitMsg& msg )
 		}
 		UpdateVisuals();
 	}
+	snapshotLastOrigin = GetPhysics()->GetOrigin();
+	snapshotLastAxis = GetPhysics()->GetAxis();
 }
 
 /*

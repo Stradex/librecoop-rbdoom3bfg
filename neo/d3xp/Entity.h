@@ -209,6 +209,7 @@ public:
 	bool					cinematic;				// during cinematics, entity will only think if cinematic is set
 	bool					allowClientsideThink;	// added for coop
 	bool					canBeCsTarget;			// added for coop
+	bool					receivedInfoFromServer; // added for coop
 	
 	renderView_t* 			renderView;				// for camera views from this entity
 	idEntity* 				cameraTarget;			// any remoteRenderMap shaders will use this

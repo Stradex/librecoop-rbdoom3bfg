@@ -1587,6 +1587,7 @@ gameReturn_t	idGameLocal::RunClientSideFrame(idPlayer* clientPlayer)
 		}
 		ent->clientSideEntity = false; //this entity is not clientside
 		ent->thinkFlags |= TH_PHYSICS;
+
 		ent->ClientThink(netInterpolationInfo.serverGameMs, netInterpolationInfo.pct, true);
 	}
 
@@ -1894,7 +1895,7 @@ void idGameLocal::ClientReadSnapshotCoop(const idSnapShot& ss) {
 			int snapshotChanged = ss.ObjectChangedCountByIndex(o);
 			msg.SetHasChanged(ent->snapshotChanged != snapshotChanged);
 			ent->snapshotChanged = snapshotChanged;
-
+			ent->receivedInfoFromServer = true;
 			ent->FlagNewSnapshot();
 
 			// read the class specific data from the snapshot
