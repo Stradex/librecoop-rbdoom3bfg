@@ -372,9 +372,6 @@ void idMover::Spawn()
 	physicsObj.SetAxis( GetPhysics()->GetAxis() );
 	physicsObj.SetClipMask( MASK_SOLID );
 
-	snapshotLastOrigin = GetPhysics()->GetOrigin();
-	snapshotLastAxis = GetPhysics()->GetAxis();
-
 	if( !spawnArgs.GetBool( "solid", "1" ) )
 	{
 		physicsObj.SetContents( 0 );
@@ -1773,8 +1770,6 @@ void idMover::ReadFromSnapshot( const idBitMsg& msg )
 		}
 		UpdateVisuals();
 	}
-	snapshotLastOrigin = GetPhysics()->GetOrigin();
-	snapshotLastAxis = GetPhysics()->GetAxis();
 }
 
 /*

@@ -1343,7 +1343,7 @@ void idGameLocal::ClientProcessReliableMessage( int type, const idBitMsg& msg )
 				}
 				delete entPtr.GetEntity();
 			}
-			Printf("GAME_RELIABLE_MESSAGE_DELETE_ENT...\n");
+			//DebugPrintf("GAME_RELIABLE_MESSAGE_DELETE_ENT...\n");
 			break;
 		}
 		default:

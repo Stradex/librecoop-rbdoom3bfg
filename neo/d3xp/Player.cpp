@@ -518,9 +518,11 @@ void idInventory::RestoreInventory( idPlayer* owner, const idDict& dict )
 		Give( owner, dict, "weapon", dict.GetString( "weapon" ), NULL, false, ITEM_GIVE_FEEDBACK | ITEM_GIVE_UPDATE_STATE );
 	}
 	
+	/*
 	if (gameLocal.mpGame.IsGametypeCoopBased()) {
 		GiveSpawnItemsToPlayer(owner, dict);
 	}
+	*/
 
 	if (!gameLocal.mpGame.IsGametypeCoopBased()) {
 		num = dict.GetInt("levelTriggers");
@@ -6832,7 +6834,7 @@ void idPlayer::UpdateFocus()
 		realGameLocalTime = gameLocal.time;
 	}
 	
-	if( focusTime <= gameLocal.time )
+	if( focusTime <= realGameLocalTime)
 	{
 		ClearFocus();
 	}
@@ -6852,10 +6854,10 @@ void idPlayer::UpdateFocus()
 		oldMPAim = MPAim;
 		idVec3 end;
 		if (gameLocal.mpGame.IsGametypeCoopBased()) {
-			end = start + viewAngles.ToForward() * 80.0f;
+			end = start + firstPersonViewAxis[0] * 80.0f;
 		}
 		else {
-			end = start + viewAngles.ToForward() * 768.0f;
+			end = start + firstPersonViewAxis[0] * 768.0f;
 		}
 		gameLocal.clip.TracePoint( trace, start, end, MASK_SHOT_BOUNDINGBOX, this );
 		int iclient = -1;
