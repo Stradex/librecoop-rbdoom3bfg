@@ -4475,7 +4475,7 @@ void idGameLocal::AddEntityToHash( const char* name, idEntity* ent )
 	idEntity* tmpEnt;
 	tmpEnt = FindEntity(name);
 	if (tmpEnt) {
-		if (common->IsClient() && mpGame.IsGametypeCoopBased() && !tmpEnt->fl.coopNetworkSync) {
+		if (mpGame.IsGametypeCoopBased() && !tmpEnt->fl.coopNetworkSync) {
 			//nonsync coop enities can avoid this crash but it's kinda dangereous (could lead to deleting a NULL pointer later... or even worse).
 			common->Warning("[COOP FATAL] Multiple entities named '%s', deleting the old one...\n", name);
 			delete tmpEnt;
