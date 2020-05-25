@@ -410,10 +410,6 @@ idCameraAnim::Spawn
 */
 void idCameraAnim::Spawn()
 {
-	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
-		//No cameras in coop for clients
-		return;
-	}
 
 	if( spawnArgs.GetVector( "old_origin", "0 0 0", offset ) )
 	{
