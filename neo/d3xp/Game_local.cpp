@@ -2414,18 +2414,20 @@ be correct for single player.
 */
 idPlayer* idGameLocal::GetCoopPlayer() const {
 
-	if (mpGame.IsGametypeCoopBased()) {
+	if (mpGame.IsGametypeCoopBased() && common->IsServer()) {
 		if (GetLocalClientNum() < 0 || !entities[GetLocalClientNum()] || !entities[GetLocalClientNum()]->IsType(idPlayer::Type)) {
+			
+			idPlayer* p = NULL;
 
-			if (common->IsServer()) { //for coop while using a dedicated server
-				for (int i = 0; i < gameLocal.numClients; i++) {
-					if (entities[i] && entities[i]->IsType(idPlayer::Type) && !static_cast<idPlayer*>(entities[i])->spectating) {
-						return static_cast<idPlayer*>(entities[i]);
+			for (int i = 0; i < gameLocal.numClients; i++) {
+				if (entities[i] && entities[i]->IsType(idPlayer::Type)) {
+					p = static_cast<idPlayer*>(entities[i]);
+					if (!p->spectating) {
+						return p;
 					}
 				}
 			}
-
-			return NULL;
+			return p; //if we reach this point, then we are sending the data of a spectator player
 		}
 	}
 	else {
@@ -2899,13 +2901,6 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 			
 			DemoWriteGameInfo();
 			
-			//COOP DEBUG
-			//serverEventsCount=0;
-			if (mpGame.IsGametypeCoopBased()) {
-				sendServerOverflowEvents();
-			}
-			//END COOP DEBUG
-
 #ifdef GAME_DLL
 			// allow changing SIMD usage on the fly
 			if( com_forceGenericSIMD.IsModified() )
@@ -3101,6 +3096,13 @@ void idGameLocal::RunFrame( idUserCmdMgr& cmdMgr, gameReturn_t& ret )
 		skipCinematic = false;
 	}
 	
+	//COOP DEBUG
+	//serverEventsCount=0;
+	if (mpGame.IsGametypeCoopBased()) {
+		sendServerOverflowEvents();
+	}
+	//END COOP DEBUG
+
 	// show any debug info for this frame
 	RunDebugInfo();
 	D_DrawDebugLines();
@@ -3378,6 +3380,13 @@ void idGameLocal::CalcFov( float base_fov, float& fov_x, float& fov_y ) const
 	const float ideal_ratio_y = 9.0f;
 	const float tanHalfX = idMath::Tan( DEG2RAD( base_fov * 0.5f ) );
 	fov_y = 2.0f * RAD2DEG( idMath::ATan( ideal_ratio_y * tanHalfX, ideal_ratio_x ) );
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient() && fov_y <= 0) {
+		gameLocal.DebugPrintf("Invalid fov_y at idGameLocal::CalcFov, using player fov\n");
+		fov_x = base_fov;
+		fov_y = base_fov;
+		return;
+	}
 	
 	// Then calculate fov_x based on the true aspect ratio
 	const float ratio_x = width * renderSystem->GetPixelAspect();
@@ -5270,6 +5279,11 @@ idGameLocal::SetCamera
 */
 void idGameLocal::SetCamera( idCamera* cam )
 {
+
+	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		return SetCameraCoop(cam);
+	}
+
 	int i;
 	idEntity* ent;
 	idAI* ai;
@@ -6587,4 +6601,102 @@ bool idGameLocal::isNPC(idEntity* ent) const {
 	}
 
 	return entityTalks;
+}
+
+/*
+=============
+idGameLocal::SetCameraCoop
+=============
+*/
+void idGameLocal::SetCameraCoop(idCamera* cam) {
+	int i;
+	idEntity* ent;
+	idAI* ai;
+
+	// this should fix going into a cinematic when dead.. rare but happens
+	idPlayer* client = GetLocalPlayer();
+	/*
+	if ( client->health <= 0 || client->AI_DEAD ) {
+		return;
+	}
+	*/
+
+	camera = cam;
+	if (camera) {
+		inCinematic = true;
+
+		/*
+		//not able to skip cinematics in coop yet
+		if ( skipCinematic && camera->spawnArgs.GetBool( "disconnect" ) ) {
+			camera->spawnArgs.SetBool( "disconnect", false );
+			cvarSystem->SetCVarFloat( "r_znear", 3.0f );
+			cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "disconnect\n" );
+			skipCinematic = false;
+			return;
+		}
+		*/
+
+		if (time > cinematicStopTime) {
+			cinematicSkipTime = time + CINEMATIC_SKIP_DELAY;
+		}
+
+		// set r_znear so that transitioning into/out of the player's head doesn't clip through the view
+		//cvarSystem->SetCVarFloat( "r_znear", 1.0f );
+
+		// hide all the player models
+		for (i = 0; i < numClients; i++) {
+			if (entities[i]) {
+				client = static_cast<idPlayer*>(entities[i]);
+				client->EnterCinematic();
+			}
+		}
+
+		if (!cam->spawnArgs.GetBool("ignore_enemies") && common->IsServer()) {
+			// kill any active monsters that are enemies of the player
+			for (ent = spawnedEntities.Next(); ent != NULL; ent = ent->spawnNode.Next()) {
+				if (ent->cinematic || ent->fl.isDormant) {
+					// only kill entities that aren't needed for cinematics and aren't dormant
+					continue;
+				}
+
+				if (ent->IsType(idAI::Type)) {
+					ai = static_cast<idAI*>(ent);
+					if (!ai->GetEnemy() || !ai->IsActive()) {
+						// no enemy, or inactive, so probably safe to ignore
+						continue;
+					}
+				}
+				else if (ent->IsType(idProjectile::Type)) {
+					// remove all projectiles
+				}
+				else if (ent->spawnArgs.GetBool("cinematic_remove")) {
+					// remove anything marked to be removed during cinematics
+				}
+				else {
+					// ignore everything else
+					continue;
+				}
+
+				// remove it
+				DPrintf("removing '%s' for cinematic\n", ent->GetName());
+				ent->PostEventMS(&EV_Remove, 0);
+			}
+		}
+
+	}
+	else {
+		inCinematic = false;
+		cinematicStopTime = time + 1;
+
+		// restore r_znear
+		//cvarSystem->SetCVarFloat( "r_znear", 3.0f );
+
+		// show all the player models
+		for (i = 0; i < numClients; i++) {
+			if (entities[i]) {
+				idPlayer* client = static_cast<idPlayer*>(entities[i]);
+				client->ExitCinematic();
+			}
+		}
+	}
 }

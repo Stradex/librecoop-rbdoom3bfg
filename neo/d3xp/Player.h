@@ -752,6 +752,8 @@ public:
 	idAngles				GetViewAngles(void); //added for coop checkpoint teleport
 	bool					allowClientsideMovement; //used to let the server send info for some seconds after spawning, to avoid spawn in void
 	idAI*					GetFocusCharacter(void); // COOP
+	int						nextTimeCoopTeleported; //Hack for opencoop maps
+
 
 	//Client-side stuff for coop
 	bool					CS_Give(const char* statname, const char* value);

@@ -1144,15 +1144,20 @@ void idGameLocal::ClientProcessEntityNetworkEventQueue()
 
 				ent = entPtr.GetCoopEntity();
 
-				assert(ent);
+				if (!ent) {
+					gameLocal.Warning("[COOP] Trying to read unkwown entity\n");
+				}
+				else {
+					assert(ent);
 
-				idBitMsg eventMsg;
-				eventMsg.InitRead(event->paramsBuf, sizeof(event->paramsBuf));
-				eventMsg.SetSize(event->paramsSize);
-				eventMsg.BeginReading();
+					idBitMsg eventMsg;
+					eventMsg.InitRead(event->paramsBuf, sizeof(event->paramsBuf));
+					eventMsg.SetSize(event->paramsSize);
+					eventMsg.BeginReading();
 
-				if (!ent->ClientReceiveEvent(event->event, event->time, eventMsg)) {
-					NetworkEventWarning(event, "unknown event");
+					if (!ent->ClientReceiveEvent(event->event, event->time, eventMsg)) {
+						NetworkEventWarning(event, "unknown event");
+					}
 				}
 			}
 		}
@@ -1167,15 +1172,20 @@ void idGameLocal::ClientProcessEntityNetworkEventQueue()
 				}
 			} else {
 				ent = entPtr.GetEntity();
-				assert(ent);
+				if (!ent) {
+					gameLocal.Warning("[COOP] Trying to read unkwown entity\n");
+				}
+				else {
+					assert(ent);
 
-				idBitMsg eventMsg;
-				eventMsg.InitRead(event->paramsBuf, sizeof(event->paramsBuf));
-				eventMsg.SetSize(event->paramsSize);
-				eventMsg.BeginReading();
-				if (!ent->ClientReceiveEvent(event->event, event->time, eventMsg))
-				{
-					NetworkEventWarning(event, "unknown event");
+					idBitMsg eventMsg;
+					eventMsg.InitRead(event->paramsBuf, sizeof(event->paramsBuf));
+					eventMsg.SetSize(event->paramsSize);
+					eventMsg.BeginReading();
+					if (!ent->ClientReceiveEvent(event->event, event->time, eventMsg))
+					{
+						NetworkEventWarning(event, "unknown event");
+					}
 				}
 			}
 
@@ -2050,7 +2060,14 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 		ss.S_AddObject(SNAP_PLAYERSTATE + i, ~0U, msg, "Player State");
 
 		int sourceAreas[idEntity::MAX_PVS_AREAS];
-		int numSourceAreas = gameRenderWorld->BoundsInAreas(spectated->GetPlayerPhysics()->GetAbsBounds(), sourceAreas, idEntity::MAX_PVS_AREAS);
+		int numSourceAreas;
+		if (gameLocal.inCinematic && gameLocal.GetCamera()) {
+			numSourceAreas = gameRenderWorld->BoundsInAreas(gameLocal.GetCamera()->GetPhysics()->GetAbsBounds(), sourceAreas, idEntity::MAX_PVS_AREAS);
+		}
+		else {
+			numSourceAreas = gameRenderWorld->BoundsInAreas(spectated->GetPlayerPhysics()->GetAbsBounds(), sourceAreas, idEntity::MAX_PVS_AREAS);
+		}
+
 		pvsHandles[i] = pvs.SetupCurrentPVS(sourceAreas, numSourceAreas, PVS_NORMAL);
 		if (portalSkyPVS.i >= 0) {
 			pvsHandle_t	tempPVS = pvs.MergeCurrentPVS(pvsHandles[i], portalSkyPVS);
@@ -2092,6 +2109,12 @@ void idGameLocal::ServerWriteSnapshotCoop(idSnapShot& ss) {
 				continue;
 		}
 		if (ent->IsHidden() && !ent->firstTimeInClientPVS && !ent->inSnapshotQueue) { //this shit is really important to improve server netcode
+			continue;
+		}
+
+		if (gameLocal.inCinematic && ent->forceNetworkSync && ent->IsType(idAI::Type) && ent->IsActive()) {
+			//dirty hack for cinematics. 
+			sortsnapshotentities[sortSnapCount++] = ent;
 			continue;
 		}
 
@@ -2378,7 +2401,7 @@ idGameLocal::addToServerEventOverFlowList
 void idGameLocal::addToServerEventOverFlowList(int eventId, const idBitMsg* msg, bool saveEvent, lobbyUserID_t excludeClient, int eventTime, idEntity* ent, bool saveLastOnly)
 {
 
-	if (!msg || !ent) {
+	if (!ent) {
 		common->Warning("[COOP FATAL] Trying to add an event with a empty message or from an unknown entity\n");
 		return;
 	}
@@ -2387,7 +2410,13 @@ void idGameLocal::addToServerEventOverFlowList(int eventId, const idBitMsg* msg,
 		if (serverOverflowEvents[i].eventId == SERVER_EVENT_NONE) {
 			serverOverflowEvents[i].eventEnt = ent;
 			serverOverflowEvents[i].eventId = eventId;
-			serverOverflowEvents[i].msg = *msg;
+			if (msg) {
+				serverOverflowEvents[i].paramsSize = msg->GetSize();
+				memcpy(serverOverflowEvents[i].paramsBuf, msg->GetReadData(), msg->GetSize());
+			}
+			else {
+				serverOverflowEvents[i].paramsSize = 0;
+			}
 			serverOverflowEvents[i].saveEvent = saveEvent;
 			serverOverflowEvents[i].excludeClient = excludeClient;
 			serverOverflowEvents[i].saveLastOnly = saveLastOnly;
@@ -2471,13 +2500,11 @@ void idGameLocal::sendServerOverflowEvents(void)
 			}
 			outMsg.WriteByte(serverOverflowEvents[i].eventId);
 			outMsg.WriteLong(gameLocal.time);
-
-			if (&serverOverflowEvents[i].msg) {
-				outMsg.WriteBits((&serverOverflowEvents[i].msg)->GetSize(), idMath::BitsForInteger(MAX_EVENT_PARAM_SIZE));
-				outMsg.WriteData((&serverOverflowEvents[i].msg)->GetReadData(), (&serverOverflowEvents[i].msg)->GetSize());
-			} else {
-				outMsg.WriteBits(0, idMath::BitsForInteger(MAX_EVENT_PARAM_SIZE));
+			outMsg.WriteBits(serverOverflowEvents[i].paramsSize, idMath::BitsForInteger(MAX_EVENT_PARAM_SIZE));
+			if (serverOverflowEvents[i].paramsSize) {
+				outMsg.WriteData(serverOverflowEvents[i].paramsBuf, serverOverflowEvents[i].paramsSize);
 			}
+
 
 			idLobbyBase& lobby = session->GetActingGameStateLobbyBase();
 			peerMask_t peerMask = MAX_UNSIGNED_TYPE(peerMask_t);
@@ -2490,7 +2517,12 @@ void idGameLocal::sendServerOverflowEvents(void)
 
 			if (serverOverflowEvents[i].saveEvent)
 			{
-				gameLocal.SaveEntityNetworkEvent(serverOverflowEvents[i].eventEnt, serverOverflowEvents[i].eventId, &serverOverflowEvents[i].msg, serverOverflowEvents[i].saveLastOnly);
+				idBitMsg	saveMsg;
+				byte		tmpBuf[MAX_GAME_MESSAGE_SIZE];
+				saveMsg.InitWrite(tmpBuf, sizeof(tmpBuf));
+				saveMsg.BeginWriting();
+				saveMsg.WriteData(serverOverflowEvents[i].paramsBuf, serverOverflowEvents[i].paramsSize);
+				gameLocal.SaveEntityNetworkEvent(serverOverflowEvents[i].eventEnt, serverOverflowEvents[i].eventId, &saveMsg, serverOverflowEvents[i].saveLastOnly);
 			}
 		}
 

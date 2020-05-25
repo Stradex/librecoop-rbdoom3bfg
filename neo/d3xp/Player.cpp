@@ -1851,6 +1851,7 @@ idPlayer::idPlayer():
 	fl.networkSync			= true;
 	fl.coopNetworkSync = true;
 	forceNetworkSync = true; //added by Stradex for Coop
+	nextTimeCoopTeleported = 0;
 	
 	doingDeathSkin			= false;
 	weaponGone				= false;
@@ -4026,7 +4027,10 @@ idPlayer::ExitCinematic
 */
 void idPlayer::ExitCinematic()
 {
-	Show();
+	if (!gameLocal.mpGame.IsGametypeCoopBased() || !spectating) {
+		Show();
+	}
+
 	
 	if( weaponEnabled && weapon.GetEntity() )
 	{
@@ -7722,13 +7726,16 @@ void idPlayer::UpdateAir()
 		if( airMsec < 0 )
 		{
 			airMsec = 0;
+			if (!gameLocal.mpGame.IsGametypeCoopBased() || common->IsServer()) {
+				// check for damage
 			// check for damage
-			const idDict* damageDef = gameLocal.FindEntityDefDict( "damage_noair", false );
-			int dmgTiming = 1000 * ( ( damageDef ) ? damageDef->GetFloat( "delay", "3.0" ) : 3.0f );
-			if( gameLocal.time > lastAirDamage + dmgTiming )
-			{
-				Damage( NULL, NULL, vec3_origin, "damage_noair", 1.0f, 0 );
-				lastAirDamage = gameLocal.time;
+				const idDict* damageDef = gameLocal.FindEntityDefDict("damage_noair", false);
+				int dmgTiming = 1000 * ((damageDef) ? damageDef->GetFloat("delay", "3.0") : 3.0f);
+				if (gameLocal.time > lastAirDamage + dmgTiming)
+				{
+					Damage(NULL, NULL, vec3_origin, "damage_noair", 1.0f, 0);
+					lastAirDamage = gameLocal.time;
+				}
 			}
 		}
 		
@@ -11754,6 +11761,9 @@ void idPlayer::Event_ExitTeleporter()
 	
 	if( common->IsServer() )
 	{
+		if (gameLocal.mpGame.IsGametypeCoopBased()) {
+			exitEnt->ActivateTargets(exitEnt); //added for opencoop maps compatiblity
+		}
 		ServerSendEvent( EVENT_EXIT_TELEPORTER, NULL, false );
 	}
 	
@@ -11937,6 +11947,10 @@ void idPlayer::ClientThink( const int curTime, const float fraction, const bool 
 	
 	UpdateFlashlight();
 	
+	if (gameLocal.mpGame.IsGametypeCoopBased() && gameLocal.isNewFrame) {
+		UpdateAir();
+	}
+
 	UpdateHud();
 	
 	if( gameLocal.isNewFrame )
@@ -12218,9 +12232,9 @@ void idPlayer::WriteToSnapshot( idBitMsg& msg ) const
 	msg.WriteBits( usercmd.rightmove, -8 );
 	
 	msg.WriteBool( spectating );
-
 	//extra added for coop
 	if (gameLocal.mpGame.IsGametypeCoopBased()) {
+		msg.WriteLong(airMsec);
 		msg.WriteBits(noclip, 1);
 		msg.WriteBits(fl.hidden, 1);
 	}
@@ -12300,6 +12314,7 @@ void idPlayer::ReadFromSnapshot( const idBitMsg& msg )
 
 		bool shouldHide = false;
 
+		airMsec = msg.ReadLong();
 		noclip = msg.ReadBits(1) != 0;
 		shouldHide = msg.ReadBits(1) != 0;
 		if (entityNumber != gameLocal.GetLocalClientNum()) {

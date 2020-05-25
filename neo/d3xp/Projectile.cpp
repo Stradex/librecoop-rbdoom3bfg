@@ -1255,7 +1255,14 @@ void idProjectile::Explode( const trace_t& collision, idEntity* ignore )
 		
 		splashArgs.Set( "model", "sludgebulletimpact.prt" );
 		splashArgs.Set( "start_off", "1" );
-		splashEnt = static_cast<idFuncEmitter*>( gameLocal.SpawnEntityType( idFuncEmitter::Type, &splashArgs ) );
+
+		if (gameLocal.mpGame.IsGametypeCoopBased()) {
+			splashArgs.Set("clientside", "1"); //force this clientside to avoid a crash
+			splashEnt = static_cast<idFuncEmitter*>(gameLocal.SpawnEntityType(idFuncEmitter::Type, &splashArgs, true));
+		}
+		else {
+			splashEnt = static_cast<idFuncEmitter*>(gameLocal.SpawnEntityType(idFuncEmitter::Type, &splashArgs));
+		}
 		
 		splashEnt->GetPhysics()->SetOrigin( testOrg );
 		splashEnt->PostEventMS( &EV_Activate, 0, this );

@@ -88,6 +88,7 @@ idCameraView::idCameraView()
 	fov = 90.0f;
 	attachedTo = NULL;
 	attachedView = NULL;
+	canBeCsTarget = true;
 }
 
 /*
@@ -132,9 +133,18 @@ idCameraView::Event_Activate
 */
 void idCameraView::Event_Activate( idEntity* activator )
 {
+
+	//hack for coop
+	bool wasCalledViaScriptThread = calledViaScriptThread;
+	calledViaScriptThread = false;
+	//end hack
+
 	if( spawnArgs.GetBool( "trigger" ) )
 	{
-		if( gameLocal.GetCamera() != this )
+
+		bool activateCamera = (gameLocal.GetCamera() != this);
+
+		if(activateCamera)
 		{
 			if( g_debugCinematic.GetBool() )
 			{
@@ -151,6 +161,15 @@ void idCameraView::Event_Activate( idEntity* activator )
 			}
 			gameLocal.SetCamera( NULL );
 		}
+
+		if (wasCalledViaScriptThread && common->IsServer()) {
+			idBitMsg	msg;
+			byte		msgBuf[MAX_EVENT_PARAM_SIZE];
+			msg.InitWrite(msgBuf, sizeof(msgBuf));
+			msg.BeginWriting();
+			msg.WriteBits(activateCamera, 1);
+			ServerSendEvent(EVENT_ACTIVATE_CINEMATIC, &msg, true, lobbyUserID_t(), true);
+		}
 	}
 }
 
@@ -166,7 +185,35 @@ void idCameraView::Stop()
 		gameLocal.Printf( "%d: '%s' stop\n", gameLocal.framenum, GetName() );
 	}
 	gameLocal.SetCamera( NULL );
-	ActivateTargets( gameLocal.GetLocalPlayer() );
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		return;
+	}
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsServer()) {
+		idPlayer* p = gameLocal.GetCoopPlayer();
+
+		ActivateTargets(p);
+		idEntity* ent;
+		for (int i = 0; i < targets.Num(); i++) {
+			ent = targets[i].GetEntity();
+			if (!ent || !ent->IsType(idPlayerStart::Type)) {
+				continue;
+			}
+
+			if (ent->RespondsTo(EV_Activate) || ent->HasSignal(SIG_TRIGGER)) {
+				ent->Signal(SIG_TRIGGER);
+				for (int j = 0; j < gameLocal.numClients; j++) {
+					p = gameLocal.GetClientByNum(j);
+					if (!p->spectating) {
+						ent->ProcessEvent(&EV_Activate, p);
+					}
+				}
+			}
+		}
+	}
+	else {
+		ActivateTargets(gameLocal.GetLocalPlayer());
+	}
 }
 
 
@@ -247,6 +294,36 @@ void idCameraView::GetViewParms( renderView_t* view )
 }
 
 /*
+================
+idCameraView::ClientReceiveEvent
+================
+*/
+bool idCameraView::ClientReceiveEvent(int event, int time, const idBitMsg& msg) {
+	if (!gameLocal.mpGame.IsGametypeCoopBased()) {
+		return idEntity::ClientReceiveEvent(event, time, msg); //OG D3 netcode non-coop
+	}
+	switch (event) {
+	case EVENT_ACTIVATE_CINEMATIC: {
+		bool activateCamera = (msg.ReadBits(1) != 0);
+		thinkFlags |= TH_THINK;
+		allowClientsideThink = true;
+		if (activateCamera) {
+			gameLocal.SetCamera(this);
+		}
+		else {
+			gameLocal.SetCamera(NULL);
+		}
+		UpdateVisuals();
+		return true;
+	}
+	default:
+		break;
+	}
+
+	return idEntity::ClientReceiveEvent(event, time, msg);
+}
+
+/*
 ===============================================================================
 
   idCameraAnim
@@ -278,7 +355,7 @@ idCameraAnim::idCameraAnim()
 	cycle = 1;
 	starttime = 0;
 	activator = NULL;
-	
+	canBeCsTarget = true;
 }
 
 /*
@@ -360,11 +437,6 @@ idCameraAnim::Load
 */
 void idCameraAnim::LoadAnim()
 {
-
-	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
-		//No cameras in coop
-		return;
-	}
 
 	int			version;
 	idLexer		parser( LEXFL_ALLOWPATHNAMES | LEXFL_NOSTRINGESCAPECHARS | LEXFL_NOSTRINGCONCAT );
@@ -478,17 +550,19 @@ void idCameraAnim::Start()
 		gameLocal.Printf( "%d: '%s' start\n", gameLocal.framenum, GetName() );
 	}
 	
-	starttime = gameLocal.time;
-	gameLocal.SetCamera( this );
-
-	if (gameLocal.mpGame.IsGametypeCoopBased()) {
-		return; //Disabled cinematics in COOP
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsClient()) {
+		//starttime = gameLocal.clientsideTime;
+		starttime = gameLocal.time;
 	}
+	else {
+		starttime = gameLocal.time;
+	}
+	gameLocal.SetCamera( this );
 
 	BecomeActive( TH_THINK );
 	
 	// if the player has already created the renderview for this frame, have him update it again so that the camera starts this frame
-	if( gameLocal.GetLocalPlayer()->GetRenderView()->time[TIME_GROUP2] == gameLocal.fast.time )
+	if(gameLocal.GetLocalPlayer() && gameLocal.GetLocalPlayer()->GetRenderView()->time[TIME_GROUP2] == gameLocal.fast.time )
 	{
 		gameLocal.GetLocalPlayer()->CalculateRenderView();
 	}
@@ -501,6 +575,15 @@ idCameraAnim::Stop
 */
 void idCameraAnim::Stop()
 {
+
+	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsServer()) {
+		idBitMsg	msg;
+		byte		msgBuf[MAX_EVENT_PARAM_SIZE];
+		msg.InitWrite(msgBuf, sizeof(msgBuf));
+		msg.BeginWriting();
+		msg.WriteBits(false, 1);
+		ServerSendEvent(EVENT_ACTIVATE_CINEMATIC, &msg, true, lobbyUserID_t(), true);
+	}
 
 	if( gameLocal.GetCamera() == this )
 	{
@@ -516,7 +599,9 @@ void idCameraAnim::Stop()
 			idThread::ObjectMoveDone( threadNum, this );
 			threadNum = 0;
 		}
-		ActivateTargets( activator.GetEntity() );
+		if (!gameLocal.mpGame.IsGametypeCoopBased() ||common->IsServer()) {
+			ActivateTargets(activator.GetEntity());
+		}
 	}
 }
 
@@ -624,17 +709,28 @@ void idCameraAnim::GetViewParms( renderView_t* view )
 			return;
 		}
 		
-		Stop();
-		if( gameLocal.GetCamera() != NULL )
-		{
-			// we activated another camera when we stopped, so get it's viewparms instead
-			gameLocal.GetCamera()->GetViewParms( view );
-			return;
+		if (!gameLocal.mpGame.IsGametypeCoopBased() || common->IsServer()) {
+
+			Stop();
+			if (gameLocal.GetCamera() != NULL)
+			{
+				// we activated another camera when we stopped, so get it's viewparms instead
+				gameLocal.GetCamera()->GetViewParms(view);
+				return;
+			}
+			else
+			{
+				// just use our last frame
+				camFrame = &camera[camera.Num() - 1];
+				view->viewaxis = camFrame->q.ToQuat().ToMat3();
+				view->vieworg = camFrame->t + offset;
+				view->fov_x = camFrame->fov;
+			}
+
 		}
-		else
-		{
+		else {
 			// just use our last frame
-			camFrame = &camera[ camera.Num() - 1 ];
+			camFrame = &camera[camera.Num() - 1];
 			view->viewaxis = camFrame->q.ToQuat().ToMat3();
 			view->vieworg = camFrame->t + offset;
 			view->fov_x = camFrame->fov;
@@ -659,6 +755,11 @@ void idCameraAnim::GetViewParms( renderView_t* view )
 		view->fov_x = camFrame[ 0 ].fov * invlerp + camFrame[ 1 ].fov * lerp;
 	}
 	
+	if (common->IsClient() && gameLocal.mpGame.IsGametypeCoopBased() && view->fov_x <= 0) {
+		view->fov_x = float(g_fov.GetInteger());
+		gameLocal.DebugPrintf("idCameraAnim::GetViewParms invalid fov_x in client, using current player fov\n");
+	}
+
 	gameLocal.CalcFov( view->fov_x, view->fov_x, view->fov_y );
 	
 	// setup the pvs for this frame
@@ -692,6 +793,12 @@ idCameraAnim::Event_Activate
 */
 void idCameraAnim::Event_Activate( idEntity* _activator )
 {
+
+	//hack for coop
+	bool wasCalledViaScriptThread = calledViaScriptThread;
+	calledViaScriptThread = false;
+	//end hack
+
 	activator = _activator;
 	if( thinkFlags & TH_THINK )
 	{
@@ -700,6 +807,14 @@ void idCameraAnim::Event_Activate( idEntity* _activator )
 	else
 	{
 		Start();
+		if (wasCalledViaScriptThread && common->IsServer()) {
+			idBitMsg	msg;
+			byte		msgBuf[MAX_EVENT_PARAM_SIZE];
+			msg.InitWrite(msgBuf, sizeof(msgBuf));
+			msg.BeginWriting();
+			msg.WriteBits(true, 1);
+			ServerSendEvent(EVENT_ACTIVATE_CINEMATIC, &msg, true, lobbyUserID_t(), true);
+		}
 	}
 }
 
@@ -739,4 +854,34 @@ void idCameraAnim::Event_SetCallback()
 	{
 		idThread::ReturnInt( false );
 	}
+}
+
+/*
+================
+idCameraAnim::ClientReceiveEvent
+================
+*/
+bool idCameraAnim::ClientReceiveEvent(int event, int time, const idBitMsg& msg) {
+	if (!gameLocal.mpGame.IsGametypeCoopBased()) {
+		return idEntity::ClientReceiveEvent(event, time, msg); //OG D3 netcode non-coop
+	}
+	switch (event) {
+	case EVENT_ACTIVATE_CINEMATIC: {
+		bool activateCamera = (msg.ReadBits(1) != 0);
+		thinkFlags |= TH_THINK;
+		allowClientsideThink = true;
+		if (activateCamera) {
+			Start();
+		}
+		else {
+			Stop();
+		}
+		UpdateVisuals();
+		return true;
+	}
+	default:
+		break;
+	}
+
+	return idEntity::ClientReceiveEvent(event, time, msg);
 }

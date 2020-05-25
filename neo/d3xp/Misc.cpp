@@ -36,6 +36,9 @@ Various utility objects and functions.
 
 #include "Game_local.h"
 
+// added for coop
+const int COOP_TELEPORT_CLEARDELAY = 1000; //1 sec
+
 /*
 ===============================================================================
 
@@ -206,6 +209,7 @@ void idPlayerStart::TeleportPlayer( idPlayer* player )
 	idEntity* ent = viewName ? gameLocal.FindEntity( viewName ) : NULL;
 
 	if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsServer()) { //create a new global checkpoint at this position for Coop
+		player->nextTimeCoopTeleported = gameLocal.time + COOP_TELEPORT_CLEARDELAY;
 		gameLocal.mpGame.CreateNewCheckpoint(GetPhysics()->GetOrigin());
 	}
 	
@@ -226,6 +230,9 @@ void idPlayerStart::TeleportPlayer( idPlayer* player )
 	}
 	else
 	{
+		if (gameLocal.mpGame.IsGametypeCoopBased() && common->IsServer()) {
+			ActivateTargets(this); //for opencoop
+		}
 		// direct to exit, Teleport will take care of the killbox
 		player->Teleport( GetPhysics()->GetOrigin(), GetPhysics()->GetAxis().ToAngles(), NULL );
 		
@@ -246,6 +253,17 @@ void idPlayerStart::Event_TeleportPlayer( idEntity* activator )
 {
 	idPlayer* player;
 	
+	if (activator && !activator->IsType(idPlayer::Type) && activator->entityNumber != this->entityNumber) { //for OpenCoop teleport target support
+		for (int i = 0; i < gameLocal.numClients; i++) {
+			idPlayer* p = gameLocal.GetClientByNum(i);
+			if (!p || p->nextTimeCoopTeleported >= gameLocal.time) {
+				continue;
+			}
+			activator = p;
+			break;
+		}
+	}
+
 	if (activator && activator->IsType(idPlayer::Type)) {
 		player = static_cast<idPlayer*>( activator );
 	} else if (gameLocal.mpGame.IsGametypeCoopBased() && gameLocal.GetCoopPlayer()) {
@@ -256,6 +274,7 @@ void idPlayerStart::Event_TeleportPlayer( idEntity* activator )
 	}
 	if( player )
 	{
+		player->nextTimeCoopTeleported = gameLocal.time + COOP_TELEPORT_CLEARDELAY;
 		if( spawnArgs.GetBool( "visualFx" ) )
 		{
 		
@@ -1791,6 +1810,9 @@ void idAnimated::Event_GetAnimationLength()
 CLASS_DECLARATION( idEntity, idStaticEntity )
 EVENT( EV_Activate,				idStaticEntity::Event_Activate )
 EVENT(EV_Remove,				idStaticEntity::Event_Remove) //added for coop
+EVENT(EV_Hide,					idStaticEntity::Event_Hide)
+EVENT(EV_Show,					idStaticEntity::Event_Show)
+
 END_CLASS
 
 /*
@@ -1808,6 +1830,7 @@ idStaticEntity::idStaticEntity()
 	fadeEnd	= 0;
 	runGui = false;
 	canBeCsTarget = true;
+	eventSyncVital = false; //to avoid overflow! (this could be a problem, needs testing)
 }
 
 /*
@@ -2159,10 +2182,12 @@ bool idStaticEntity::ClientReceiveEvent(int event, int time, const idBitMsg& msg
 	}
 	case EVENT_STATIC_HIDE: {
 		Event_Hide();
+		UpdateVisuals();
 		return true;
 	}
 	case EVENT_STATIC_SHOW: {
 		Event_Show();
+		UpdateVisuals();
 		return true;
 	}
 	default:

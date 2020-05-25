@@ -6061,8 +6061,6 @@ void idAI::ClientThink(const int curTime, const float fraction, const bool predi
 		return idEntity::ClientThink(curTime, fraction, predict);  //original non-coop
 	}
 
-	//this->Think();
-
 	if (thinkFlags & TH_PHYSICS) { //edited
 
 		idActor* enemyEnt = enemy.GetEntity();
@@ -6082,9 +6080,6 @@ void idAI::ClientThink(const int curTime, const float fraction, const bool predi
 		viewAxis = idAngles(0, current_yaw, 0).ToMat3();
 
 		if (num_cinematics) {
-			if (!IsHidden() && torsoAnim.AnimDone(0)) {
-				PlayCinematic();
-			}
 			RunPhysics();
 		}
 		else if (!allowHiddenMovement && IsHidden()) {
@@ -6181,8 +6176,9 @@ void idAI::WriteToSnapshot(idBitMsg& msg) const {
 	msg.WriteShort(health);
 	msg.WriteDir(normalizedLastDamageDir, 9);
 	msg.WriteShort(lastDamageLocation);
-	msg.WriteByte(move.moveCommand);
-	msg.WriteByte(move.moveStatus);
+	msg.WriteBits(move.moveType, idMath::BitsForInteger(NUM_MOVETYPES));
+	msg.WriteBits(move.moveCommand, idMath::BitsForInteger(NUM_MOVE_COMMANDS));
+	msg.WriteBits(move.moveStatus, idMath::BitsForInteger(NUM_MOVE_STATUS));
 	msg.WriteLong(move.startTime);
 	msg.WriteFloat(move.speed);
 	msg.WriteFloat(move.moveDest.x);
@@ -6191,9 +6187,6 @@ void idAI::WriteToSnapshot(idBitMsg& msg) const {
 
 	msg.WriteDir(moveDirVec, 9);
 	msg.WriteShort(move.anim);
-	//msg.WriteByte( AI_MOVE_DONE );
-	//msg.WriteByte( AI_FORWARD );
-	//msg.WriteByte( AI_JUMP );
 	msg.WriteFloat(current_yaw);
 	msg.WriteFloat(ideal_yaw);
 	msg.WriteFloat(anim_turn_yaw);
@@ -6203,12 +6196,6 @@ void idAI::WriteToSnapshot(idBitMsg& msg) const {
 	msg.WriteShort(currentLegsAnim);
 	msg.WriteByte(currentNetAction);
 
-	//lastVisibleEnemyPos
-	/*
-	msg.WriteFloat(lastVisibleEnemyPos.x);
-	msg.WriteFloat(lastVisibleEnemyPos.y);
-	msg.WriteFloat(lastVisibleEnemyPos.z);
-	*/
 	msg.WriteFloat(turnTowardPos.x);
 	msg.WriteFloat(turnTowardPos.y);
 	msg.WriteFloat(turnTowardPos.z);
@@ -6222,7 +6209,12 @@ void idAI::WriteToSnapshot(idBitMsg& msg) const {
 	msg.WriteShort(currentChannelOverride);
 	msg.WriteBits(disableGravity, 1);
 
-	msg.WriteBits(fl.hidden, 1);
+	msg.WriteBits(gameLocal.inCinematic, 1);
+	if (gameLocal.inCinematic) {
+		msg.WriteShort(current_cinematic);
+	}
+
+	msg.WriteBits(IsHidden(), 1);
 
 	//Head entity info
 	int headEntitySendInfo = head.GetEntity() ? 1 : 0;
@@ -6250,7 +6242,8 @@ void idAI::ReadFromSnapshot(const idBitMsg& msg) {
 	}
 
 	int		i, oldHealth, enemySpawnId, torsoAnimId, legsAnimId, headAnimId, enemyEntityId, goalEntityId, focusEntityId;
-	bool	newHitToggle, stateHitch, hasEnemy, getOriginInfo, headEntityReceivedInfo;
+	bool	newHitToggle, stateHitch, hasEnemy, getOriginInfo, headEntityReceivedInfo, snapshotInCinematic;
+
 	netActionType_t newNetAction;
 	idVec3	tmpOrigin = vec3_zero;
 
@@ -6273,8 +6266,9 @@ void idAI::ReadFromSnapshot(const idBitMsg& msg) {
 	health = msg.ReadShort();
 	lastDamageDir = msg.ReadDir(9);
 	lastDamageLocation = msg.ReadShort();
-	move.moveCommand = static_cast<moveCommand_t>(msg.ReadByte());
-	move.moveStatus = static_cast<moveStatus_t>(msg.ReadByte());
+	move.moveType = static_cast<moveType_t>(msg.ReadBits(idMath::BitsForInteger(NUM_MOVETYPES)));
+	move.moveCommand = static_cast<moveCommand_t>(msg.ReadBits(idMath::BitsForInteger(NUM_MOVE_COMMANDS)));
+	move.moveStatus = static_cast<moveStatus_t>(msg.ReadBits(idMath::BitsForInteger(NUM_MOVE_STATUS)));
 	move.startTime = msg.ReadLong();
 	move.speed = msg.ReadFloat();
 	move.moveDest.x = msg.ReadFloat();
@@ -6282,9 +6276,6 @@ void idAI::ReadFromSnapshot(const idBitMsg& msg) {
 	move.moveDest.z = msg.ReadFloat();
 	move.moveDir = msg.ReadDir(9);
 	move.anim = msg.ReadShort();
-	//AI_MOVE_DONE = msg.ReadByte();
-	//AI_FORWARD = msg.ReadByte();
-	//AI_JUMP = msg.ReadByte();
 	current_yaw = msg.ReadFloat();
 	ideal_yaw = msg.ReadFloat();
 	anim_turn_yaw = msg.ReadFloat();
@@ -6295,12 +6286,6 @@ void idAI::ReadFromSnapshot(const idBitMsg& msg) {
 	legsAnimId = msg.ReadShort();
 	newNetAction = static_cast<netActionType_t>(msg.ReadByte());
 
-	//lastVisibleEnemyPos
-	/*
-	lastVisibleEnemyPos.x = msg.ReadFloat();
-	lastVisibleEnemyPos.y = msg.ReadFloat();
-	lastVisibleEnemyPos.z = msg.ReadFloat();
-	*/
 	turnTowardPos.x = msg.ReadFloat();
 	turnTowardPos.y = msg.ReadFloat();
 	turnTowardPos.z = msg.ReadFloat();
@@ -6322,6 +6307,12 @@ void idAI::ReadFromSnapshot(const idBitMsg& msg) {
 
 	disableGravity = msg.ReadBits(1) != 0;
 
+	snapshotInCinematic = msg.ReadBits(1) != 0;
+
+	if (snapshotInCinematic) {
+		current_cinematic = msg.ReadShort();
+	}
+
 	bool isInvisible = false;
 	isInvisible = msg.ReadBits(1) != 0;
 
@@ -6341,22 +6332,45 @@ void idAI::ReadFromSnapshot(const idBitMsg& msg) {
 
 	//No more msg read from here 
 
-	if (isInvisible && !fl.hidden) {
+	if (isInvisible && !IsHidden()) {
 		Hide();
 	}
-	else if (!isInvisible && fl.hidden) {
+	else if (!isInvisible && IsHidden()) {
 		Show();
 	}
 
-	if (torsoAnimId != currentTorsoAnim) {
-		animator.CycleAnim(ANIMCHANNEL_TORSO, torsoAnimId, gameLocal.time, 2);
-	}
-	if (legsAnimId != currentLegsAnim) {
-		animator.CycleAnim(ANIMCHANNEL_LEGS, legsAnimId, gameLocal.time, 2);
-	}
+	if (!snapshotInCinematic || !num_cinematics) {
 
-	if (headEntityReceivedInfo && head.GetEntity() && currentHeadAnim != headAnimId) {
-		head.GetEntity()->GetAnimator()->CycleAnim(ANIMCHANNEL_ALL, headAnimId, gameLocal.time, 2);
+		if (torsoAnimId != currentTorsoAnim) {
+			animator.CycleAnim(ANIMCHANNEL_TORSO, torsoAnimId, gameLocal.time, 2);
+		}
+		if (legsAnimId != currentLegsAnim) {
+			animator.CycleAnim(ANIMCHANNEL_LEGS, legsAnimId, gameLocal.time, 2);
+		}
+
+		if (headEntityReceivedInfo && head.GetEntity() && currentHeadAnim != headAnimId) {
+			head.GetEntity()->GetAnimator()->CycleAnim(ANIMCHANNEL_ALL, headAnimId, gameLocal.time, 2);
+		}
+
+		if (oldHealth > 0 && health <= 0) {
+			CSKilled();
+		}
+		else if (health < oldHealth && health > 0) {
+			//pain
+			//AI_PAIN = Pain( NULL, NULL, oldHealth - health, lastDamageDir, lastDamageLocation ); //causing crash.
+		}
+
+	}
+	else {
+		if (torsoAnimId != currentTorsoAnim) {
+			animator.PlayAnim(ANIMCHANNEL_TORSO, torsoAnimId, gameLocal.time, 2);
+		}
+		if (legsAnimId != currentLegsAnim) {
+			animator.PlayAnim(ANIMCHANNEL_LEGS, legsAnimId, gameLocal.time, 2);
+		}
+		if (headEntityReceivedInfo && head.GetEntity() && currentHeadAnim != headAnimId) {
+			head.GetEntity()->GetAnimator()->PlayAnim(ANIMCHANNEL_ALL, headAnimId, gameLocal.time, 2);
+		}
 	}
 
 	currentTorsoAnim = torsoAnimId;
@@ -6366,13 +6380,6 @@ void idAI::ReadFromSnapshot(const idBitMsg& msg) {
 	}
 
 
-	if (oldHealth > 0 && health <= 0) {
-		CSKilled();
-	}
-	else if (health < oldHealth && health > 0) {
-		//pain
-		//AI_PAIN = Pain( NULL, NULL, oldHealth - health, lastDamageDir, lastDamageLocation ); //causing crash.
-	}
 	if (msg.HasChanged()) {
 		if (getOriginInfo) { //lets update origin then
 			physicsObj.SetOrigin(tmpOrigin + idVec3(0, 0, CM_CLIP_EPSILON));
@@ -6738,6 +6745,21 @@ void idAI::Event_OverrideAnim(int channel) {
 	return;
 }
 
+/*
+=====================
+idAI::CSResurrected
+COOP: Behaviour when resurrected clientside
+=====================
+*/
+void idAI::CSResurrected(void) {
+	gameLocal.DebugPrintf("%s was resurrected\n", this->GetName());
+	StopMove(MOVE_STATUS_DONE);
+	Hide();
+	StopRagdoll();
+	SetPhysics(&physicsObj);
+	AI_DEAD = false;
+	forceNetworkSync = true;
+}
 
 
 /***********************************************************************

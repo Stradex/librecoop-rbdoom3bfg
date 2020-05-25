@@ -1425,8 +1425,20 @@ void idAI::Event_GetCombatNode()
 		{
 			// find the closest attack node to the player
 			bestNode = NULL;
+
+			idPlayer* p;
+			if (gameLocal.mpGame.IsGametypeCoopBased()) {
+				p = GetClosestPlayerEnemy();
+				if (!p) {
+					p = gameLocal.GetCoopPlayer();
+				}
+			}
+			else {
+				p = gameLocal.GetLocalPlayer();
+			}
+
 			const idVec3& myPos = physicsObj.GetOrigin();
-			const idVec3& playerPos = gameLocal.GetLocalPlayer()->GetPhysics()->GetOrigin();
+			const idVec3& playerPos = p->GetPhysics()->GetOrigin();
 			
 			bestDist = ( myPos - playerPos ).LengthSqr();
 			
@@ -1668,7 +1680,7 @@ idAI::Event_SetTalkTarget
 void idAI::Event_SetTalkTarget( idEntity* target )
 {
 
-	if (gameLocal.mpGame.IsGametypeCoopBased() && gameLocal.isNPC(this)) {
+	if ((!target || !target->IsType(idActor::Type)) && gameLocal.mpGame.IsGametypeCoopBased() && gameLocal.isNPC(this)) {
 		target = GetFocusPlayer();
 	}
 
@@ -2774,7 +2786,7 @@ void idAI::Event_LookAtEntity( idEntity* ent, float duration )
 		if (!ent && ((idStr::FindText(GetEntityDefName(), "char_sentry") != -1) || (idStr::FindText(GetEntityDefName(), "comm1_sentry") != -1))) {
 			ent = GetClosestPlayer();
 		}
-		else if ((!focusEntity.GetEntity() || (focusEntity.GetEntity() && (focusTime < gameLocal.time))) && gameLocal.isNPC(this)) {
+		else if ((!ent || ent == this) && (!focusEntity.GetEntity() || (focusEntity.GetEntity() && (focusTime < gameLocal.time))) && gameLocal.isNPC(this)) {
 			ent = GetFocusPlayer();
 		}
 	}

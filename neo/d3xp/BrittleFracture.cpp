@@ -71,6 +71,8 @@ idBrittleFracture::idBrittleFracture()
 	
 	fl.networkSync = true;
 	fl.coopNetworkSync = true;
+	eventSyncVital = false;
+
 	
 	isXraySurface = false;
 }
