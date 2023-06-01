@@ -47,7 +47,7 @@ using nvrhi::RefCountPtr;
 #define HR_RETURN(hr) if(FAILED(hr)) return false
 
 idCVar r_graphicsAdapter( "r_graphicsAdapter", "", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE, "Substring in the name the DXGI graphics adapter to select a certain GPU" );
-idCVar r_maxFrameLatency( "r_maxFrameLatency", "2", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE | CVAR_INTEGER, "Maximum frame latency for DXGI swap chains (DX12 only)", 0, 3 );
+idCVar r_maxFrameLatency( "r_maxFrameLatency", "2", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE | CVAR_INTEGER, "Maximum frame latency for DXGI swap chains (DX12 only)", 0, NUM_FRAME_DATA );
 
 class DeviceManager_DX12 : public DeviceManager
 {
