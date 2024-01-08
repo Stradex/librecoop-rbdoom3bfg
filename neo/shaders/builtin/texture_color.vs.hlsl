@@ -91,6 +91,8 @@ void main( VS_IN vertex, out VS_OUT result )
 	modelPosition.z = dot4( matZ, vertex.position );
 	modelPosition.w = 1.0;
 
+	modelPosition.xyz = psxVertexJitter( modelPosition );
+
 	result.position.x = dot4( modelPosition, rpMVPmatrixX );
 	result.position.y = dot4( modelPosition, rpMVPmatrixY );
 	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
@@ -113,6 +115,8 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.position.y = dot4( vertex.position, rpMVPmatrixY );
 	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
 	result.position.w = dot4( vertex.position, rpMVPmatrixW );
+
+	result.position.xyz = psxVertexJitter( result.position );
 
 	// Compute oldschool texgen or multiply by texture matrix
 	BRANCH if( rpTexGen0Enabled.x > 0.0 )

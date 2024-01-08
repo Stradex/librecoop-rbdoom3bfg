@@ -107,6 +107,7 @@ cbuffer globals : register( b0 VK_DESCRIPTOR_SET( 0 ) )
 	float4 rpGlobalLightOrigin;
 	float4 rpJitterTexScale;
 	float4 rpJitterTexOffset;
+	float4 rpPSXDistortions;
 	float4 rpCascadeDistances;
 
 	float4 rpShadowMatrices[6 * 4];
@@ -489,6 +490,24 @@ static int2 textureSize( Texture2D<float> buffer, int mipLevel )
 static float2 vposToScreenPosTexCoord( float2 vpos )
 {
 	return vpos.xy * rpWindowCoord.xy;
+}
+
+static float3 psxVertexJitter( float4 spos )
+{
+	float jitterScale = rpPSXDistortions.x;
+	if( jitterScale > 0.0 )
+	{
+		// snap to vertex to a pixel position on a lower grid
+		float3 vertex = spos.xyz / spos.w;
+		//float2 resolution = float2( 320, 240 ); // TODO 320x240 * jitterScale
+		float2 resolution = float2( 160, 120 );
+		vertex.xy = floor( resolution * vertex.xy ) / resolution;
+		vertex *= spos.w;
+
+		return vertex;
+	}
+
+	return spos.xyz;
 }
 
 #define BRANCH

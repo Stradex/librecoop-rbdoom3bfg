@@ -1276,6 +1276,8 @@ extern idCVar r_retroDitherScale;
 
 extern idCVar r_renderMode;
 extern idCVar image_pixelLook;
+
+extern idCVar r_psxVertexJitter;
 // RB end
 
 /*

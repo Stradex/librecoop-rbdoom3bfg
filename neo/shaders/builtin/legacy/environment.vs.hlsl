@@ -121,5 +121,7 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.texcoord1 = vNormal.xyz;
 #endif
 
+	result.position.xyz = psxVertexJitter( result.position );
+
 	result.color = sRGBAToLinearRGBA( rpColor );
 }

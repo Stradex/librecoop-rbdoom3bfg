@@ -101,4 +101,6 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
 	result.position.w = dot4( vertex.position, rpMVPmatrixW );
 #endif
+
+	result.position.xyz = psxVertexJitter( result.position );
 }

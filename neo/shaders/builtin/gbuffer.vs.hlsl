@@ -130,6 +130,8 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
 	result.position.w = dot4( modelPosition, rpMVPmatrixW );
 
+	result.position.xyz = psxVertexJitter( result.position );
+
 	// textures 0 takes the base coordinates by the texture matrix
 	result.texcoord0.x = dot4( vertex.texcoord.xy, rpBumpMatrixS );
 	result.texcoord0.y = dot4( vertex.texcoord.xy, rpBumpMatrixT );

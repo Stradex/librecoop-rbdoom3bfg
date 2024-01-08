@@ -5578,6 +5578,24 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		float projMatrixTranspose[16];
 		R_MatrixTranspose( viewDef->projectionMatrix, projMatrixTranspose );
 		SetVertexParms( RENDERPARM_PROJMATRIX_X, projMatrixTranspose, 4 );
+
+		// PSX jitter parms
+		if( !_viewDef->is2Dgui )
+		{
+			parm[0] = r_psxVertexJitter.GetFloat();
+			parm[1] = 0;
+			parm[2] = 0;
+			parm[3] = 0;
+		}
+		else
+		{
+			parm[0] = 0;
+			parm[1] = 0;
+			parm[2] = 0;
+			parm[3] = 0;
+		}
+
+		SetVertexParm( RENDERPARM_PSX_DISTORTIONS, parm );
 	}
 
 	//-------------------------------------------------

@@ -132,6 +132,8 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
 	result.position.w = dot4( modelPosition, rpMVPmatrixW );
 
+	result.position.xyz = psxVertexJitter( result.position );
+
 	float4 defaultTexCoord = float4( 0.0f, 0.5f, 0.0f, 1.0f );
 
 	//calculate vector to light
