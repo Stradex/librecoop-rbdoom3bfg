@@ -27,6 +27,7 @@
 
 #include "renderer/RenderCommon.h"
 #include "renderer/RenderSystem.h"
+#include "framework/Common_local.h"
 #include <sys/DeviceManager.h>
 
 #include <Windows.h>
@@ -58,7 +59,7 @@ class DeviceManager_DX12 : public DeviceManager
 	RefCountPtr<IDXGISwapChain3>                m_SwapChain;
 	DXGI_SWAP_CHAIN_DESC1                       m_SwapChainDesc{};
 	DXGI_SWAP_CHAIN_FULLSCREEN_DESC             m_FullScreenDesc{};
-	RefCountPtr<IDXGIAdapter>                   m_DxgiAdapter;
+	RefCountPtr<IDXGIAdapter3>                  m_DxgiAdapter;
 	HANDLE										m_frameLatencyWaitableObject = NULL;
 	bool                                        m_TearingSupported = false;
 
@@ -391,7 +392,7 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 		}
 	}
 
-	m_DxgiAdapter = targetAdapter;
+	targetAdapter->QueryInterface( IID_PPV_ARGS( &m_DxgiAdapter ) );
 
 	D3D12_COMMAND_QUEUE_DESC queueDesc;
 	ZeroMemory( &queueDesc, sizeof( queueDesc ) );
@@ -470,6 +471,8 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 
 void DeviceManager_DX12::DestroyDeviceAndSwapChain()
 {
+	OPTICK_SHUTDOWN();
+
 	m_RhiSwapChainBuffers.clear();
 	m_RendererString.clear();
 
@@ -581,6 +584,12 @@ void DeviceManager_DX12::ResizeSwapChain()
 void DeviceManager_DX12::BeginFrame()
 {
 	OPTICK_CATEGORY( "DX12_BeginFrame", Optick::Category::Wait );
+
+	// SRS - get DXGI GPU memory usage for display in statistics overlay HUD
+	DXGI_QUERY_VIDEO_MEMORY_INFO memoryInfoLocal = {}, memoryInfoNonLocal = {};
+	m_DxgiAdapter->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &memoryInfoLocal );
+	m_DxgiAdapter->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &memoryInfoNonLocal );
+	commonLocal.SetRendererGpuMemoryMB( int( ( memoryInfoLocal.CurrentUsage + memoryInfoNonLocal.CurrentUsage ) / 1024 / 1024 ) );
 }
 
 nvrhi::ITexture* DeviceManager_DX12::GetCurrentBackBuffer()
@@ -627,7 +636,7 @@ void DeviceManager_DX12::Present()
 		presentFlags |= DXGI_PRESENT_ALLOW_TEARING;
 	}
 
-	OPTICK_GPU_FLIP( m_SwapChain.Get() );
+	OPTICK_GPU_FLIP( m_SwapChain.Get(), idLib::frameNumber - 1 );
 	OPTICK_CATEGORY( "DX12_Present", Optick::Category::Wait );
 
 	// SRS - Don't change m_DeviceParams.vsyncEnabled here, simply test for vsync mode 2 to set DXGI SyncInterval

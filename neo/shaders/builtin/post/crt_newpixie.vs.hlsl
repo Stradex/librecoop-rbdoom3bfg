@@ -2,7 +2,7 @@
 ===========================================================================
 
 Doom 3 BFG Edition GPL Source Code
-Copyright (C) 2022 Stephen Pridham
+Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -25,44 +25,31 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#ifndef RENDERER_PASSES_GBUFFERFILLPASS_H_
-#define RENDERER_PASSES_GBUFFERFILLPASS_H_
 
-#include "GeometryPasses.h"
+#include "global_inc.hlsl"
 
-#if 0
 
-// "Light" G-Buffer that renders the normals of the geometry
-class GBufferFillPass : IGeometryPass
+// *INDENT-OFF*
+struct VS_IN
 {
-public:
-
-	GBufferFillPass() = default;
-	virtual ~GBufferFillPass() = default;
-
-	void Init( nvrhi::DeviceHandle deviceHandle );
-	void RenderView( nvrhi::ICommandList* commandList, const drawSurf_t* const* drawSurfs, int numDrawSurfs, bool fillGbuffer );
-
-protected:
-
-	nvrhi::DeviceHandle			device;
-	nvrhi::BindingLayoutHandle	geometryBindingLayout;
-	nvrhi::BindingLayoutHandle  texturedBindingLayout;
-	nvrhi::BindingSetDesc		geometryBindingSetDesc;
-
-	nvrhi::GraphicsPipelineHandle CreateGraphicsPipeline( nvrhi::IFramebuffer* framebuffer );
-
-	void DrawElementsWithCounters( const drawSurf_t* surf );
-
-public:
-
-	void SetupView( nvrhi::ICommandList* commandList, viewDef_t* viewDef ) override;
-	bool SetupMaterial( const idMaterial* material, nvrhi::RasterCullMode cullMode, nvrhi::GraphicsState& state ) override;
-	void SetupInputBuffers( const drawSurf_t* drawSurf, nvrhi::GraphicsState& state ) override;
-	void SetPushConstants( nvrhi::ICommandList* commandList, nvrhi::GraphicsState& state, nvrhi::DrawArguments& args ) override;
-
+	float4 position	: POSITION;
+	float2 texcoord	: TEXCOORD0;
+	float4 normal	: NORMAL;
+	float4 tangent	: TANGENT;
+	float4 color	: COLOR0;
+	float4 color2	: COLOR1;
 };
 
-#endif
+struct VS_OUT {
+	float4 position : SV_Position;
+	float2 texcoord0 : TEXCOORD0_centroid;
+};
+// *INDENT-ON*
 
-#endif
+void main( VS_IN vertex, out VS_OUT result )
+{
+	result.position = vertex.position;
+	result.position.y = -result.position.y;
+
+	result.texcoord0 =  vertex.texcoord;
+}

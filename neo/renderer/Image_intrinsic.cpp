@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2021 Robert Beckebans
+Copyright (C) 2013-2024 Robert Beckebans
 Copyright (C) 2022 Stephen Pridham
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -217,6 +217,11 @@ static void R_RGBA8Image( idImage* image, nvrhi::ICommandList* commandList )
 	data[0][0][3] = 96;
 
 	image->GenerateImage( ( byte* )data, DEFAULT_SIZE, DEFAULT_SIZE, TF_DEFAULT, TR_REPEAT, TD_LOOKUP_TABLE_RGBA, commandList );
+}
+
+static void R_RGBA8Image_RT( idImage* image, nvrhi::ICommandList* commandList )
+{
+	image->GenerateImage( nullptr, 512, 512, TF_NEAREST, TR_CLAMP, TD_LOOKUP_TABLE_RGBA, nullptr, true, false, 1 );
 }
 
 static void R_RGBA8LinearImage( idImage* image, nvrhi::ICommandList* commandList )
@@ -1064,7 +1069,6 @@ void idImageManager::CreateIntrinsicImages()
 	blueNoiseImage256 = globalImages->ImageFromFunction( "_blueNoise256", R_CreateBlueNoise256Image );
 
 	currentRenderHDRImage = globalImages->ImageFromFunction( "_currentRenderHDR", R_HDR_RGBA16FImage_ResNative_MSAAOpt );
-	currentRenderHDRImage64 = globalImages->ImageFromFunction( "_currentRenderHDR64", R_HDR_RGBA16FImage_Res64 );
 	ldrImage = globalImages->ImageFromFunction( "_currentRenderLDR", R_LdrNativeImage );
 
 	taaMotionVectorsImage = ImageFromFunction( "_taaMotionVectors", R_HDR_RG16FImage_ResNative ); // RB: could be shared with _currentNormals.zw
@@ -1116,8 +1120,9 @@ void idImageManager::CreateIntrinsicImages()
 	// scratchImage is used for screen wipes/doublevision etc..
 	scratchImage = ImageFromFunction( "_scratch", R_RGBA8Image );
 	scratchImage2 = ImageFromFunction( "_scratch2", R_RGBA8Image );
-	accumImage = ImageFromFunction( "_accum", R_RGBA8Image );
-	currentRenderImage = ImageFromFunction( "_currentRender", R_HDR_RGBA16FImage_ResNative );
+	accumImage = ImageFromFunction( "_accum", R_RGBA8Image_RT );
+	currentRenderImage = globalImages->ImageFromFunction( "_currentRender", R_HDR_RGBA16FImage_ResNative );
+	//currentRenderImage = globalImages->ImageFromFunction( "_currentRender", R_LdrNativeImage );
 	currentDepthImage = ImageFromFunction( "_currentDepth", R_DepthImage );
 
 	// save a copy of this for material comparison, because currentRenderImage may get
@@ -1142,4 +1147,210 @@ void idImageManager::CreateIntrinsicImages()
 
 	release_assert( loadingIconImage->referencedOutsideLevelLoad );
 	release_assert( hellLoadingIconImage->referencedOutsideLevelLoad );
+}
+
+
+CONSOLE_COMMAND( makeImageHeader, "load an image and turn it into a .h file", NULL )
+{
+	byte*		buffer;
+	int			width = 0, height = 0;
+
+	if( args.Argc() < 2 )
+	{
+		common->Printf( "USAGE: makeImageHeader filename [exportname]\n" );
+		return;
+	}
+
+	idStr filename = args.Argv( 1 );
+
+	R_LoadImage( filename, &buffer, &width, &height, NULL, true, NULL );
+	if( !buffer )
+	{
+		common->Printf( "loading %s failed.\n", filename.c_str() );
+		return;
+	}
+
+	filename.StripFileExtension();
+
+	idStr exportname;
+
+	if( args.Argc() == 3 )
+	{
+		exportname.Format( "Image_%s.h", args.Argv( 2 ) );
+	}
+	else
+	{
+		exportname.Format( "Image_%s.h", filename.c_str() );
+	}
+
+	for( int i = 0; i < exportname.Length(); i++ )
+	{
+		if( exportname[ i ] == '/' )
+		{
+			exportname[ i ] = '_';
+		}
+	}
+
+	idFileLocal headerFile( fileSystem->OpenFileWrite( exportname, "fs_basepath" ) );
+
+	idStr uppername = exportname;
+	uppername.ToUpper();
+
+	for( int i = 0; i < uppername.Length(); i++ )
+	{
+		if( uppername[ i ] == '.' )
+		{
+			uppername[ i ] = '_';
+		}
+	}
+
+	headerFile->Printf( "#ifndef %s_TEX_H\n", uppername.c_str() );
+	headerFile->Printf( "#define %s_TEX_H\n\n", uppername.c_str() );
+
+	headerFile->Printf( "#define %s_TEX_WIDTH %i\n", uppername.c_str(), width );
+	headerFile->Printf( "#define %s_TEX_HEIGHT %i\n\n", uppername.c_str(), height );
+
+	headerFile->Printf( "static const unsigned char %s_Bytes[] = {\n", uppername.c_str() );
+
+	int bufferSize = width * height * 4;
+
+	for( int i = 0; i < bufferSize; i++ )
+	{
+		byte b = buffer[i];
+
+		if( i < ( bufferSize - 1 ) )
+		{
+			headerFile->Printf( "0x%02hhx, ", b );
+		}
+		else
+		{
+			headerFile->Printf( "0x%02hhx", b );
+		}
+
+		if( i % 12 == 0 )
+		{
+			headerFile->Printf( "\n" );
+		}
+	}
+	headerFile->Printf( "\n};\n#endif\n" );
+
+	Mem_Free( buffer );
+}
+
+CONSOLE_COMMAND( makePaletteHeader, "load a .pal palette, build an image from it and turn it into a .h file", NULL )
+{
+	if( args.Argc() < 2 )
+	{
+		common->Printf( "USAGE: makePaletteHeader filename [exportname]\n" );
+		return;
+	}
+
+	idStr filename = args.Argv( 1 );
+	filename.DefaultFileExtension( ".pal" );
+
+	ID_TIME_T timeStamp;
+	char* palBuffer;
+	int palBufferLen = fileSystem->ReadFile( filename, ( void** )&palBuffer, &timeStamp );
+	if( palBufferLen <= 0 || palBuffer == nullptr )
+	{
+		return;
+	}
+
+	// parse JASC-PAL file
+	idLexer src;
+	idToken	token, token2;
+
+	src.LoadMemory( palBuffer, palBufferLen, filename, 0 );
+
+	src.ExpectTokenString( "JASC" );
+	src.ExpectTokenString( "-" );
+	src.ExpectTokenString( "PAL" );
+	int palVersion = src.ParseInt();
+
+	int numColors = src.ParseInt();
+
+	//idList<id
+	byte rgb[3];
+	for( int i = 0; i < numColors; i++ )
+	{
+		rgb[0] = src.ParseInt();
+		rgb[1] = src.ParseInt();
+		rgb[2] = src.ParseInt();
+
+		idLib::Printf( "RGB( %d, %d, %d ),\n", rgb[0], rgb[1], rgb[2] );
+	}
+
+	fileSystem->FreeFile( palBuffer );
+
+	filename.StripFileExtension();
+
+	// TODO build image and convert to header
+	//byte*		buffer;
+	//int			width = 0, height = 0;
+
+	/*
+	idStr exportname;
+
+	if( args.Argc() == 3 )
+	{
+		exportname.Format( "Image_%s.h", args.Argv( 2 ) );
+	}
+	else
+	{
+		exportname.Format( "Image_%s.h", filename.c_str() );
+	}
+
+	for( int i = 0; i < exportname.Length(); i++ )
+	{
+		if( exportname[ i ] == '/' )
+		{
+			exportname[ i ] = '_';
+		}
+	}
+
+	idFileLocal headerFile( fileSystem->OpenFileWrite( exportname, "fs_basepath" ) );
+
+	idStr uppername = exportname;
+	uppername.ToUpper();
+
+	for( int i = 0; i < uppername.Length(); i++ )
+	{
+		if( uppername[ i ] == '.' )
+		{
+			uppername[ i ] = '_';
+		}
+	}
+
+	headerFile->Printf( "#ifndef %s_TEX_H\n", uppername.c_str() );
+	headerFile->Printf( "#define %s_TEX_H\n\n", uppername.c_str() );
+
+	headerFile->Printf( "#define %s_TEX_WIDTH %i\n", uppername.c_str(), width );
+	headerFile->Printf( "#define %s_TEX_HEIGHT %i\n\n", uppername.c_str(), height );
+
+	headerFile->Printf( "static const unsigned char %s_Bytes[] = {\n", uppername.c_str() );
+
+	int bufferSize = width * height * 4;
+
+	for( int i = 0; i < bufferSize; i++ )
+	{
+		byte b = buffer[i];
+
+		if( i < ( bufferSize - 1 ) )
+		{
+			headerFile->Printf( "0x%02hhx, ", b );
+		}
+		else
+		{
+			headerFile->Printf( "0x%02hhx", b );
+		}
+
+		if( i % 12 == 0 )
+		{
+			headerFile->Printf( "\n" );
+		}
+	}
+	headerFile->Printf( "\n};\n#endif\n" );
+
+	Mem_Free( buffer );
+	*/
 }

@@ -650,11 +650,6 @@ void idRenderSystemLocal::SwapCommandBuffers_FinishRendering(
 	// and only update the screen when we update the progress bar in the console
 	if( !omitSwapBuffers )
 	{
-
-#if !IMGUI_BFGUI
-		ImGuiHook::Render();
-#endif
-
 		// wait for our fence to hit, which means the swap has actually happened
 		// We must do this before clearing any resources the GPU may be using
 		backend.GL_BlockingSwapBuffers();
@@ -717,12 +712,6 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 	{
 		return NULL;
 	}
-
-	// RB: general GUI system path to treat ImGui surfaces in the renderer frontend like SWF
-	// this calls io.RenderDrawListsFn
-#if IMGUI_BFGUI
-	ImGuiHook::Render();
-#endif
 
 	// close any gui drawing
 	guiModel->EmitFullScreen();
@@ -793,7 +782,6 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 	// set the time for shader effects in 2D rendering
 	frameShaderTime = Sys_Milliseconds() * 0.001;
 
-	// RB: TODO RC_SET_BUFFER is not handled in OpenGL
 	setBufferCommand_t* cmd2 = ( setBufferCommand_t* )R_GetCommandBuffer( sizeof( *cmd2 ) );
 	cmd2->commandId = RC_SET_BUFFER;
 	cmd2->buffer = 0;
@@ -1049,53 +1037,6 @@ void idRenderSystemLocal::CaptureRenderToImage( const char* imageName, bool clea
 	guiModel->Clear();
 }
 
-/*
-==============
-idRenderSystemLocal::CaptureRenderToFile
-==============
-*/
-void idRenderSystemLocal::CaptureRenderToFile( const char* fileName, bool fixAlpha )
-{
-	if( !IsInitialized() )
-	{
-		return;
-	}
-
-	idScreenRect& rc = renderCrops[currentRenderCrop];
-
-	guiModel->EmitFullScreen();
-	guiModel->Clear();
-
-	RenderCommandBuffers( frameData->cmdHead );
-
-	// TODO implement for NVRHI
-
-#if !defined( USE_VULKAN ) && !defined( USE_NVRHI )
-	glReadBuffer( GL_BACK );
-
-	// include extra space for OpenGL padding to word boundaries
-	int	c = ( rc.GetWidth() + 3 ) * rc.GetHeight();
-	byte* data = ( byte* )R_StaticAlloc( c * 3 );
-
-	glReadPixels( rc.x1, rc.y1, rc.GetWidth(), rc.GetHeight(), GL_RGB, GL_UNSIGNED_BYTE, data );
-
-	byte* data2 = ( byte* )R_StaticAlloc( c * 4 );
-
-	for( int i = 0 ; i < c ; i++ )
-	{
-		data2[ i * 4 ] = data[ i * 3 ];
-		data2[ i * 4 + 1 ] = data[ i * 3 + 1 ];
-		data2[ i * 4 + 2 ] = data[ i * 3 + 2 ];
-		data2[ i * 4 + 3 ] = 0xff;
-	}
-
-	R_WriteTGA( fileName, data2, rc.GetWidth(), rc.GetHeight(), true );
-
-	R_StaticFree( data );
-	R_StaticFree( data2 );
-#endif
-}
-
 
 /*
 ==============
@@ -1163,4 +1104,20 @@ bool idRenderSystemLocal::UploadImage( const char* imageName, const byte* data, 
 	deviceManager->GetDevice()->executeCommandList( commandList );
 
 	return true;
+}
+
+
+// RB
+void idRenderSystemLocal::DrawCRTPostFX()
+{
+	if( !IsInitialized() )
+	{
+		return;
+	}
+
+	guiModel->EmitFullScreen();
+	guiModel->Clear();
+
+	crtPostProcessCommand_t* cmd = ( crtPostProcessCommand_t* )R_GetCommandBuffer( sizeof( *cmd ) );
+	cmd->commandId = RC_CRT_POST_PROCESS;
 }

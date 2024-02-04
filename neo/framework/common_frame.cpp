@@ -90,8 +90,6 @@ be called directly in the foreground thread for comparison.
 */
 int idGameThread::Run()
 {
-	OPTICK_THREAD( "idGameThread" );
-
 	commonLocal.frameTiming.startGameTime = Sys_Microseconds();
 
 	// debugging tool to test frame dropping behavior
@@ -390,6 +388,9 @@ void idCommonLocal::Draw()
 	{
 		SCOPED_PROFILE_EVENT( "Post-Draw" );
 
+		// draw Imgui before the console
+		ImGuiHook::Render();
+
 		// draw the wipe material on top of this if it hasn't completed yet
 		DrawWipeModel();
 
@@ -397,6 +398,8 @@ void idCommonLocal::Draw()
 
 		// draw the half console / notify console on top of everything
 		console->Draw( false );
+
+		renderSystem->DrawCRTPostFX();
 	}
 }
 
@@ -437,10 +440,10 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 	}
 
 	// this should exit right after vsync, with the GPU idle and ready to draw
+	frameTiming.startRenderTime = Sys_Microseconds();   // SRS - Added frame timing for out-of-sequence updates (e.g. used in timedemo "twice" mode)
 	const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu, &stats_backend, &stats_frontend );
 
 	// get the GPU busy with new commands
-	frameTiming.startRenderTime = Sys_Microseconds();   // SRS - Added frame timing for out-of-sequence updates (e.g. used in timedemo "twice" mode)
 	renderSystem->RenderCommandBuffers( cmd );
 	frameTiming.finishRenderTime = Sys_Microseconds();  // SRS - Added frame timing for out-of-sequence updates (e.g. used in timedemo "twice" mode)
 
@@ -879,12 +882,12 @@ void idCommonLocal::Frame()
 		}
 		frameTiming.finishRenderTime = Sys_Microseconds();
 
-		// SRS - Use finishSyncTime_EndFrame to record timing just before gameThread.WaitForThread() for com_smp = 1
-		frameTiming.finishSyncTime_EndFrame = Sys_Microseconds();
-
 		// make sure the game / draw thread has completed
 		// This may block if the game is taking longer than the render back end
 		gameThread.WaitForThread();
+
+		// SRS - Use finishSyncTime_EndFrame to record timing just after gameThread.WaitForThread()
+		frameTiming.finishSyncTime_EndFrame = Sys_Microseconds();
 
 		// Send local usermds to the server.
 		// This happens after the game frame has run so that prediction data is up to date.

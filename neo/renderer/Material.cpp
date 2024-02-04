@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2014-2016 Robert Beckebans
+Copyright (C) 2014-2023 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 Copyright (C) 2022 Stephen Pridham
 
@@ -72,8 +72,6 @@ typedef struct mtrParsingData_s
 	bool			registersAreConstant;
 	bool			forceOverlays;
 } mtrParsingData_t;
-
-extern idCVar r_useHighQualitySky;
 
 idCVar r_forceSoundOpAmplitude( "r_forceSoundOpAmplitude", "0", CVAR_FLOAT, "Don't call into the sound system for amplitudes" );
 
@@ -260,7 +258,7 @@ idImage* idMaterial::GetEditorImage() const
 
 		// look for the diffusemap alternative like TrenchBroom does
 		// this is required to have the texture dimensions for the convertMapToValve220 cmd
-		if( editorImage && editorImage->IsLoaded() && editorImage->IsDefaulted() )
+		if( editorImage && /*editorImage->IsLoaded() &&*/ editorImage->IsDefaulted() )
 		{
 			// _D3XP :: First check for a diffuse image, then use the first
 			if( numStages && stages )
@@ -1870,14 +1868,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		}
 		if( !token.Icmp( "uncompressedCubeMap" ) )
 		{
-			if( r_useHighQualitySky.GetBool() )
-			{
-				td = TD_HIGHQUALITY_CUBE;	// motorsep 05-17-2015; token to mark cubemap/skybox to be uncompressed texture
-			}
-			else
-			{
-				td = TD_LOWQUALITY_CUBE;
-			}
+			td = TD_HIGHQUALITY_CUBE;	// motorsep 05-17-2015; token to mark cubemap/skybox to be uncompressed texture
 			continue;
 		}
 		if( !token.Icmp( "nopicmip" ) )
@@ -3849,3 +3840,27 @@ fail:
 	fastPathDiffuseImage = NULL;
 	fastPathSpecularImage = NULL;
 }
+
+// RB begin
+void idMaterial::ExportJSON( idFile* file, bool lastEntry ) const
+{
+	idImage* image = GetEditorImage();
+
+	file->Printf( "\n\t\t\"%s\": {\n", GetName() );
+	//dict.WriteJSON( file, "\t\t" );
+
+	const char* imageName = image->GetName();
+	file->Printf( "\t\t\t\"editorImage\": \"%s\"\n", imageName );
+
+	//file->Printf( "\t\t\t\"editorImage\": \"%s\"%s\n", args[i].GetValue().c_str(), ( i == ( args.Num() - 1 ) ) ? "" : "," );
+
+	if( lastEntry )
+	{
+		file->Printf( "\t\t}\n" );
+	}
+	else
+	{
+		file->Printf( "\t\t},\n" );
+	}
+}
+// RB end

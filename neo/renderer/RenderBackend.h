@@ -36,19 +36,11 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Passes/CommonPasses.h"
 #include "Passes/MipMapGenPass.h"
-#include "Passes/FowardShadingPass.h"
 #include "Passes/SsaoPass.h"
 #include "Passes/TonemapPass.h"
 #include "Passes/TemporalAntiAliasingPass.h"
 
 #include "PipelineCache.h"
-
-
-#if USE_OPTICK
-	#define USE_OPTICK_GPU 0
-#else
-	#define USE_OPTICK_GPU 0
-#endif
 
 struct tmu_t
 {
@@ -216,7 +208,9 @@ private:
 
 	// Experimental feature
 	void				MotionBlur();
+
 	void				PostProcess( const void* data );
+	void				CRTPostProcess();
 
 private:
 	void				GL_StartFrame();

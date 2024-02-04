@@ -840,7 +840,8 @@ void Core::DumpProgressFormatted(const char* format, ...)
 #ifdef OPTICK_MSVC
 	vsprintf_s(buffer, format, arglist);
 #else
-	vsprintf(buffer, format, arglist);
+	// SRS - use vsnprintf() for buffer security and to eliminate warning
+	vsnprintf(buffer, sizeof(buffer), format, arglist);
 #endif
 	va_end(arglist);
 	DumpProgress(buffer);
@@ -1801,10 +1802,10 @@ OPTICK_API EventStorage* RegisterStorage(const char* name, uint64_t threadID, Th
 	return entry ? &entry->storage : nullptr;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-OPTICK_API void GpuFlip(void* swapChain)
+OPTICK_API void GpuFlip(void* swapChain, uint32_t frameID)
 {
 	if (GPUProfiler* gpuProfiler = Core::Get().gpuProfiler)
-		gpuProfiler->Flip(swapChain);
+		gpuProfiler->Flip(swapChain, frameID);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 OPTICK_API GPUContext SetGpuContext(GPUContext context)

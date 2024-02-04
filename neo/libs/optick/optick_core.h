@@ -337,10 +337,14 @@ struct ThreadEntry
 	// https://github.com/ulricheck/optick/pull/1/commits/1e5e1919816a64f235caa0f4b0bf20495225b1fa
 	~ThreadEntry()
 	{
-		if((*threadTLS)!=nullptr)
+		// SRS - check threadTLS for null before dereferencing, not *threadTLS
+		if (threadTLS != nullptr)
 		{
 			*threadTLS = nullptr;
         }
+
+		// SRS - make sure thread storage is empty before thread entry terminates
+		storage.Clear(false);
     }
 	void Activate(Mode::Type mode);
 	void Sort();

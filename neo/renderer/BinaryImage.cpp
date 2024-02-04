@@ -46,7 +46,6 @@ If you have questions concerning this license or the applicable additional terms
 #include "../libs/mesa/format_r11g11b10f.h"
 
 idCVar image_highQualityCompression( "image_highQualityCompression", "0", CVAR_BOOL, "Use high quality (slow) compression" );
-idCVar r_useHighQualitySky( "r_useHighQualitySky", "1", CVAR_BOOL | CVAR_ARCHIVE, "Use high quality skyboxes" );
 
 /*
 ========================
@@ -902,6 +901,13 @@ bool idBinaryImage::LoadFromGeneratedFile( idFile* bFile, ID_TIME_T sourceTimeSt
 		if( ( textureFormat_t )fileData.format == FMT_RGB565 )
 		{
 			img.Alloc( img.dataSize * 2 );
+		}
+		// SRS - For compressed formats, match allocation to what nvrhi expects for the texture's mip variants
+		else if( ( textureFormat_t )fileData.format == FMT_DXT1 || ( textureFormat_t )fileData.format == FMT_DXT5 )
+		{
+			int rowPitch = GetRowPitch( ( textureFormat_t )fileData.format, img.width );
+			int mipRows = ( ( ( ( fileData.height + 3 ) & ~3 ) >> img.level ) + 3 ) / 4;
+			img.Alloc( Max( img.dataSize, rowPitch * mipRows ) );
 		}
 		else
 		{
