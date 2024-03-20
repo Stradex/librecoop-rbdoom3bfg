@@ -396,8 +396,9 @@ if(USE_VULKAN)
 	else()
 		include_directories(${Vulkan_INCLUDE_DIRS})
 
-		if(Vulkan_dxc_exe_FOUND AND NOT DEFINED DXC_SPIRV_EXECUTABLE)
-			set(DXC_SPIRV_EXECUTABLE ${Vulkan_dxc_EXECUTABLE})
+		# SRS - ShaderMake uses DXC_CUSTOM_PATH as fallback if dxc for SPIRV not found by other means
+		if(Vulkan_dxc_exe_FOUND AND NOT DEFINED DXC_CUSTOM_PATH)
+			set(DXC_CUSTOM_PATH ${Vulkan_dxc_EXECUTABLE})
 		endif()
 
         if(APPLE)
@@ -446,18 +447,21 @@ add_definitions(-DUSE_NVRHI)
 set(SHADERMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern/ShaderMake)
 add_subdirectory(${SHADERMAKE_DIR})
 
-if(USE_DX11)
-	find_package(FXC REQUIRED)
-endif()
+# SRS - ShaderMake now finds fxc when required
+#if(USE_DX11)
+#	find_package(FXC REQUIRED)
+#endif()
 
 if(USE_DX12)
-	find_package(DXCdxil REQUIRED)
+	# SRS - ShaderMake now finds dxc for DXIL when required
+	# find_package(DXCdxil REQUIRED)
 	set(USE_DXIL_ON_DX12 TRUE CACHE BOOL "Use DXC to compile DXIL shaders on DX12 - otherwise FXC and DXBC")
 endif()
 
-if(USE_VULKAN)
-	find_package(DXCspirv REQUIRED)
-endif()
+# SRS - ShaderMake now finds dxc for SPIRV when required
+#if(USE_VULKAN)
+#	find_package(DXCspirv REQUIRED)
+#endif()
 
 include_directories(${NVRHI_DIR}/include)
 include_directories(${SHADERMAKE_DIR}/include)

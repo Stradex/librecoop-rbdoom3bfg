@@ -57,8 +57,8 @@ function(compile_shaders)
         SOURCES ${params_SOURCES})
 
     if (params_DXIL AND (USE_DX12 AND USE_DXIL_ON_DX12))
-        if (NOT DXC_DXIL_EXECUTABLE)
-            message(FATAL_ERROR "compile_shaders: DXC not found --- please set DXC_DXIL_EXECUTABLE to the full path to the DXC binary")
+        if (NOT DXC_PATH)
+            message(FATAL_ERROR "compile_shaders: DXC not found --- please set DXC_PATH to the full path to the DXC binary")
         endif()
 
         if (NOT params_CFLAGS)
@@ -76,12 +76,12 @@ function(compile_shaders)
                                    --outputExt=.bin
                                    -I ${SHADER_INCLUDE_DIR}
                                    ${CFLAGS}
-                                   --compiler=${DXC_DXIL_EXECUTABLE})
+                                   --compiler=${DXC_PATH})
     endif()
 
     if (params_DXBC AND (USE_DX11 OR (USE_DX12 AND NOT USE_DXIL_ON_DX12)))
-        if (NOT FXC_EXECUTABLE)
-            message(FATAL_ERROR "compile_shaders: FXC not found --- please set FXC_EXECUTABLE to the full path to the FXC binary")
+        if (NOT FXC_PATH)
+            message(FATAL_ERROR "compile_shaders: FXC not found --- please set FXC_PATH to the full path to the FXC binary")
         endif()
 
         if (NOT params_CFLAGS)
@@ -99,12 +99,12 @@ function(compile_shaders)
                                    --outputExt=.bin
                                    -I ${SHADER_INCLUDE_DIR}
                                    ${CFLAGS}
-                                   --compiler=${FXC_EXECUTABLE})
+                                   --compiler=${FXC_PATH})
     endif()
 
     if (params_SPIRV_DXC AND USE_VULKAN)
-        if (NOT DXC_SPIRV_EXECUTABLE)
-            message(FATAL_ERROR "compile_shaders: DXC for SPIR-V not found --- please set DXC_SPIRV_EXECUTABLE to the full path to the DXC binary")
+        if (NOT DXC_SPIRV_PATH)
+            message(FATAL_ERROR "compile_shaders: DXC for SPIR-V not found --- please set DXC_SPIRV_PATH to the full path to the DXC binary")
         endif()
 
         if (NOT params_CFLAGS)
@@ -123,7 +123,7 @@ function(compile_shaders)
                                    -I ${SHADER_INCLUDE_DIR}
                                    -D SPIRV
                                    ${CFLAGS}
-                                   --compiler=${DXC_SPIRV_EXECUTABLE})
+                                   --compiler=${DXC_SPIRV_PATH})
     endif()
 
     if(params_FOLDER)
