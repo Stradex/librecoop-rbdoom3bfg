@@ -314,6 +314,12 @@ if(STANDALONE)
 	set(DOOM_CLASSIC OFF)
 endif()
 
+# SRS - on Apple set find_package() to prefer dylibs over macOS frameworks and xcframeworks
+#     - required for cmake >= 3.29 and MoltenVK, also prefers openal-soft over Apple OpenAL
+if(APPLE)
+	set(CMAKE_FIND_FRAMEWORK LAST)
+endif()
+
 # SRS - set libjpeg as first include path to prioritize bundled format_message() fix
 if (USE_SYSTEM_LIBJPEG)
 	find_package(JPEG)
