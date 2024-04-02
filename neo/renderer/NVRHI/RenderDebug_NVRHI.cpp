@@ -2381,14 +2381,14 @@ void idRenderBackend::DBG_TestImage()
 		GL_SelectTexture( 2 );
 		imageCb->Bind();
 
-		// SRS - When console is active (i.e. 2D) skip sRGB to linear conversion
-		if( console->Active() )
+		// SRS - When rendering in 2D skip sRGB to linear conversion
+		if( viewDef->viewEntitys )
 		{
-			renderProgManager.BindShader_Bink_sRGB();
+			renderProgManager.BindShader_Bink();
 		}
 		else
 		{
-			renderProgManager.BindShader_Bink();
+			renderProgManager.BindShader_Bink_sRGB();
 		}
 	}
 	else
@@ -2396,14 +2396,14 @@ void idRenderBackend::DBG_TestImage()
 		GL_SelectTexture( 0 );
 		image->Bind();
 
-		// SRS - When console is active (i.e. 2D) skip sRGB to linear conversion
-		if( console->Active() )
+		// SRS - When rendering in 2D skip sRGB to linear conversion
+		if( viewDef->viewEntitys )
 		{
-			renderProgManager.BindShader_TextureVertexColor_sRGB();
+			renderProgManager.BindShader_TextureVertexColor();
 		}
 		else
 		{
-			renderProgManager.BindShader_TextureVertexColor();
+			renderProgManager.BindShader_TextureVertexColor_sRGB();
 		}
 	}
 
