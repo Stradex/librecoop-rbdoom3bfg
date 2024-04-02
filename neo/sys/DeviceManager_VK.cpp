@@ -68,7 +68,7 @@
 	idCVar r_vmaDeviceLocalMemoryMB( "r_vmaDeviceLocalMemoryMB", "256", CVAR_INTEGER | CVAR_INIT, "Size of VMA allocation block for gpu memory." );
 #endif
 
-idCVar r_preferFastSync( "r_preferFastSync", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "Prefer Fast Sync/no-tearing in place of VSync off/tearing (Vulkan only)" );
+idCVar r_vkPreferFastSync( "r_vkPreferFastSync", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "Prefer Fast Sync/no-tearing in place of VSync off/tearing" );
 
 // Define the Vulkan dynamic dispatcher - this needs to occur in exactly one cpp file in the program.
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
@@ -1178,7 +1178,7 @@ bool DeviceManager_VK::createSwapChain()
 	switch( m_DeviceParams.vsyncEnabled )
 	{
 		case 0:
-			presentMode = enablePModeMailbox && r_preferFastSync.GetBool() ? vk::PresentModeKHR::eMailbox :
+			presentMode = enablePModeMailbox && r_vkPreferFastSync.GetBool() ? vk::PresentModeKHR::eMailbox :
 						  ( enablePModeImmediate ? vk::PresentModeKHR::eImmediate : vk::PresentModeKHR::eFifo );
 			break;
 		case 1:

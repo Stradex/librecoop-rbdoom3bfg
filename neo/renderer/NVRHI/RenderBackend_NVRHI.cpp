@@ -56,7 +56,7 @@ idCVar stereoRender_warpTargetFraction( "stereoRender_warpTargetFraction", "1.0"
 idCVar r_showSwapBuffers( "r_showSwapBuffers", "0", CVAR_BOOL, "Show timings from GL_BlockingSwapBuffers" );
 idCVar r_syncEveryFrame( "r_syncEveryFrame", "1", CVAR_BOOL, "Don't let the GPU buffer execution past swapbuffers" );
 
-idCVar r_uploadBufferSizeMB( "r_uploadBufferSizeMB", "64", CVAR_INTEGER | CVAR_INIT, "Size of gpu upload buffer (Vulkan only)" );
+idCVar r_vkUploadBufferSizeMB( "r_vkUploadBufferSizeMB", "64", CVAR_INTEGER | CVAR_INIT, "Size of gpu upload buffer (Vulkan only)" );
 
 
 constexpr std::size_t MAX_IMAGE_PARMS = 16;
@@ -222,7 +222,7 @@ void idRenderBackend::Init()
 		if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
 		{
 			// SRS - set upload buffer size to avoid Vulkan staging buffer fragmentation
-			size_t maxBufferSize = ( size_t )( r_uploadBufferSizeMB.GetInteger() * 1024 * 1024 );
+			size_t maxBufferSize = ( size_t )( r_vkUploadBufferSizeMB.GetInteger() * 1024 * 1024 );
 			params.setUploadChunkSize( maxBufferSize );
 		}
 		commandList = deviceManager->GetDevice()->createCommandList( params );

@@ -48,7 +48,7 @@ using nvrhi::RefCountPtr;
 #define HR_RETURN(hr) if(FAILED(hr)) return false
 
 idCVar r_graphicsAdapter( "r_graphicsAdapter", "", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE, "Substring in the name the DXGI graphics adapter to select a certain GPU" );
-idCVar r_maxFrameLatency( "r_maxFrameLatency", "2", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE | CVAR_INTEGER, "Maximum frame latency for DXGI swap chains (DX12 only)", 0, NUM_FRAME_DATA );
+idCVar r_dxMaxFrameLatency( "r_dxMaxFrameLatency", "2", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE | CVAR_INTEGER, "Maximum frame latency for DXGI swap chains (DX12 only)", 0, NUM_FRAME_DATA );
 
 class DeviceManager_DX12 : public DeviceManager
 {
@@ -314,7 +314,7 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 	m_SwapChainDesc.BufferCount = m_DeviceParams.swapChainBufferCount;
 	m_SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	m_SwapChainDesc.Flags = ( m_DeviceParams.allowModeSwitch ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0 ) |
-							( r_maxFrameLatency.GetInteger() > 0 ? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT : 0 );
+							( r_dxMaxFrameLatency.GetInteger() > 0 ? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT : 0 );
 
 	// Special processing for sRGB swap chain formats.
 	// DXGI will not create a swap chain with an sRGB format, but its contents will be interpreted as sRGB.
@@ -433,9 +433,9 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 	hr = pSwapChain1->QueryInterface( IID_PPV_ARGS( &m_SwapChain ) );
 	HR_RETURN( hr );
 
-	if( r_maxFrameLatency.GetInteger() > 0 )
+	if( r_dxMaxFrameLatency.GetInteger() > 0 )
 	{
-		hr = m_SwapChain->SetMaximumFrameLatency( r_maxFrameLatency.GetInteger() );
+		hr = m_SwapChain->SetMaximumFrameLatency( r_dxMaxFrameLatency.GetInteger() );
 		HR_RETURN( hr );
 
 		m_frameLatencyWaitableObject = m_SwapChain->GetFrameLatencyWaitableObject();
