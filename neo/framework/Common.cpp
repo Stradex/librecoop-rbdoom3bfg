@@ -121,7 +121,6 @@ int com_editors = 0;
 idCommonLocal	commonLocal;
 idCommon* 		common = &commonLocal;
 
-// RB: defaulted this to 1 because we don't have a sound for the intro .bik video
 #if defined( ID_RETAIL )
 	idCVar com_skipIntroVideos( "com_skipIntroVideos", "0", CVAR_BOOL , "skips intro videos" );
 #else
