@@ -444,21 +444,10 @@ add_definitions(-DUSE_NVRHI)
 set(SHADERMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern/ShaderMake)
 add_subdirectory(${SHADERMAKE_DIR})
 
-# SRS - ShaderMake now finds fxc when required
-#if(USE_DX11)
-#	find_package(FXC REQUIRED)
-#endif()
-
 if(USE_DX12)
 	# SRS - ShaderMake now finds dxc for DXIL when required
-	# find_package(DXCdxil REQUIRED)
 	set(USE_DXIL_ON_DX12 TRUE CACHE BOOL "Use DXC to compile DXIL shaders on DX12 - otherwise FXC and DXBC")
 endif()
-
-# SRS - ShaderMake now finds dxc for SPIRV when required
-#if(USE_VULKAN)
-#	find_package(DXCspirv REQUIRED)
-#endif()
 
 include_directories(${NVRHI_DIR}/include)
 include_directories(${SHADERMAKE_DIR}/include)
@@ -1509,11 +1498,6 @@ if(MSVC)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder_SSE2.cpp)
-		
-		# SRS - Exclusion no longer needed with updated nvrhi CMakeLists.txt that makes Vulkan-Headers private
-		#if(USE_VULKAN)
-		#	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sys/DeviceManager_VK.cpp)
-		#endif()
 	
 		#foreach( src_file ${RBDOOM3_PRECOMPILED_SOURCES} )
 		#	message(STATUS "-include precompiled.h for ${src_file}")
@@ -1564,7 +1548,6 @@ if(MSVC)
 		winmm
 		wsock32.lib
 		${Vulkan_LIBRARIES}
-		${OpenGL_LIBRARIES}
 		${OpenAL_LIBRARIES}
 		${FFmpeg_LIBRARIES}
         ${ZLIB_LIBRARY}
@@ -1657,11 +1640,6 @@ else()
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder_SSE2.cpp)
-		
-		# SRS - Exclusion no longer needed with updated nvrhi CMakeLists.txt that makes Vulkan-Headers private
-		#if(USE_VULKAN)
-		#	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sys/DeviceManager_VK.cpp)
-		#endif()
 
 		foreach( src_file ${RBDOOM3_PRECOMPILED_SOURCES} )
 			#message(STATUS "-include precompiled.h for ${src_file}")
@@ -1785,7 +1763,6 @@ else()
 		target_link_libraries(RBDoom3BFG
 			idlib
 			${Vulkan_LIBRARY}
-			#${OPENGL_LIBRARIES}
 			pthread
 			${RT_LIBRARY}
 			${SDLx_LIBRARY}
