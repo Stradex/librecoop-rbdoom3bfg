@@ -48,6 +48,7 @@ using nvrhi::RefCountPtr;
 #define HR_RETURN(hr) if(FAILED(hr)) return false
 
 idCVar r_graphicsAdapter( "r_graphicsAdapter", "", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE, "Substring in the name the DXGI graphics adapter to select a certain GPU" );
+idCVar r_maxFrameLatency( "r_maxFrameLatency", "2", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE | CVAR_INTEGER, "Maximum frame latency for DXGI swap chains (DX12 only)", 0, NUM_FRAME_DATA );
 
 class DeviceManager_DX12 : public DeviceManager
 {
@@ -59,6 +60,7 @@ class DeviceManager_DX12 : public DeviceManager
 	DXGI_SWAP_CHAIN_DESC1                       m_SwapChainDesc{};
 	DXGI_SWAP_CHAIN_FULLSCREEN_DESC             m_FullScreenDesc{};
 	RefCountPtr<IDXGIAdapter3>                  m_DxgiAdapter;
+	HANDLE										m_frameLatencyWaitableObject = NULL;
 	bool                                        m_TearingSupported = false;
 
 	std::vector<RefCountPtr<ID3D12Resource>>    m_SwapChainBuffers;
@@ -311,7 +313,8 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 	m_SwapChainDesc.BufferUsage = m_DeviceParams.swapChainUsage;
 	m_SwapChainDesc.BufferCount = m_DeviceParams.swapChainBufferCount;
 	m_SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	m_SwapChainDesc.Flags = m_DeviceParams.allowModeSwitch ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0;
+	m_SwapChainDesc.Flags = ( m_DeviceParams.allowModeSwitch ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0 ) |
+							( r_maxFrameLatency.GetInteger() > 0 ? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT : 0 );
 
 	// Special processing for sRGB swap chain formats.
 	// DXGI will not create a swap chain with an sRGB format, but its contents will be interpreted as sRGB.
@@ -430,6 +433,14 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 	hr = pSwapChain1->QueryInterface( IID_PPV_ARGS( &m_SwapChain ) );
 	HR_RETURN( hr );
 
+	if( r_maxFrameLatency.GetInteger() > 0 )
+	{
+		hr = m_SwapChain->SetMaximumFrameLatency( r_maxFrameLatency.GetInteger() );
+		HR_RETURN( hr );
+
+		m_frameLatencyWaitableObject = m_SwapChain->GetFrameLatencyWaitableObject();
+	}
+
 	nvrhi::d3d12::DeviceDesc deviceDesc;
 	deviceDesc.errorCB = &DefaultMessageCallback::GetInstance();
 	deviceDesc.pDevice = m_Device12;
@@ -470,6 +481,12 @@ void DeviceManager_DX12::DestroyDeviceAndSwapChain()
 	m_NvrhiDevice = nullptr;
 
 	m_FrameWaitQuery = nullptr;
+
+	if( m_frameLatencyWaitableObject )
+	{
+		CloseHandle( m_frameLatencyWaitableObject );
+		m_frameLatencyWaitableObject = NULL;
+	}
 
 	if( m_SwapChain )
 	{
@@ -625,6 +642,15 @@ void DeviceManager_DX12::Present()
 
 	// SRS - Don't change m_DeviceParams.vsyncEnabled here, simply test for vsync mode 2 to set DXGI SyncInterval
 	m_SwapChain->Present( m_DeviceParams.vsyncEnabled == 2 ? 1 : 0, presentFlags );
+
+	if( m_frameLatencyWaitableObject )
+	{
+		OPTICK_CATEGORY( "DX12_Sync1", Optick::Category::Wait );
+
+		// SRS - When m_frameLatencyWaitableObject active, sync first on earlier present
+		DWORD result = WaitForSingleObjectEx( m_frameLatencyWaitableObject, INFINITE, true );
+		assert( result == WAIT_OBJECT_0 );
+	}
 
 	if constexpr( NUM_FRAME_DATA > 2 )
 	{
