@@ -2318,6 +2318,7 @@ void idRenderBackend::DBG_TestImage()
 
 	// Set State
 	GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS | GLS_CULL_TWOSIDED );
+	renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
 
 	// Set Parms
 	float texS[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
@@ -2327,6 +2328,7 @@ void idRenderBackend::DBG_TestImage()
 
 	float texGenEnabled[4] = { 0, 0, 0, 0 };
 	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
+	RB_SetVertexColorParms( SVC_IGNORE );
 
 #if 1
 	// not really necessary but just for clarity
@@ -2378,16 +2380,31 @@ void idRenderBackend::DBG_TestImage()
 
 		GL_SelectTexture( 2 );
 		imageCb->Bind();
-		// SRS - Use Bink shader without sRGB to linear conversion, otherwise cinematic colours may be wrong
-		// BindShader_BinkGUI() does not seem to work here - perhaps due to vertex shader input dependencies?
-		renderProgManager.BindShader_Bink_sRGB();
+
+		// SRS - When console is active (i.e. 2D) skip sRGB to linear conversion
+		if( console->Active() )
+		{
+			renderProgManager.BindShader_Bink_sRGB();
+		}
+		else
+		{
+			renderProgManager.BindShader_Bink();
+		}
 	}
 	else
 	{
 		GL_SelectTexture( 0 );
 		image->Bind();
 
-		renderProgManager.BindShader_Texture();
+		// SRS - When console is active (i.e. 2D) skip sRGB to linear conversion
+		if( console->Active() )
+		{
+			renderProgManager.BindShader_TextureVertexColor_sRGB();
+		}
+		else
+		{
+			renderProgManager.BindShader_TextureVertexColor();
+		}
 	}
 
 	// Draw!
