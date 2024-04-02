@@ -68,6 +68,9 @@ option(USE_VMA
 option(OPTICK
 		"Enable profiling with Optick" OFF)
 
+option(RETAIL
+		"Strip certain developer features and cheats from shipping builds" OFF)
+
 set(NVRHI_INSTALL OFF)
 
 set(CPU_TYPE "" CACHE STRING "When set, passes this string as CPU-ID which will be embedded into the binary.")
@@ -112,27 +115,14 @@ if(COMPILE_COMMANDS)
 	set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 endif()
 
-if (FORCE_COLOR_OUTPUT)
-	if (CMAKE_COMPILER_IS_GNUCC)
-		add_compile_options(-fdiagnostics-color=always)
-	elseif(CMAKE_C_COMPILER_ID MATCHES "Clang")
-		add_compile_options(-fcolor-diagnostics)
-	endif ()
+# Enforced colored output
+if (CMAKE_COMPILER_IS_GNUCC)
+	add_compile_options(-fdiagnostics-color=always)
+elseif(CMAKE_C_COMPILER_ID MATCHES "Clang")
+	add_compile_options(-fcolor-diagnostics)
 endif ()
 
-if(MSVC)
-	#message(STATUS CMAKE_ROOT: ${CMAKE_ROOT})
-	
-	#if(CMAKE_CL_64)
-	#	SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/../bin/win64)
-	#else()
-	#	SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/../bin/win32)
-	#endif()
-	
-	#message(STATUS EXECUTABLE_OUTPUT_PATH: ${EXECUTABLE_OUTPUT_PATH})
-	#message(STATUS PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR})
-	#message(STATUS CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR})
-else()
+if(NOT MSVC)
 	message(STATUS CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE})
 endif()
 
@@ -176,7 +166,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 	#endif()
 	
 	add_compile_options(-Wno-pragmas -Wno-unused-variable -Wno-switch -Wno-unused-value -Winvalid-pch -Wno-multichar)
-    if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+	if(CMAKE_C_COMPILER_ID MATCHES "Clang")
 		# add clang-specific settings for warnings (the second one make sure clang doesn't complain
 		# about unknown -W flags, like -Wno-unused-but-set-variable)
 		# SRS - Add -Wno-expansion-to-defined, Wno-nullability-completeness and -Wno-shorten-64-to-32 to list of warning settings
@@ -240,47 +230,23 @@ elseif(MSVC)
 	# Omit Frame Pointers
 	# "/Oy",
 	
-	# if(MSVC_VERSION EQUAL 1700)
-		# #message(STATUS "$ENV{LIBPATH}")
-		
-		# find_path(Windows_winmd_DIR NAMES Windows.winmd
-			# HINTS
-			# C:/Program Files (x86)/Windows Kits/8.0/References/CommonConfiguration/Neutral
-			# PATH_SUFFIXES "Neutral")
-			
-		# message(STATUS "${Windows_winmd_DIR}")
-		
-		# #set(WINRT_OPTIONS "/ZW /D USE_WINRT /AI \"C:\Program Files (x86)\Windows Kits\8.0\References\CommonConfiguration\Neutral\"")
-		# #set(WINRT_OPTIONS "/ZW /D USE_WINRT /AI \"$ENV{LIBPATH}\" ")
-		# set(WINRT_OPTIONS "/ZW /D USE_WINRT")
 	
-		# set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /D _DEBUG /MP ${WINRT_OPTIONS}")
-		# set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MP /Oi /Oy ${WINRT_OPTIONS}")
-		# set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /MP /Oi ${WINRT_OPTIONS}")
-		# set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} /MP /Oi /Oy ${WINRT_OPTIONS}")
+	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /D _DEBUG /MP /MDd")
+	set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MP /Oi /Oy /MD")
+	set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /MP /Oi /MDd")
+	set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
 		
-		# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP ${WINRT_OPTIONS}")
-		# set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MP /Oi /Oy ${WINRT_OPTIONS}")
-		# set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP ${WINRT_OPTIONS}")
-		# set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy ${WINRT_OPTIONS}")
-	# else()
-		set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /D _DEBUG /MP /MDd")
-		set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MP /Oi /Oy /MD")
-		set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /MP /Oi /MDd")
-		set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP /MDd")
+	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MP /Oi /Oy /MD")
+	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP /MDd")
+	set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
 		
-		set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP /MDd")
-		set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MP /Oi /Oy /MD")
-		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP /MDd")
-		set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
-		
-		# RB: without /SAFESEH:NO we can't link against ffmpeg libs and VS2013 or we have to build our own
-		# libs for newer compilers
-		set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SAFESEH:NO")
-		set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /SAFESEH:NO")
-		set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /SAFESEH:NO")
-		set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /SAFESEH:NO")
-	# endif()
+	# RB: without /SAFESEH:NO we can't link against ffmpeg libs and VS2013 or we have to build our own
+	# libs for newer compilers
+	set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SAFESEH:NO")
+	set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /SAFESEH:NO")
+	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /SAFESEH:NO")
+	set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /SAFESEH:NO")
 
 	add_definitions(-DWIN32 
 					-DNOMINMAX
@@ -294,7 +260,7 @@ elseif(MSVC)
 	if( WINDOWS10 ) # Windows RT
 		add_definitions(-DUSE_WINRT)
 	endif()
-					
+
 	if(NOT CMAKE_CL_64)
 		add_definitions(-D_USE_32BIT_TIME_T)
 	endif()
@@ -309,6 +275,10 @@ if(STANDALONE)
 	add_definitions(-DSTANDALONE)
 
 	set(DOOM_CLASSIC OFF)
+endif()
+
+if(RETAIL)
+	add_definitions(-DID_RETAIL)
 endif()
 
 # SRS - set libjpeg as first include path to prioritize bundled format_message() fix

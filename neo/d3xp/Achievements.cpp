@@ -254,7 +254,7 @@ void idAchievementManager::EventCompletesAchievement( const achievement_t eventI
 		return;
 	}
 
-#ifdef ID_RETAIL
+#if 0 //def ID_RETAIL
 	if( common->GetConsoleUsed() )
 	{
 		if( !cheatingDialogShown )
@@ -338,7 +338,7 @@ void idAchievementManager::LocalUser_CompleteAchievement( achievement_t id )
 		return;
 	}
 
-#ifdef ID_RETAIL
+#if 0 //def ID_RETAIL
 	if( common->GetConsoleUsed() )
 	{
 		if( !cheatingDialogShown )

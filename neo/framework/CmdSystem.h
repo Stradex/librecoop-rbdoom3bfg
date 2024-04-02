@@ -112,7 +112,7 @@ created using the CONSOLE_COMMAND_SHIP macro.
 ================================================
 */
 
-#if defined ( ID_RETAIL ) && !defined( ID_RETAIL_INTERNAL )
+#if defined( ID_RETAIL ) && !defined( ID_RETAIL_INTERNAL )
 	#define CONSOLE_COMMAND_SHIP			CONSOLE_COMMAND_COMPILE
 	#define CONSOLE_COMMAND					CONSOLE_COMMAND_NO_COMPILE
 	// We need to disable this warning to get commands that were made friends

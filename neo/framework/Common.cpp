@@ -71,7 +71,8 @@ struct version_s
 idCVar com_version( "si_version", version.string, CVAR_SYSTEM | CVAR_ROM | CVAR_SERVERINFO, "engine version" );
 idCVar com_forceGenericSIMD( "com_forceGenericSIMD", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "force generic platform independent SIMD" );
 
-#ifdef ID_RETAIL
+// RB: not allowing the console is a bit harsh for shipping builds
+#if 0 //def ID_RETAIL
 	idCVar com_allowConsole( "com_allowConsole", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_INIT, "allow toggling console with the tilde key" );
 #else
 	idCVar com_allowConsole( "com_allowConsole", "1", CVAR_BOOL | CVAR_SYSTEM | CVAR_INIT, "allow toggling console with the tilde key" );
@@ -121,7 +122,11 @@ idCommonLocal	commonLocal;
 idCommon* 		common = &commonLocal;
 
 // RB: defaulted this to 1 because we don't have a sound for the intro .bik video
-idCVar com_skipIntroVideos( "com_skipIntroVideos", "1", CVAR_BOOL , "skips intro videos" );
+#if defined( ID_RETAIL )
+	idCVar com_skipIntroVideos( "com_skipIntroVideos", "0", CVAR_BOOL , "skips intro videos" );
+#else
+	idCVar com_skipIntroVideos( "com_skipIntroVideos", "1", CVAR_BOOL , "skips intro videos" );
+#endif
 
 // For doom classic
 struct Globals;

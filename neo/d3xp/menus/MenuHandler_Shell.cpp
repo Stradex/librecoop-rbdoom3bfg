@@ -842,7 +842,7 @@ void idMenuHandler_Shell::SetupPCOptions()
 		}
 		else
 		{
-#if !defined ( ID_RETAIL )
+#if !defined( ID_RETAIL )
 			navOptions.Append( "DEV" );	// DEV
 #endif
 			navOptions.Append( "#str_swf_campaign" );	// singleplayer
@@ -854,7 +854,7 @@ void idMenuHandler_Shell::SetupPCOptions()
 
 			idMenuWidget_MenuButton* buttonWidget = NULL;
 			int index = 0;
-#if !defined ( ID_RETAIL )
+#if !defined( ID_RETAIL )
 			buttonWidget = dynamic_cast< idMenuWidget_MenuButton* >( &menuBar->GetChildByIndex( index ) );
 			if( buttonWidget != NULL )
 			{

@@ -211,7 +211,7 @@ void idMenuScreen_Shell_Root::ShowScreen( const mainMenuTransition_t transitionT
 
 			idMenuWidget_Button* buttonWidget = NULL;
 
-#if !defined ( ID_RETAIL )
+#if !defined( ID_RETAIL )
 			option.Append( "DEV" );	// DEV
 			menuOptions.Append( option );
 			options->GetChildByIndex( index ).ClearEventActions();
