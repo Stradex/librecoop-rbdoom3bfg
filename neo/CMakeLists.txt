@@ -35,9 +35,6 @@ option(FFMPEG
 option(BINKDEC
 		"Use included libbinkdec to render Bink videos" OFF)
 
-option(SPIRV_SHADERC
-		"Compile SPIR-V shader byte code using shaderc instead of using Glslang directly" OFF)
-
 option(USE_MoltenVK
 		"Link directly to MoltenVK library instead of Vulkan loader on macOS" OFF)
 
@@ -66,7 +63,7 @@ option(USE_VULKAN
 		"Use Vulkan" ON)
 
 option(USE_VMA
-		"Use VMA allocator instead of the NVRHI builtin one" ON)
+		"Use AMD's Vulkan Memory Allocator instead of the NVRHI builtin one" ON)
 
 option(OPTICK
 		"Enable profiling with Optick" OFF)

@@ -65,6 +65,7 @@ idCVar net_headlessServer( "net_headlessServer", "0", CVAR_BOOL, "toggle to auto
 
 const char* idSessionLocal::stateToString[ NUM_STATES ] =
 {
+#if defined( USE_DOOMCLASSIC )
 	ASSERT_ENUM_STRING( STATE_PRESS_START, 0 ),
 	ASSERT_ENUM_STRING( STATE_IDLE, 1 ),
 	ASSERT_ENUM_STRING( STATE_PARTY_LOBBY_HOST, 2 ),
@@ -83,6 +84,25 @@ const char* idSessionLocal::stateToString[ NUM_STATES ] =
 	ASSERT_ENUM_STRING( STATE_BUSY, 15 ),
 	ASSERT_ENUM_STRING( STATE_LOADING, 16 ),
 	ASSERT_ENUM_STRING( STATE_INGAME, 17 ),
+#else
+	ASSERT_ENUM_STRING( STATE_IDLE, 0 ),
+	ASSERT_ENUM_STRING( STATE_PARTY_LOBBY_HOST, 1 ),
+	ASSERT_ENUM_STRING( STATE_PARTY_LOBBY_PEER, 2 ),
+	ASSERT_ENUM_STRING( STATE_GAME_LOBBY_HOST, 3 ),
+	ASSERT_ENUM_STRING( STATE_GAME_LOBBY_PEER, 4 ),
+	ASSERT_ENUM_STRING( STATE_GAME_STATE_LOBBY_HOST, 5 ),
+	ASSERT_ENUM_STRING( STATE_GAME_STATE_LOBBY_PEER, 6 ),
+	ASSERT_ENUM_STRING( STATE_CREATE_AND_MOVE_TO_PARTY_LOBBY, 7 ),
+	ASSERT_ENUM_STRING( STATE_CREATE_AND_MOVE_TO_GAME_LOBBY, 8 ),
+	ASSERT_ENUM_STRING( STATE_CREATE_AND_MOVE_TO_GAME_STATE_LOBBY, 9 ),
+	ASSERT_ENUM_STRING( STATE_FIND_OR_CREATE_MATCH, 10 ),
+	ASSERT_ENUM_STRING( STATE_CONNECT_AND_MOVE_TO_PARTY, 11 ),
+	ASSERT_ENUM_STRING( STATE_CONNECT_AND_MOVE_TO_GAME, 12 ),
+	ASSERT_ENUM_STRING( STATE_CONNECT_AND_MOVE_TO_GAME_STATE, 13 ),
+	ASSERT_ENUM_STRING( STATE_BUSY, 14 ),
+	ASSERT_ENUM_STRING( STATE_LOADING, 15 ),
+	ASSERT_ENUM_STRING( STATE_INGAME, 16 ),
+#endif
 };
 
 struct netVersion_s
@@ -178,7 +198,11 @@ void idSessionLocal::InitBaseState()
 
 	//assert( mem.IsGlobalHeap() );
 
+#if defined( USE_DOOMCLASSIC )
 	localState						= STATE_PRESS_START;
+#else
+	localState						= STATE_IDLE;
+#endif
 	sessionOptions					= 0;
 	currentID						= 0;
 
@@ -478,7 +502,11 @@ idSessionLocal::sessionState_t idSessionLocal::GetBackState()
 		return IDLE;			// From here, go to idle if we aren't there yet
 	}
 
+#if defined( USE_DOOMCLASSIC )
 	return PRESS_START;			// Otherwise, go back to press start
+#else
+	return IDLE;			// Otherwise, go to idle
+#endif
 }
 
 /*
@@ -490,7 +518,11 @@ void idSessionLocal::Cancel()
 {
 	NET_VERBOSE_PRINT( "NET: Cancel\n" );
 
+#if defined( USE_DOOMCLASSIC )
 	if( localState == STATE_PRESS_START )
+#else
+	if( localState == STATE_IDLE )
+#endif
 	{
 		return;		// We're as far back as we can go
 	}
@@ -544,6 +576,7 @@ void idSessionLocal::Cancel()
 			SetState( STATE_IDLE );
 			break;
 
+#if defined( USE_DOOMCLASSIC )
 		case PRESS_START:
 			// Go back to press start/main
 			GetGameLobby().Shutdown();
@@ -551,12 +584,14 @@ void idSessionLocal::Cancel()
 			GetPartyLobby().Shutdown();
 			SetState( STATE_PRESS_START );
 			break;
+#endif
 	}
 
 	// Validate the current lobby immediately
 	ValidateLobbies();
 }
 
+#if defined( USE_DOOMCLASSIC )
 /*
 ========================
 idSessionLocal::MoveToPressStart
@@ -574,6 +609,7 @@ void idSessionLocal::MoveToPressStart()
 		SetState( STATE_PRESS_START );
 	}
 }
+#endif
 
 /*
 ========================
@@ -1974,7 +2010,11 @@ Determines if any of the session instances need to become the host
 */
 void idSessionLocal::ValidateLobbies()
 {
+#if defined( USE_DOOMCLASSIC )
 	if( localState == STATE_PRESS_START || localState == STATE_IDLE )
+#else
+	if( localState == STATE_IDLE )
+#endif
 	{
 		// At press start or main menu, don't do anything
 		return;
@@ -2267,8 +2307,10 @@ bool idSessionLocal::HandleState()
 
 	switch( localState )
 	{
+#if defined( USE_DOOMCLASSIC )
 		case STATE_PRESS_START:
 			return false;
+#endif
 		case STATE_IDLE:
 			HandlePackets();
 			return false;		// Call handle packets, since packets from old sessions could still be in flight, which need to be emptied
@@ -2319,8 +2361,10 @@ idSessionLocal::sessionState_t idSessionLocal::GetState() const
 	// Convert our internal state to one of the external states
 	switch( localState )
 	{
+#if defined( USE_DOOMCLASSIC )
 		case STATE_PRESS_START:
 			return PRESS_START;
+#endif
 		case STATE_IDLE:
 			return IDLE;
 		case STATE_PARTY_LOBBY_HOST:
@@ -2366,6 +2410,7 @@ const char* idSessionLocal::GetStateString() const
 {
 	static const char* stateToString[] =
 	{
+#if defined( USE_DOOMCLASSIC )
 		ASSERT_ENUM_STRING( STATE_PRESS_START, 0 ),
 		ASSERT_ENUM_STRING( STATE_IDLE, 1 ),
 		ASSERT_ENUM_STRING( STATE_PARTY_LOBBY_HOST, 2 ),
@@ -2384,6 +2429,25 @@ const char* idSessionLocal::GetStateString() const
 		ASSERT_ENUM_STRING( STATE_BUSY, 15 ),
 		ASSERT_ENUM_STRING( STATE_LOADING, 16 ),
 		ASSERT_ENUM_STRING( STATE_INGAME, 17 )
+#else
+		ASSERT_ENUM_STRING( STATE_IDLE, 0 ),
+		ASSERT_ENUM_STRING( STATE_PARTY_LOBBY_HOST, 1 ),
+		ASSERT_ENUM_STRING( STATE_PARTY_LOBBY_PEER, 2 ),
+		ASSERT_ENUM_STRING( STATE_GAME_LOBBY_HOST, 3 ),
+		ASSERT_ENUM_STRING( STATE_GAME_LOBBY_PEER, 4 ),
+		ASSERT_ENUM_STRING( STATE_GAME_STATE_LOBBY_HOST, 5 ),
+		ASSERT_ENUM_STRING( STATE_GAME_STATE_LOBBY_PEER, 6 ),
+		ASSERT_ENUM_STRING( STATE_CREATE_AND_MOVE_TO_PARTY_LOBBY, 7 ),
+		ASSERT_ENUM_STRING( STATE_CREATE_AND_MOVE_TO_GAME_LOBBY, 8 ),
+		ASSERT_ENUM_STRING( STATE_CREATE_AND_MOVE_TO_GAME_STATE_LOBBY, 9 ),
+		ASSERT_ENUM_STRING( STATE_FIND_OR_CREATE_MATCH, 10 ),
+		ASSERT_ENUM_STRING( STATE_CONNECT_AND_MOVE_TO_PARTY, 11 ),
+		ASSERT_ENUM_STRING( STATE_CONNECT_AND_MOVE_TO_GAME, 12 ),
+		ASSERT_ENUM_STRING( STATE_CONNECT_AND_MOVE_TO_GAME_STATE, 13 ),
+		ASSERT_ENUM_STRING( STATE_BUSY, 14 ),
+		ASSERT_ENUM_STRING( STATE_LOADING, 15 ),
+		ASSERT_ENUM_STRING( STATE_INGAME, 16 )
+#endif
 	};
 	return stateToString[ localState ];
 }
@@ -2609,24 +2673,27 @@ void idSessionLocal::UpdateSignInManager()
 
 	if( masterUser == NULL )
 	{
+#if defined( USE_DOOMCLASSIC )
 		// If we don't have a master user at all, then we need to be at "Press Start"
 		MoveToPressStart( GDM_SP_SIGNIN_CHANGE_POST );
+#endif
 		return;
 	}
+#if defined( USE_DOOMCLASSIC )
 	else if( localState == STATE_PRESS_START )
 	{
-
-
 		// If we have a master user, and we are at press start, move to the menu area
 		SetState( STATE_IDLE );
-
 	}
+#endif
 
 	// See if the master user either isn't persistent (but needs to be), OR, if the owner changed
 	// RequirePersistentMaster is poorly named, this really means RequireSignedInMaster
 	if( masterUser->HasOwnerChanged() || ( RequirePersistentMaster() && !masterUser->IsProfileReady() ) )
 	{
+#if defined( USE_DOOMCLASSIC )
 		MoveToPressStart( GDM_SP_SIGNIN_CHANGE_POST );
+#endif
 		return;
 	}
 
@@ -2666,6 +2733,7 @@ idPlayerProfile* idSessionLocal::GetProfileFromMasterLocalUser()
 	return profile;
 }
 
+#if defined( USE_DOOMCLASSIC )
 /*
 ========================
 idSessionLocal::MoveToPressStart
@@ -2680,6 +2748,7 @@ void idSessionLocal::MoveToPressStart( gameDialogMessages_t msg )
 		common->Dialog().AddDialog( msg, DIALOG_ACCEPT, NULL, NULL, false, "", 0, true );
 	}
 }
+#endif
 
 /*
 ========================

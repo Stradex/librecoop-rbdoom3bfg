@@ -342,10 +342,12 @@ void idMenuScreen_Shell_Root::HandleExitGameBtn()
 			{
 				common->Quit();
 			}
+#if defined( USE_DOOMCLASSIC )
 			else if( accept == -1 )
 			{
 				session->MoveToPressStart();
 			}
+#endif
 			return idSWFScriptVar();
 		}
 	private:
@@ -357,10 +359,14 @@ void idMenuScreen_Shell_Root::HandleExitGameBtn()
 	idStaticList< idStrId, 4 > optionText;
 	callbacks.Append( new( TAG_SWF ) idSWFScriptFunction_QuitDialog( GDM_QUIT_GAME, 1 ) );
 	callbacks.Append( new( TAG_SWF ) idSWFScriptFunction_QuitDialog( GDM_QUIT_GAME, 0 ) );
+#if defined( USE_DOOMCLASSIC )
 	callbacks.Append( new( TAG_SWF ) idSWFScriptFunction_QuitDialog( GDM_QUIT_GAME, -1 ) );
+#endif
 	optionText.Append( idStrId( "#STR_SWF_ACCEPT" ) );
 	optionText.Append( idStrId( "#STR_SWF_CANCEL" ) );
+#if defined( USE_DOOMCLASSIC )
 	optionText.Append( idStrId( "#str_swf_change_game" ) );
+#endif
 
 	common->Dialog().AddDynamicDialog( GDM_QUIT_GAME, callbacks, optionText, true, "" );
 }
@@ -400,7 +406,6 @@ idMenuScreen_Shell_Root::HandleAction
 */
 bool idMenuScreen_Shell_Root::HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled )
 {
-
 	if( menuData == NULL )
 	{
 		return true;
@@ -416,16 +421,17 @@ bool idMenuScreen_Shell_Root::HandleAction( idWidgetAction& action, const idWidg
 
 	switch( actionType )
 	{
+#if defined( USE_DOOMCLASSIC )
 		case WIDGET_ACTION_GO_BACK:
 		{
 			session->MoveToPressStart();
 			return true;
 		}
+#endif
 		case WIDGET_ACTION_PRESS_FOCUSED:
 		{
 			if( menuData->GetPlatform() == 2 )
 			{
-
 				idMenuHandler_Shell* shell = dynamic_cast< idMenuHandler_Shell* >( menuData );
 				if( !shell )
 				{
@@ -453,7 +459,6 @@ bool idMenuScreen_Shell_Root::HandleAction( idWidgetAction& action, const idWidg
 		}
 		case WIDGET_ACTION_SCROLL_HORIZONTAL:
 		{
-
 			if( menuData->GetPlatform() != 2 )
 			{
 				return true;

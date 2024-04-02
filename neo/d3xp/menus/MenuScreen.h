@@ -418,6 +418,7 @@ private:
 	bool						isMpPause;
 };
 
+#if defined(USE_DOOMCLASSIC)
 //*
 //================================================
 //idMenuScreen_Shell_PressStart
@@ -479,6 +480,7 @@ private:
 	const idMaterial* 			doom2Cover;
 	const idMaterial* 			doom3Cover;
 };
+#endif
 
 //*
 //================================================

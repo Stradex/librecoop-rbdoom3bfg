@@ -28,6 +28,9 @@ If you have questions concerning this license or the applicable additional terms
 */
 #include "precompiled.h"
 #pragma hdrstop
+
+#if defined(USE_DOOMCLASSIC)
+
 #include "../Game_local.h"
 #include "../../framework/Common_local.h"
 
@@ -365,3 +368,5 @@ bool idMenuScreen_Shell_PressStart::HandleAction( idWidgetAction& action, const 
 
 	return idMenuWidget::HandleAction( action, event, widget, forceHandled );
 }
+
+#endif
