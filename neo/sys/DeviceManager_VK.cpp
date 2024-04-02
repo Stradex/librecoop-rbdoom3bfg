@@ -75,28 +75,28 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 #if defined(__APPLE__) && defined( USE_MoltenVK )
 #if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 9 ) && USE_OPTICK
-	static bool optickCapturing = false;
-	
-	// SRS - Optick callback function for notification of state changes
-	static bool optickStateChangedCallback( Optick::State::Type state )
+static bool optickCapturing = false;
+
+// SRS - Optick callback function for notification of state changes
+static bool optickStateChangedCallback( Optick::State::Type state )
+{
+	switch( state )
 	{
-		switch( state )
-		{
-			case Optick::State::START_CAPTURE:
-				optickCapturing = true;
-				break;
+		case Optick::State::START_CAPTURE:
+			optickCapturing = true;
+			break;
 
-			case Optick::State::STOP_CAPTURE:
-			case Optick::State::CANCEL_CAPTURE:
-				optickCapturing = false;
-				break;
+		case Optick::State::STOP_CAPTURE:
+		case Optick::State::CANCEL_CAPTURE:
+			optickCapturing = false;
+			break;
 
-			default:
-				break;
-		}
-
-		return true;
+		default:
+			break;
 	}
+
+	return true;
+}
 #endif
 #endif
 
