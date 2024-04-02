@@ -165,6 +165,10 @@ BinkDecoder::BinkDecoder()
 {
 	nFrames = 0;
 	currentFrame = 0;
+	for (int i = 0; i < BINK_NB_SRC; i++)
+	{
+		bundle[i].data = NULL;
+	}
 }
 
 BinkDecoder::~BinkDecoder()

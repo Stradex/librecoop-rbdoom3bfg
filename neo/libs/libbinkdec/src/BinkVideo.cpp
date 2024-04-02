@@ -105,7 +105,11 @@ void BinkDecoder::InitBundles()
 void BinkDecoder::FreeBundles()
 {
 	for (int i = 0; i < BINK_NB_SRC; i++)
-		delete[] bundle[i].data;
+		if (bundle[i].data)
+		{
+			delete[] bundle[i].data;
+			bundle[i].data = NULL;
+		}
 }
 
 uint8_t BinkDecoder::GetHuffSymbol(BinkCommon::BitReader &bits, Tree &tree)
