@@ -36,7 +36,9 @@ enum settingMenuCmds_t
 	SETTING_CMD_CONTROLS,
 	SETTING_CMD_GAMEPLAY,
 	SETTING_CMD_SYSTEM,
+#if VR_OPTIONS
 	SETTING_CMD_3D,
+#endif
 };
 
 /*
@@ -252,11 +254,13 @@ bool idMenuScreen_Shell_Settings::HandleAction( idWidgetAction& action, const id
 					menuData->SetNextScreen( SHELL_AREA_SYSTEM_OPTIONS, MENU_TRANSITION_SIMPLE );
 					break;
 				}
+#if VR_OPTIONS
 				case SETTING_CMD_3D:
 				{
 					menuData->SetNextScreen( SHELL_AREA_STEREOSCOPICS, MENU_TRANSITION_SIMPLE );
 					break;
 				}
+#endif
 			}
 
 			if( options != NULL )

@@ -1437,6 +1437,8 @@ private:
 
 };
 
+#if VR_OPTIONS
+
 //*
 //================================================
 //idMenuScreen_Shell_Stereoscopics
@@ -1504,6 +1506,8 @@ private:
 	const idMaterial* 			leftEyeMat;
 	const idMaterial* 			rightEyeMat;
 };
+
+#endif
 
 //*
 //================================================

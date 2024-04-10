@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "../Game_local.h"
 
+#if VR_OPTIONS
+
 const static int NUM_SYSTEM_OPTIONS_OPTIONS = 4;
 
 // TRC requires a maximum interoccular distance of 6.5cm even though human adults can easily have an interoccular distance of over 7.5cm
@@ -475,3 +477,5 @@ bool idMenuScreen_Shell_Stereoscopics::idMenuDataSource_StereoSettings::IsRestar
 	}
 	return false;
 }
+
+#endif

@@ -79,3 +79,5 @@ If you have questions concerning this license or the applicable additional terms
 
 // raynorpat: GOG.com Galaxy Launcher Game ID for figuring out Steam base path
 #define GOGPATH_ID						"1733124578"
+
+#define VR_OPTIONS						0
