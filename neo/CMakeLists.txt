@@ -375,7 +375,7 @@ if(USE_VULKAN)
 		endif()
 
         if(APPLE)
-            # SRS - Enable Beta extensions for VULKAN_SDK portability subset features on OSX
+            # SRS - Enable Beta extensions for Vulkan portability subset features on macOS
             add_definitions(-DVK_ENABLE_BETA_EXTENSIONS)
             # SRS - Optionally link directly to MoltenVK headers/library for runtime config functions on OSX
             if(USE_MoltenVK)
@@ -386,6 +386,19 @@ if(USE_VULKAN)
                 else()
 		            message(FATAL_ERROR "Must define VULKAN_SDK location if USE_MoltenVK option enabled!")
                 endif()
+			else()
+				# If using Xcode and the Vulkan loader's environment variables are defined, make them available within Xcode scheme
+				if(CMAKE_GENERATOR MATCHES "Xcode")
+					if(DEFINED ENV{VK_ADD_LAYER_PATH})
+						set(CMAKE_XCODE_SCHEME_ENVIRONMENT "${CMAKE_XCODE_SCHEME_ENVIRONMENT};VK_ADD_LAYER_PATH=$ENV{VK_ADD_LAYER_PATH}")
+					endif()
+					if(DEFINED ENV{VK_ICD_FILENAMES})
+						set(CMAKE_XCODE_SCHEME_ENVIRONMENT "${CMAKE_XCODE_SCHEME_ENVIRONMENT};VK_ICD_FILENAMES=$ENV{VK_ICD_FILENAMES}")
+					endif()
+					if(DEFINED ENV{VK_DRIVER_FILES})
+						set(CMAKE_XCODE_SCHEME_ENVIRONMENT "${CMAKE_XCODE_SCHEME_ENVIRONMENT};VK_DRIVER_FILES=$ENV{VK_DRIVER_FILES}")
+					endif()
+				endif()
             endif()
 		endif()
 		message(STATUS "Using Vulkan: " ${Vulkan_LIBRARY})
