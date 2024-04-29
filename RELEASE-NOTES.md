@@ -19,6 +19,61 @@ TBD - RBDOOM-3-BFG 1.6.0
 _______________________________
 
 
+## .plan - April 24, 2024
+
+Cudos to Stephen Saunders for most changes in this build. NVRHI was updated to the version on 25 February.
+The shader compiling part was also split out of NVRHI into a new ShaderMake tool by Nvidia.
+
+You can get Blender lights to work with the glTF workflow without the need to place fake light entities in Blender.
+VR options are stripped from the settings menu and com_showFPS > 2 show the VRAM memory usage.
+
+Optick has been improved for macOS and Vulkan and otherwise most changes are developer related.
+The renderdemo code has been removed and if you compile the engine without Classic Doom support then you will bypass the startup screen and get into the main menu immediatly.
+
+Changelog:
+
+* Read Blender lights directly through the KHR_lights_punctual glTF extension
+
+* Don't let VR options of other VR builds to break rendering of the non-VR master
+
+* Fix testVideo to check for viewDef->viewEntitys (i.e. 3D/2D) not console state
+
+* When playing testVideos, skip sRGB to linear conversion only when console active (i.e. 2D)
+
+* Check for valid allocations before freeing Bink Decoder bundles
+
+* Renamed DX12/Vulkan specific cvars with a r_vk/r_dx prefix
+
+* Set r_maxFrameLatency max value constraint to NUM_FRAME_DATA
+
+* Change r_maxFrameLatency cvar name and set to default value of 2 frames
+
+* Implement m_frameLatencyWaitableObject sync for reduced DX12 frame latency
+
+* Extend Optick to support data tags on custom storage events
+
+* Added CMake -DRETAIL option for shipping builds on Github/ModDB
+
+* Skip startup if not compiled with Doom Classic support, closes #874
+
+* More renderdemo code removed
+
+* Killed hard to maintain renderdemo code
+
+* Fix for cinematic audio when playing Bink video files with ffmpeg decoder, improve ffmpeg a/v resync
+
+* Show VRAM memory usage with com_showFPS > 2 in separate line
+
+* Correct some uint64 types and add Optick frame tag for DX12 / Vulkan Present()
+
+* Optick: Eliminate need for blocking sleep wait at start of Vulkan clock sync
+
+* Optick: Remove blocking sleep wait at start of Vulkan clock synchronization
+
+* Complete Optick instrumentation and align with HUD GPU timers
+
+
+
 ## .plan - January 20, 2024
 
 Cudos to Stephen Saunders for this build and to reeFridge for finding the issue.
