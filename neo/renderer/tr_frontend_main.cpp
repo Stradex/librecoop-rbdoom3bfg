@@ -532,7 +532,7 @@ static void R_FindClosestEnvironmentProbes()
 	RenderEnvprobeLocal* nearest = viewEnvprobes[0];
 	tr.viewDef->globalProbeBounds = nearest->globalProbeBounds;
 
-	if( !nearest->irradianceImage->IsDefaulted() )
+	if( nearest->irradianceImage->IsLoaded() && !nearest->irradianceImage->IsDefaulted() )
 	{
 		tr.viewDef->irradianceImage = nearest->irradianceImage;
 	}
