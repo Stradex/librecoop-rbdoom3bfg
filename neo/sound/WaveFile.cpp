@@ -417,7 +417,7 @@ idWaveFile::WriteWaveFormatDirect
 Writes a wave format header to a file ptr,
 ========================
 */
-bool idWaveFile::WriteWaveFormatDirect( waveFmt_t& format, idFile* file )
+bool idWaveFile::WriteWaveFormatDirect( waveFmt_t& format, idFile* file, bool wavFile )
 {
 	//idSwapClass<waveFmt_t::basic_t> swap;
 	//swap.Little( format.basic.formatTag );
@@ -426,6 +426,15 @@ bool idWaveFile::WriteWaveFormatDirect( waveFmt_t& format, idFile* file )
 	//swap.Little( format.basic.avgBytesPerSec );
 	//swap.Little( format.basic.blockSize );
 	//swap.Little( format.basic.bitsPerSample );
+
+	// RB begin
+	if( wavFile )
+	{
+		file->WriteBig( format.id );
+		file->WriteUnsignedInt( sizeof( format.basic ) );
+	}
+	// RB end
+
 	file->Write( &format.basic, sizeof( format.basic ) );
 	if( format.basic.formatTag == FORMAT_PCM )
 	{
@@ -526,7 +535,7 @@ bool idWaveFile::WriteHeaderDirect( uint32 fileSize, idFile* file )
 	static const uint32 riff = 'RIFF';
 	static const uint32 wave = 'WAVE';
 	file->WriteBig( riff );
-	file->WriteBig( fileSize );
+	file->WriteUnsignedInt( fileSize );
 	file->WriteBig( wave );
 	return true;
 }

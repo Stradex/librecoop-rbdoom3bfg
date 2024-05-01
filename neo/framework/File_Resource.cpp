@@ -330,6 +330,8 @@ void idResourceContainer::SetContainerIndex( const int& _idx )
 idResourceContainer::ExtractResourceFile
 ========================
 */
+#include "../sound/WaveFile.h"
+
 void idResourceContainer::ExtractResourceFile( const char* _fileName, const char* _outPath, bool _copyWavs, bool _all )
 {
 	idFile* inFile = fileSystem->OpenFileRead( _fileName );
@@ -368,33 +370,113 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 		rt.filename.BackSlashesToSlashes();
 		rt.filename.ToLower();
 		byte* fbuf = NULL;
-		
+
 		if( _copyWavs && ( rt.filename.Find( ".idwav" ) >= 0 ||  rt.filename.Find( ".idxma" ) >= 0 ||  rt.filename.Find( ".idmsf" ) >= 0 ) )
 		{
 			// TODO make this work #166
 
-			rt.filename.SetFileExtension( "wav" );
-			rt.filename.Replace( "generated/", "" );
+			//rt.filename.SetFileExtension( "wav" );
+			//rt.filename.Replace( "generated/", "" );
 			int len = fileSystem->GetFileLength( rt.filename );
-			fbuf = ( byte* )Mem_Alloc( len, TAG_RESOURCE );
-			fileSystem->ReadFile( rt.filename, ( void** )&fbuf, NULL );
+			//fbuf = ( byte* )Mem_Alloc( len, TAG_RESOURCE );
+			//fileSystem->ReadFile( rt.filename, ( void** )&fbuf, NULL );
+
+			idFileLocal fileIn( fileSystem->OpenFileReadMemory( rt.filename ) );
+			if( fileIn != NULL )
+			{
+				struct sampleBuffer_t
+				{
+					void* buffer;
+					int bufferSize;
+					int numSamples;
+				};
+
+				ID_TIME_T		timestamp;
+				bool			loaded;
+				int				playBegin;
+				int				playLength;
+				idWaveFile::waveFmt_t	format;
+				idList<byte, TAG_AMPLITUDE> amplitude;
+				int				totalBufferSize;
+				idList<sampleBuffer_t, TAG_AUDIO> buffers;
+
+				uint32 magic;
+				fileIn->ReadBig( magic );
+				fileIn->ReadBig( timestamp );
+				fileIn->ReadBig( loaded );
+				fileIn->ReadBig( playBegin );
+				fileIn->ReadBig( playLength );
+				idWaveFile::ReadWaveFormatDirect( format, fileIn );
+
+				int num;
+				fileIn->ReadBig( num );
+				amplitude.Clear();
+				amplitude.SetNum( num );
+
+				fileIn->Read( amplitude.Ptr(), amplitude.Num() );
+
+				fileIn->ReadBig( totalBufferSize );
+				fileIn->ReadBig( num );
+				buffers.SetNum( num );
+
+				for( int i = 0; i < num; i++ )
+				{
+					fileIn->ReadBig( buffers[ i ].numSamples );
+					fileIn->ReadBig( buffers[ i ].bufferSize );
+					buffers[ i ].buffer = Mem_Alloc( buffers[ i ].bufferSize, TAG_AUDIO );
+					fileIn->Read( buffers[ i ].buffer, buffers[ i ].bufferSize );
+					//buffers[ i ].buffer = GPU_CONVERT_CPU_TO_CPU_CACHED_READONLY_ADDRESS( buffers[ i ].buffer );
+				}
+
+				// write it as .wav file
+				if( format.basic.formatTag == idWaveFile::FORMAT_ADPCM )
+				{
+					rt.filename.SetFileExtension( "wav" );
+					rt.filename.Replace( "generated/", "" );
+
+					idStr outName = _outPath;
+					outName.AppendPath( rt.filename );
+					idFileLocal fileOut( fileSystem->OpenExplicitFileWrite( outName ) );
+					if( fileOut != NULL )
+					{
+						common->Printf( "writing %s\n", outName.c_str() );
+
+						uint32 fileSize = 12 + 24 + format.extraSize + 4 + totalBufferSize;
+						fileSize -= 8;
+
+						idWaveFile::WriteHeaderDirect( fileSize, fileOut );
+						idWaveFile::WriteWaveFormatDirect( format, fileOut, true );
+						idWaveFile::WriteDataDirect( ( char* ) buffers[ 0 ].buffer, totalBufferSize, fileOut );
+					}
+				}
+
+				for( int i = 0; i < num; i++ )
+				{
+					Mem_Free( buffers[ i ].buffer );
+				}
+
+				// just export the first file for testing
+				delete inFile;
+				Mem_Free( buf );
+				return;
+			}
 		}
 		else
 		{
 			// RB: filter out all unwanted binary files
 			if( !_all && (
-				rt.filename.IcmpPrefix( "renderprogs") == 0 ||
-				rt.filename.IcmpPrefix( "generated") == 0 )
-				/*
-				rt.filename.Find( ".bcmodel") >= 0 ||
-				rt.filename.Find( ".bcanim") >= 0 ||
-				rt.filename.Find( ".bmd5mesh") >= 0 ||
-				rt.filename.Find( ".bmd5anim") >= 0 ||
-				rt.filename.Find( ".bimage") >= 0 ||
-				rt.filename.Find( ".base") >= 0 ||
-				rt.filename.Find( ".blwo") >= 0 || 
-				rt.filename.Find( ".bprt") >= 0 || 
-				rt.filename.Find( ".bswf") >= 0 )*/ )
+						rt.filename.IcmpPrefix( "renderprogs" ) == 0 ||
+						rt.filename.IcmpPrefix( "generated" ) == 0 )
+					/*
+					rt.filename.Find( ".bcmodel") >= 0 ||
+					rt.filename.Find( ".bcanim") >= 0 ||
+					rt.filename.Find( ".bmd5mesh") >= 0 ||
+					rt.filename.Find( ".bmd5anim") >= 0 ||
+					rt.filename.Find( ".bimage") >= 0 ||
+					rt.filename.Find( ".base") >= 0 ||
+					rt.filename.Find( ".blwo") >= 0 ||
+					rt.filename.Find( ".bprt") >= 0 ||
+					rt.filename.Find( ".bswf") >= 0 )*/ )
 			{
 				continue;
 			}
@@ -402,17 +484,19 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 			inFile->Seek( rt.offset, FS_SEEK_SET );
 			fbuf = ( byte* )Mem_Alloc( rt.length, TAG_RESOURCE );
 			inFile->Read( fbuf, rt.length );
+
+			idStr outName = _outPath;
+			outName.AppendPath( rt.filename );
+			idFile* outFile = fileSystem->OpenExplicitFileWrite( outName );
+			if( outFile != NULL )
+			{
+				outFile->Write( ( byte* )fbuf, rt.length );
+				delete outFile;
+			}
+			Mem_Free( fbuf );
 		}
-		
-		idStr outName = _outPath;
-		outName.AppendPath( rt.filename );
-		idFile* outFile = fileSystem->OpenExplicitFileWrite( outName );
-		if( outFile != NULL )
-		{
-			outFile->Write( ( byte* )fbuf, rt.length );
-			delete outFile;
-		}
-		Mem_Free( fbuf );
+
+
 	}
 	delete inFile;
 	Mem_Free( buf );
