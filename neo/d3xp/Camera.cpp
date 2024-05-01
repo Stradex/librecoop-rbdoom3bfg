@@ -405,8 +405,8 @@ void idCameraAnim::LoadAnim()
 
 
 	// check for generated file
-	idStrStatic< MAX_OSPATH > generatedFileName = key;
-	generatedFileName.Insert( "generated/", 0 );
+	idStrStatic< MAX_OSPATH > generatedFileName = "generated/cameraanim/";
+	generatedFileName.AppendPath( key );
 	generatedFileName.SetFileExtension( CAMERA_ANIM_BINARYFILE_EXT );
 
 	ID_TIME_T currentTimeStamp = FILE_NOT_FOUND_TIMESTAMP;
@@ -491,8 +491,8 @@ void idCameraAnim::LoadAnim()
 			cameraCuts.SetNum( numCuts );
 			for( i = 0; i < numCuts; i++ )
 			{
-				cameraCuts[i] = parser.ParseInt();
-				if( ( cameraCuts[i] < 1 ) || ( cameraCuts[i] >= numFrames ) )
+				cameraCuts[ i ] = parser.ParseInt();
+				if( ( cameraCuts[ i ] < 1 ) || ( cameraCuts[ i ] >= numFrames ) )
 				{
 					parser.Error( "Invalid camera cut" );
 				}
@@ -505,9 +505,9 @@ void idCameraAnim::LoadAnim()
 			camera.SetNum( numFrames );
 			for( i = 0; i < numFrames; i++ )
 			{
-				parser.Parse1DMatrix( 3, camera[i].t.ToFloatPtr() );
-				parser.Parse1DMatrix( 3, camera[i].q.ToFloatPtr() );
-				camera[i].fov = parser.ParseFloat();
+				parser.Parse1DMatrix( 3, camera[ i ].t.ToFloatPtr() );
+				parser.Parse1DMatrix( 3, camera[ i ].q.ToFloatPtr() );
+				camera[ i ].fov = parser.ParseFloat();
 			}
 			parser.ExpectTokenString( "}" );
 		}
@@ -754,6 +754,7 @@ void idCameraAnim::Event_Activate( idEntity* _activator )
 	}
 }
 
+// HarrievG begin
 void idCameraAnim::gltfLoadAnim( idStr gltfFileName, idStr animName )
 {
 	GLTF_Parser gltf;
@@ -887,6 +888,7 @@ void idCameraAnim::gltfLoadAnim( idStr gltfFileName, idStr animName )
 						camera[i].fov = ( float )( *lensFrameValues )[i];
 					}
 				}
+
 				//Dont forget to free! normally a gltfPropertyArray destructor frees the itemdata
 				delete CameraLensFrames->item;
 			}
@@ -920,7 +922,6 @@ void idCameraAnim::WriteBinaryCamAnim( idFile* file, ID_TIME_T* _timeStamp /*= N
 			file->WriteVec3( cam.t );
 		}
 	}
-
 }
 
 bool idCameraAnim::LoadBinaryCamAnim( idFile* file, const ID_TIME_T sourceTimeStamp )
@@ -960,8 +961,10 @@ bool idCameraAnim::LoadBinaryCamAnim( idFile* file, const ID_TIME_T sourceTimeSt
 		assert( i == count );
 		return true;
 	}
+
 	return false;
 }
+// HarrievG end
 
 /*
 ===============
