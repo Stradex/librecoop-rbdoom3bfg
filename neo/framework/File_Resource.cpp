@@ -330,7 +330,7 @@ void idResourceContainer::SetContainerIndex( const int& _idx )
 idResourceContainer::ExtractResourceFile
 ========================
 */
-void idResourceContainer::ExtractResourceFile( const char* _fileName, const char* _outPath, bool _copyWavs )
+void idResourceContainer::ExtractResourceFile( const char* _fileName, const char* _outPath, bool _copyWavs, bool _all )
 {
 	idFile* inFile = fileSystem->OpenFileRead( _fileName );
 
@@ -368,8 +368,11 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 		rt.filename.BackSlashesToSlashes();
 		rt.filename.ToLower();
 		byte* fbuf = NULL;
+		
 		if( _copyWavs && ( rt.filename.Find( ".idwav" ) >= 0 ||  rt.filename.Find( ".idxma" ) >= 0 ||  rt.filename.Find( ".idmsf" ) >= 0 ) )
 		{
+			// TODO make this work #166
+
 			rt.filename.SetFileExtension( "wav" );
 			rt.filename.Replace( "generated/", "" );
 			int len = fileSystem->GetFileLength( rt.filename );
@@ -378,10 +381,29 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 		}
 		else
 		{
+			// RB: filter out all unwanted binary files
+			if( !_all && (
+				rt.filename.IcmpPrefix( "renderprogs") == 0 ||
+				rt.filename.IcmpPrefix( "generated") == 0 )
+				/*
+				rt.filename.Find( ".bcmodel") >= 0 ||
+				rt.filename.Find( ".bcanim") >= 0 ||
+				rt.filename.Find( ".bmd5mesh") >= 0 ||
+				rt.filename.Find( ".bmd5anim") >= 0 ||
+				rt.filename.Find( ".bimage") >= 0 ||
+				rt.filename.Find( ".base") >= 0 ||
+				rt.filename.Find( ".blwo") >= 0 || 
+				rt.filename.Find( ".bprt") >= 0 || 
+				rt.filename.Find( ".bswf") >= 0 )*/ )
+			{
+				continue;
+			}
+
 			inFile->Seek( rt.offset, FS_SEEK_SET );
 			fbuf = ( byte* )Mem_Alloc( rt.length, TAG_RESOURCE );
 			inFile->Read( fbuf, rt.length );
 		}
+		
 		idStr outName = _outPath;
 		outName.AppendPath( rt.filename );
 		idFile* outFile = fileSystem->OpenExplicitFileWrite( outName );

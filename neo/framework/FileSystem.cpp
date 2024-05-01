@@ -2656,14 +2656,31 @@ void idFileSystemLocal::ExtractResourceFile_f( const idCmdArgs& args )
 {
 	if( args.Argc() < 3 )
 	{
-		common->Printf( "Usage: extractResourceFile <resource file> <outpath> <copysound>\n" );
+		common->Printf( "Usage: extractResourceFile <resource file> <outpath> <copysound> <all>\n" );
 		return;
 	}
 
 	idStr filename =  args.Argv( 1 );
 	idStr outPath = args.Argv( 2 );
-	bool copyWaves = ( args.Argc() > 3 );
-	idResourceContainer::ExtractResourceFile( filename, outPath, copyWaves );
+	bool copyWaves = false;
+	bool allFileTypes = false;
+
+	for( int i = 1; i < args.Argc(); i++ )
+	{
+		idStr option = args.Argv( i );
+		option.StripLeading( '-' );
+
+		if( option.Icmp( "copysound" ) == 0 )
+		{
+			copyWaves = true;
+		}
+		else if( option.Icmp( "all" ) == 0 )
+		{
+			allFileTypes = true;
+		}
+	}
+
+	idResourceContainer::ExtractResourceFile( filename, outPath, copyWaves, allFileTypes );
 }
 
 /*
