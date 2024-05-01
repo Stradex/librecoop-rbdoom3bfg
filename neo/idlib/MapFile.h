@@ -508,6 +508,7 @@ public:
 
 	// converts Wad texture names to valid Doom 3 materials and gives every entity a unique name
 	bool					ConvertQuakeToDoom();
+	void					FixDuplicatedNamesInGroupInstances();
 	// RB end
 
 	// get the number of entities in the map

@@ -1785,6 +1785,13 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 		}
 	}
 
+	if( valve220Format )
+	{
+		// it might be possible that the level designer missed to set the name/model keys to be protected
+		// so the game code would fail to load the map because entities have then the same name
+		FixDuplicatedNamesInGroupInstances();
+	}
+
 	// RB: <name>_extraents.map allows to add and override existing entities
 	idMapFile extrasMap;
 	fullName = name;
@@ -3216,11 +3223,10 @@ void idMapFile::ClassifyEntitiesForTrenchBroom( idDict& classTypeOverview )
 
 bool idMapFile::ConvertQuakeToDoom()
 {
-	idDict classTypeOverview;
 	idStrList textureCollections;
 
 	int count = GetNumEntities();
-	for( int j = 0; j < count; j++ )
+	for( int j = 1; j < count; j++ )
 	{
 		idMapEntity* ent = GetEntity( j );
 		if( ent )
@@ -3296,11 +3302,7 @@ bool idMapFile::ConvertQuakeToDoom()
 
 			if( ent->GetNumPrimitives() > 0 )
 			{
-				if( j > 0 )
-				{
-					const idKeyValue* namePair = ent->epairs.FindKey( "name" );
-					ent->epairs.Set( "model", namePair->GetValue() );
-				}
+				ent->epairs.Set( "model", namePair->GetValue() );
 
 				// map Wad brushes names to proper Doom 3 compatible material names
 				for( int i = 0; i < ent->GetNumPrimitives(); i++ )
@@ -3317,6 +3319,8 @@ bool idMapFile::ConvertQuakeToDoom()
 							idStr matName;
 							WadTextureToMaterial( side->GetMaterial(), matName );
 							side->SetMaterial( matName );
+
+							idMapFile::AddMaterialToCollection( side->GetMaterial(), textureCollections );
 						}
 					}
 					else if( mapPrim->GetType() == idMapPrimitive::TYPE_PATCH )
@@ -3354,6 +3358,80 @@ bool idMapFile::ConvertQuakeToDoom()
 	}
 
 	return true;
+}
+
+void idMapFile::FixDuplicatedNamesInGroupInstances()
+{
+	int count = GetNumEntities();
+	for( int j = 1; j < count; j++ )
+	{
+		idMapEntity* ent = GetEntity( j );
+		if( ent )
+		{
+			idStr classname = ent->epairs.GetString( "classname" );
+
+			// only fix names in linked group lists
+			const idKeyValue* groupPair = ent->epairs.FindKey( "_tb_group" );
+			if( !groupPair )
+			{
+				continue;
+			}
+
+			const idKeyValue* namePair = ent->epairs.FindKey( "name" );
+			if( !namePair )
+			{
+				idStr uniqueName = GetUniqueEntityName( classname );
+
+				ent->epairs.Set( "name", uniqueName );
+			}
+			else
+			{
+				// is there a name clash with another entity?
+				bool clash = false;
+
+				for( int i = 1; i < count; i++ )
+				{
+					if( i == j )
+					{
+						continue;
+					}
+
+					idMapEntity* otherEnt = GetEntity( i );
+
+					const idKeyValue* otherNamePair = otherEnt->epairs.FindKey( "name" );
+					if( otherNamePair && !otherNamePair->GetValue().IsEmpty() && idStr::Cmp( namePair->GetValue(), otherNamePair->GetValue() ) == 0 )
+					{
+						// both entities have the same name, give this one a new name
+						idStr uniqueName = GetUniqueEntityName( classname );
+
+						ent->epairs.Set( "name", uniqueName );
+
+						if( ent->GetNumPrimitives() > 0 )
+						{
+							ent->epairs.Set( "model", uniqueName );
+						}
+						break;
+					}
+				}
+			}
+
+			// fix light color range
+			if( idStr::Icmp( classname, "light" ) == 0 )
+			{
+				idVec3		color;
+				ent->epairs.GetVector( "_color", "1 1 1", color );
+
+				if( color.x > 1 || color.y > 1 || color.z > 1 )
+				{
+					color.x *= 1.0f / 255;
+					color.y *= 1.0f / 255;
+					color.z *= 1.0f / 255;
+
+					ent->epairs.SetVector( "_color", color );
+				}
+			}
+		}
+	}
 }
 
 void idMapFile::AddMaterialToCollection( const char* material, idStrList& textureCollections )
