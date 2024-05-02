@@ -107,7 +107,7 @@ void idSoundSample_OpenAL::WriteGeneratedSample( idFile* fileOut )
 	fileOut->WriteBig( loaded );
 	fileOut->WriteBig( playBegin );
 	fileOut->WriteBig( playLength );
-	idWaveFile::WriteWaveFormatDirect( format, fileOut );
+	idWaveFile::WriteWaveFormatDirect( format, fileOut, false );
 	fileOut->WriteBig( ( int )amplitude.Num() );
 	fileOut->Write( amplitude.Ptr(), amplitude.Num() );
 	fileOut->WriteBig( totalBufferSize );

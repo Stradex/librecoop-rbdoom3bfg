@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -28,6 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "precompiled.h"
 #pragma hdrstop
+
+#include "../sound/WaveFile.h"
+#include "../renderer/CmdlineProgressbar.h"
 
 /*
 ================================================================================================
@@ -330,8 +334,6 @@ void idResourceContainer::SetContainerIndex( const int& _idx )
 idResourceContainer::ExtractResourceFile
 ========================
 */
-#include "../sound/WaveFile.h"
-
 void idResourceContainer::ExtractResourceFile( const char* _fileName, const char* _outPath, bool _copyWavs, bool _all )
 {
 	idFile* inFile = fileSystem->OpenFileRead( _fileName );
@@ -350,6 +352,8 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 		return;
 	}
 
+	common->Printf( "extracting resource file %s\n", _fileName );
+
 	int _tableOffset;
 	int _tableLength;
 	inFile->ReadBig( _tableOffset );
@@ -363,6 +367,12 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 	int _numFileResources;
 	memFile.ReadBig( _numFileResources );
 
+	CommandlineProgressBar progressBar( _numFileResources, renderSystem->GetWidth(), renderSystem->GetHeight() );
+	if( _copyWavs )
+	{
+		progressBar.Start();
+	}
+
 	for( int i = 0; i < _numFileResources; i++ )
 	{
 		idResourceCacheEntry rt;
@@ -373,14 +383,6 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 
 		if( _copyWavs && ( rt.filename.Find( ".idwav" ) >= 0 ||  rt.filename.Find( ".idxma" ) >= 0 ||  rt.filename.Find( ".idmsf" ) >= 0 ) )
 		{
-			// TODO make this work #166
-
-			//rt.filename.SetFileExtension( "wav" );
-			//rt.filename.Replace( "generated/", "" );
-			int len = fileSystem->GetFileLength( rt.filename );
-			//fbuf = ( byte* )Mem_Alloc( len, TAG_RESOURCE );
-			//fileSystem->ReadFile( rt.filename, ( void** )&fbuf, NULL );
-
 			idFileLocal fileIn( fileSystem->OpenFileReadMemory( rt.filename ) );
 			if( fileIn != NULL )
 			{
@@ -439,9 +441,9 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 					idFileLocal fileOut( fileSystem->OpenExplicitFileWrite( outName ) );
 					if( fileOut != NULL )
 					{
-						common->Printf( "writing %s\n", outName.c_str() );
+						//common->Printf( "writing %s\n", outName.c_str() );
 
-						uint32 fileSize = 12 + 24 + format.extraSize + 4 + totalBufferSize;
+						uint32 fileSize = 12 + 24 + 2 + format.extraSize + 8 + totalBufferSize;
 						fileSize -= 8;
 
 						idWaveFile::WriteHeaderDirect( fileSize, fileOut );
@@ -454,11 +456,6 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 				{
 					Mem_Free( buffers[ i ].buffer );
 				}
-
-				// just export the first file for testing
-				delete inFile;
-				Mem_Free( buf );
-				return;
 			}
 		}
 		else
@@ -496,7 +493,10 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 			Mem_Free( fbuf );
 		}
 
-
+		if( _copyWavs )
+		{
+			progressBar.Increment( true );
+		}
 	}
 	delete inFile;
 	Mem_Free( buf );

@@ -427,11 +427,19 @@ bool idWaveFile::WriteWaveFormatDirect( waveFmt_t& format, idFile* file, bool wa
 	//swap.Little( format.basic.blockSize );
 	//swap.Little( format.basic.bitsPerSample );
 
-	// RB begin
+	// RB: this is also called by .idwav saving code and it was missing
 	if( wavFile )
 	{
 		file->WriteBig( format.id );
-		file->WriteUnsignedInt( sizeof( format.basic ) );
+
+		if( format.basic.formatTag != FORMAT_PCM )
+		{
+			file->WriteUnsignedInt( sizeof( format.basic ) + 2 + format.extraSize );
+		}
+		else
+		{
+			file->WriteUnsignedInt( sizeof( format.basic ) );
+		}
 	}
 	// RB end
 
@@ -462,6 +470,7 @@ bool idWaveFile::WriteWaveFormatDirect( waveFmt_t& format, idFile* file, bool wa
 	{
 		return false;
 	}
+
 	return true;
 }
 
@@ -518,7 +527,8 @@ bool idWaveFile::WriteDataDirect( char* _data, uint32 size, idFile* file )
 	static const uint32 data = 'data';
 	file->WriteBig( data );
 	file->Write( &size, sizeof( uint32 ) );
-	file->WriteBigArray( _data, size );
+	//file->WriteBigArray( _data, size ); // RB: this is super slow
+	file->Write( _data, size );
 	return true;
 }
 
