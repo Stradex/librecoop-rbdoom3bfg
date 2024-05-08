@@ -252,14 +252,12 @@ private:
 			VK_EXT_LAYER_SETTINGS_EXTENSION_NAME,
 #endif
 #endif
-			VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME,
-			VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+			VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME
 		},
 		// layers
 		{ },
 		// device
 		{
-			VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
 			VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
 			VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
 			VK_NV_MESH_SHADER_EXTENSION_NAME,
@@ -1244,6 +1242,7 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 	if( m_DeviceParams.enableDebugRuntime )
 	{
 		enabledExtensions.instance.insert( VK_EXT_DEBUG_REPORT_EXTENSION_NAME );
+		optionalExtensions.device.insert( VK_EXT_DEBUG_MARKER_EXTENSION_NAME );
 #if defined(__APPLE__) && defined( USE_MoltenVK )
 	}
 
