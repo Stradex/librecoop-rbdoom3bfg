@@ -948,8 +948,6 @@ bool DeviceManager_VK::createDevice()
 
 	auto accelStructFeatures = vk::PhysicalDeviceAccelerationStructureFeaturesKHR()
 							   .setAccelerationStructure( true );
-	auto bufferAddressFeatures = vk::PhysicalDeviceBufferAddressFeaturesEXT()
-								 .setBufferDeviceAddress( true );
 	auto rayPipelineFeatures = vk::PhysicalDeviceRayTracingPipelineFeaturesKHR()
 							   .setRayTracingPipeline( true )
 							   .setRayTraversalPrimitiveCulling( true );
@@ -986,7 +984,6 @@ bool DeviceManager_VK::createDevice()
 #endif
 #define APPEND_EXTENSION(condition, desc) if (condition) { (desc).pNext = pNext; pNext = &(desc); }  // NOLINT(cppcoreguidelines-macro-usage)
 	APPEND_EXTENSION( accelStructSupported, accelStructFeatures )
-	APPEND_EXTENSION( bufferAddressSupported, bufferAddressFeatures )
 	APPEND_EXTENSION( rayPipelineSupported, rayPipelineFeatures )
 	APPEND_EXTENSION( rayQuerySupported, rayQueryFeatures )
 	APPEND_EXTENSION( meshletsSupported, meshletFeatures )
