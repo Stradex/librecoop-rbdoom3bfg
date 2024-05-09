@@ -95,7 +95,7 @@ public:
 	static void WriteResourceFile( const char* fileName, const idStrList& manifest, const bool& _writeManifest );
 	static void WriteManifestFile( const char* name, const idStrList& list );
 	static int ReadManifestFile( const char* filename, idStrList& list );
-	static void ExtractResourceFile( const char* fileName, const char* outPath, bool copyWavs );
+	static void ExtractResourceFile( const char* fileName, const char* outPath, bool copyWavs, bool all );
 	static void UpdateResourceFile( const char* filename, const idStrList& filesToAdd );
 	idFile* OpenFile( const char* fileName );
 	const char* GetFileName() const

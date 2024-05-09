@@ -585,6 +585,9 @@ void idImage::FinalizeImage( bool fromBackEnd, nvrhi::ICommandList* commandList 
 
 				AllocImage();
 
+				// default it again because it was unset by AllocImage().PurgeImage()
+				defaulted = true;
+
 				// clear the data so it's not left uninitialized
 				idTempArray<byte> clear( opts.width * opts.height * 4 );
 				memset( clear.Ptr(), 0, clear.Size() );

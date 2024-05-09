@@ -449,6 +449,8 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 		> # DXC compiler
 		> PATH="~/dxc-artifacts/bin:$PATH"
 
+	As an alternative to modifying your PATH, you can add -DDXC\_CUSTOM_PATH=\<path-to-dxc-binary> to the CMake options.
+
 2. You need the following dependencies in order to compile RBDoom3BFG with all features:
 
 	On Debian or Ubuntu:

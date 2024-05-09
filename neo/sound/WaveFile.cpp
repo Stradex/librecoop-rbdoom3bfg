@@ -417,7 +417,7 @@ idWaveFile::WriteWaveFormatDirect
 Writes a wave format header to a file ptr,
 ========================
 */
-bool idWaveFile::WriteWaveFormatDirect( waveFmt_t& format, idFile* file )
+bool idWaveFile::WriteWaveFormatDirect( waveFmt_t& format, idFile* file, bool wavFile )
 {
 	//idSwapClass<waveFmt_t::basic_t> swap;
 	//swap.Little( format.basic.formatTag );
@@ -426,6 +426,23 @@ bool idWaveFile::WriteWaveFormatDirect( waveFmt_t& format, idFile* file )
 	//swap.Little( format.basic.avgBytesPerSec );
 	//swap.Little( format.basic.blockSize );
 	//swap.Little( format.basic.bitsPerSample );
+
+	// RB: this is also called by .idwav saving code and it was missing
+	if( wavFile )
+	{
+		file->WriteBig( format.id );
+
+		if( format.basic.formatTag != FORMAT_PCM )
+		{
+			file->WriteUnsignedInt( sizeof( format.basic ) + 2 + format.extraSize );
+		}
+		else
+		{
+			file->WriteUnsignedInt( sizeof( format.basic ) );
+		}
+	}
+	// RB end
+
 	file->Write( &format.basic, sizeof( format.basic ) );
 	if( format.basic.formatTag == FORMAT_PCM )
 	{
@@ -453,6 +470,7 @@ bool idWaveFile::WriteWaveFormatDirect( waveFmt_t& format, idFile* file )
 	{
 		return false;
 	}
+
 	return true;
 }
 
@@ -509,7 +527,8 @@ bool idWaveFile::WriteDataDirect( char* _data, uint32 size, idFile* file )
 	static const uint32 data = 'data';
 	file->WriteBig( data );
 	file->Write( &size, sizeof( uint32 ) );
-	file->WriteBigArray( _data, size );
+	//file->WriteBigArray( _data, size ); // RB: this is super slow
+	file->Write( _data, size );
 	return true;
 }
 
@@ -526,7 +545,7 @@ bool idWaveFile::WriteHeaderDirect( uint32 fileSize, idFile* file )
 	static const uint32 riff = 'RIFF';
 	static const uint32 wave = 'WAVE';
 	file->WriteBig( riff );
-	file->WriteBig( fileSize );
+	file->WriteUnsignedInt( fileSize );
 	file->WriteBig( wave );
 	return true;
 }

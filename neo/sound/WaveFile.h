@@ -220,7 +220,7 @@ public:
 
 	const char* ReadWaveFormat( waveFmt_t& waveFmt );
 	static bool  ReadWaveFormatDirect( waveFmt_t& format, idFile* file );
-	static bool  WriteWaveFormatDirect( waveFmt_t& format, idFile* file );
+	static bool  WriteWaveFormatDirect( waveFmt_t& format, idFile* file, bool wavFile );
 	static bool  WriteSampleDataDirect( idList< sampleData_t >& sampleData, idFile* file );
 	static bool  WriteDataDirect( char* _data, uint32 size, idFile* file );
 	static bool  WriteHeaderDirect( uint32 fileSize, idFile* file );
