@@ -88,6 +88,12 @@ nvrhi::GraphicsPipelineHandle PipelineCache::GetOrCreatePipeline( const Pipeline
 	// Specialize the state with the state key.
 	GetRenderState( key.state, key, pipelineDesc.renderState );
 
+	// SRS - if no color attachments (e.g. atlas), disable fragment shader to avoid validation warnings
+	if( key.framebuffer->GetApiObject()->getDesc().colorAttachments.size() == 0 )
+	{
+		pipelineDesc.PS = nvrhi::ShaderHandle( NULL );
+	}
+
 	auto pipeline = device->createGraphicsPipeline( pipelineDesc, key.framebuffer->GetApiObject() );
 
 	pipelineHash.Add( h, pipelines.Append( { key, pipeline } ) );
