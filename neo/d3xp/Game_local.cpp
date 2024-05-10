@@ -3979,7 +3979,6 @@ idGameLocal::InhibitEntitySpawn
 */
 bool idGameLocal::InhibitEntitySpawn( idDict& spawnArgs )
 {
-
 	bool result = false;
 
 	if( common->IsMultiplayer() )
@@ -4024,7 +4023,7 @@ bool idGameLocal::InhibitEntitySpawn( idDict& spawnArgs )
 		}
 	}
 
-	// RB: TrenchBroom interop skip func_group entities
+	// RB: TrenchBroom interop skip func_group helper entities
 	{
 		const char* name = spawnArgs.GetString( "classname" );
 		const char* groupType = spawnArgs.GetString( "_tb_type" );

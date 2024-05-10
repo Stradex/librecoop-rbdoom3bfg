@@ -1714,7 +1714,6 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 	// if the map has a worldspawn
 	if( entities.Num() )
 	{
-
 		// "removeEntities" "classname" can be set in the worldspawn to remove all entities with the given classname
 		const idKeyValue* removeEntities = entities[0]->epairs.MatchPrefix( "removeEntities", NULL );
 		while( removeEntities )
@@ -2914,6 +2913,32 @@ bool idMapFile::ConvertToValve220Format()
 	idDict classTypeOverview;
 	idStrList textureCollections;
 
+	int tbGroupID = 7;
+
+	// just an idea but we can assume that we have no TB groups in the file
+	// because we are calling this command for the original Doom 3 BFG .map files
+	/*
+	idList<int> tbGroupIDs;
+
+	// collect TrenchBroom group IDs
+	for( int j = 0; j < count; j++ )
+	{
+		idMapEntity* ent = GetEntity( j );
+		if( ent )
+		{
+			//idStr classname = ent->epairs.GetString( "classname" );
+			const char* name = ent->epairs.GetString( "classname" );
+			const char* groupType = ent->epairs.GetString( "_tb_type" );
+
+			if( idStr::Icmp( name, "func_group" ) == 0 && ( idStr::Icmp( groupType, "_tb_group" ) == 0 || idStr::Icmp( groupType, "_tb_layer" ) == 0 ) )
+			{
+				int id = ent->epairs.GetInt( "_tb_id", -1 );
+				tbGroupIDs.AddUnique( id );
+			}
+		}
+	}
+	*/
+
 	int count = GetNumEntities();
 	for( int j = 0; j < count; j++ )
 	{
@@ -2967,8 +2992,9 @@ bool idMapFile::ConvertToValve220Format()
 
 			const idKeyValue* modelPair = ent->epairs.FindKey( "model" );
 			idStr model = ent->epairs.GetString( "model" );
-#if 1
+
 			// HACK: convert every old .lwo, .ase model to an .obj proxy model so it can be displayed properly in TrenchBroom
+			// this wouldn't be necessary for Doom 3 but it is for the BFG edition
 			idStr ext;
 			model.ExtractFileExtension( ext );
 
@@ -2979,17 +3005,122 @@ bool idMapFile::ConvertToValve220Format()
 
 				ent->epairs.Set( "proxymodel", model );
 			}
-#endif
 
 			bool isBrushModel = ( ent->GetNumPrimitives() > 0 ) && ( idStr::Icmp( model.c_str(), name.c_str() ) == 0 );
+			bool isLight = idStr::Icmp( classname, "light" ) == 0;
 
 			// is this oldschool brushes & patches?
 			if( isBrushModel )
 			{
+				if( isLight )
+				{
+					// we need to split this up into several entities
+					// turn this entity into a func_static and create a separate light and func_group entity
+
+					auto lightEnt = new( TAG_SYSTEM ) idMapEntity();
+					entities.Append( lightEnt );
+
+					// don't grab brushes or polys
+					lightEnt->epairs.Copy( ent->epairs );
+
+					// we can expect "light_origin" and "light_rotation" at this point from DoomEdit
+					// replace them with "origin" and "angles"
+					{
+						idAngles angles;
+						idMat3 mat;
+						if( !ent->epairs.GetMatrix( "light_rotation", "1 0 0 0 1 0 0 0 1", mat ) )
+						{
+							if( !ent->epairs.GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", mat ) )
+							{
+								// RB: light_angles is specific for lights that have been modified by the editLights command
+								// these lights have a static model and are not proper grouped using func_group
+								if( ent->epairs.GetAngles( "light_angles", "0 0 0", angles ) )
+								{
+									angles[ 0 ] = idMath::AngleNormalize360( angles[ 0 ] );
+									angles[ 1 ] = idMath::AngleNormalize360( angles[ 1 ] );
+									angles[ 2 ] = idMath::AngleNormalize360( angles[ 2 ] );
+
+									mat = angles.ToMat3();
+								}
+								// RB: TrenchBroom interop
+								// support "angles" like in Quake 3
+								else if( ent->epairs.GetAngles( "angles", "0 0 0", angles ) )
+								{
+									angles[ 0 ] = idMath::AngleNormalize360( angles[ 0 ] );
+									angles[ 1 ] = idMath::AngleNormalize360( angles[ 1 ] );
+									angles[ 2 ] = idMath::AngleNormalize360( angles[ 2 ] );
+
+									mat = angles.ToMat3();
+								}
+								else
+								{
+									ent->epairs.GetFloat( "angle", "0", angles[ 1 ] );
+									angles[ 0 ] = 0;
+									angles[ 1 ] = idMath::AngleNormalize360( angles[ 1 ] );
+									angles[ 2 ] = 0;
+									mat = angles.ToMat3();
+								}
+							}
+						}
+
+						// fix degenerate identity matrices
+						mat[0].FixDegenerateNormal();
+						mat[1].FixDegenerateNormal();
+						mat[2].FixDegenerateNormal();
+
+						lightEnt->epairs.Delete( "light_rotation" );
+						lightEnt->epairs.Delete( "light_angles" );
+						lightEnt->epairs.Delete( "angles" );
+						lightEnt->epairs.Delete( "angle" );
+						lightEnt->epairs.Delete( "model" );
+
+						angles = mat.ToAngles();
+						lightEnt->epairs.SetAngles( "angles", angles );
+
+						idVec3 lightOrigin = ent->epairs.GetVector( "light_origin", "0 0 0" );
+						lightEnt->epairs.SetVector( "origin", lightOrigin );
+						lightEnt->epairs.Delete( "light_origin" );
+
+						lightEnt->epairs.SetInt( "_tb_group", tbGroupID );
+					}
+
+					// turn this entity into a func_static and give it a new unique name
+					ent->epairs.Set( "classname", "func_static" );
+					idStr uniqueName = GetUniqueEntityName( "light_model" );
+
+					ent->epairs.Set( "name", uniqueName );
+					ent->epairs.Set( "model", uniqueName );
+					ent->epairs.SetInt( "_tb_group", tbGroupID );
+
+					// strip any light specific data
+					ent->epairs.Delete( "light_origin" );
+					ent->epairs.Delete( "light_rotation" );
+					ent->epairs.Delete( "light_radius" );
+					ent->epairs.Delete( "light_center" );
+					ent->epairs.Delete( "angles" );
+					ent->epairs.Delete( "angle" );
+					ent->epairs.Delete( "noshadows" );
+					ent->epairs.Delete( "nodiffuse" );
+					ent->epairs.Delete( "nospecular" );
+					ent->epairs.Delete( "falloff" );
+					ent->epairs.Delete( "texture" );
+
+					// add group entity
+					auto groupEnt = new( TAG_SYSTEM ) idMapEntity();
+					entities.Append( groupEnt );
+
+					groupEnt->epairs.Set( "classname", "func_group" );
+					uniqueName = GetUniqueEntityName( "light_group" );
+					groupEnt->epairs.Set( "name", uniqueName );
+					groupEnt->epairs.Set( "_tb_name", uniqueName );
+					groupEnt->epairs.Set( "_tb_type", "_tb_group" );
+					groupEnt->epairs.SetInt( "_tb_id", tbGroupID );
+
+					tbGroupID++;
+				}
+
 				bool removedOrigin = false;
-				if( !transform.IsIdentity() &&
-						//idStr::Icmp( classname, "func_static" ) != 0 &&
-						idStr::Icmp( classname, "light" ) != 0 )
+				if( !transform.IsIdentity() ) //&& !isLight )
 				{
 					ent->epairs.Delete( "origin" );
 					ent->epairs.Delete( "rotation" );
@@ -2997,13 +3128,6 @@ bool idMapFile::ConvertToValve220Format()
 					ent->epairs.Delete( "angle" );
 
 					removedOrigin = true;
-				}
-
-				// purge flare patches from lights because we can't select lights in TrenchBroom
-				// that still have primitives
-				if( idStr::Icmp( classname, "light" ) == 0 )
-				{
-					ent->RemovePrimitiveData();
 				}
 
 				// convert brushes
