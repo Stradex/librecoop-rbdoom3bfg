@@ -1250,6 +1250,13 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 	static const vk::DynamicLoader dl( "libMoltenVK.dylib" );
 #else
 		enabledExtensions.layers.insert( "VK_LAYER_KHRONOS_validation" );
+
+		// SRS - Suppress WARNING-Shader-OutputNotConsumed: by design for vertex shader layouts
+	#ifdef _WIN32
+		SetEnvironmentVariable( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e" );
+	#else
+		setenv( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e", 1 );
+	#endif
 	}
 
 	// SRS - make static so ~DynamicLoader() does not prematurely unload vulkan dynamic lib
