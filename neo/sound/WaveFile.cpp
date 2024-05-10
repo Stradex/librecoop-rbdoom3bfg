@@ -430,7 +430,8 @@ bool idWaveFile::WriteWaveFormatDirect( waveFmt_t& format, idFile* file, bool wa
 	// RB: this is also called by .idwav saving code and it was missing
 	if( wavFile )
 	{
-		file->WriteBig( format.id );
+		static const uint32 id = 'fmt ';
+		file->WriteBig( id );
 
 		if( format.basic.formatTag != FORMAT_PCM )
 		{
