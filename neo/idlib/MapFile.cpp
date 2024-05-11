@@ -987,9 +987,6 @@ void idMapBrush::SetPlanePointsFromWindings( const idVec3& origin, int entityNum
 	{
 		idMapBrushSide* mapSide = GetSide( i );
 
-		//const idMaterial* material = declManager->FindMaterial( mapSide->GetMaterial() );
-
-		// chop base plane by other brush sides
 		w.BaseForPlane( -planes[i] );
 
 		if( !w.GetNumPoints() )
@@ -998,6 +995,7 @@ void idMapBrush::SetPlanePointsFromWindings( const idVec3& origin, int entityNum
 			break;
 		}
 
+		// chop base plane by other brush planes
 		for( int j = 0; j < GetNumSides() && w.GetNumPoints(); j++ )
 		{
 			if( i == j )
@@ -1007,8 +1005,6 @@ void idMapBrush::SetPlanePointsFromWindings( const idVec3& origin, int entityNum
 
 			if( !w.ClipInPlace( -planes[j], 0 ) )
 			{
-				// no intersection
-				//badBrush = true;
 				common->Printf( "Entity %i, Brush %i: no intersection with other brush plane\n", entityNum, primitiveNum );
 				break;
 			}
@@ -1016,12 +1012,10 @@ void idMapBrush::SetPlanePointsFromWindings( const idVec3& origin, int entityNum
 
 		if( w.GetNumPoints() >= 3 )
 		{
-			for( int j = 0; j < 3; j++ )
-			{
-				mapSide->planepts[j].x = w[j].x + origin.x;
-				mapSide->planepts[j].y = w[j].y + origin.y;
-				mapSide->planepts[j].z = w[j].z + origin.z;
-			}
+			// reverse order to invert normal
+			mapSide->planepts[0] = w[2].ToVec3() + origin;
+			mapSide->planepts[1] = w[1].ToVec3() + origin;
+			mapSide->planepts[2] = w[0].ToVec3() + origin;
 		}
 
 		// only used for debugging
@@ -3178,6 +3172,7 @@ bool idMapFile::ConvertToValve220Format()
 
 					ent->epairs.Set( "name", uniqueName );
 					ent->epairs.Set( "model", uniqueName );
+					lightEnt->epairs.Set( "model", uniqueName );
 					ent->epairs.SetInt( "_tb_group", tbGroupID );
 
 					// strip any light specific data
@@ -3233,7 +3228,9 @@ bool idMapFile::ConvertToValve220Format()
 							side->ConvertToValve220Format( transform, textureCollections );
 						}
 
-						//brushPrim->SetPlanePointsFromWindings( transform.GetTranslation(), j, i );
+						// RB: this is not necessary but the initial plane definitions are at the border of the max world size
+						// so with this function we get sane values that are within the brush boundaries
+						brushPrim->SetPlanePointsFromWindings( transform.GetTranslation(), j, i );
 					}
 					else if( mapPrim->GetType() == idMapPrimitive::TYPE_PATCH )
 					{
