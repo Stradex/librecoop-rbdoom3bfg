@@ -1420,8 +1420,11 @@ CONSOLE_COMMAND( testmap, "tests a map", idCmdSystem::ArgCompletion_MapName )
 /*
 ==================
 Common_TestMap_f
+
+// TODO finish this
 ==================
 */
+#if 0
 CONSOLE_COMMAND( bakemap, "loads a map and bakes environment probes", idCmdSystem::ArgCompletion_MapName )
 {
 	idStr map, string;
@@ -1441,3 +1444,4 @@ CONSOLE_COMMAND( bakemap, "loads a map and bakes environment probes", idCmdSyste
 	sprintf( string, "bakeEnvironmentProbes" );
 	cmdSystem->BufferCommandText( CMD_EXEC_NOW, string );
 }
+#endif

@@ -1035,7 +1035,7 @@ REGISTER_PARALLEL_JOB( CalculateLightGridPointJob, "CalculateLightGridPointJob" 
 
 
 
-CONSOLE_COMMAND( bakeLightGrids, "Bake irradiance/vis light grid data", NULL )
+CONSOLE_COMMAND_SHIP( bakeLightGrids, "Bake irradiance/vis light grid data", NULL )
 {
 	idStr			baseName;
 	idStr			filename;

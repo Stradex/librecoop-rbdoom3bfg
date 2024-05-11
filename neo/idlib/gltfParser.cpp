@@ -2362,7 +2362,7 @@ void gltfData::ClearData( idStr& fileName )
 #undef GLTFARRAYITEM
 #undef GLTFARRAYITEMREF
 
-CONSOLE_COMMAND_COMPILE( LoadGLTF, "Loads an .gltf or .glb file", idCmdSystem::ArgCompletion_MapName )
+CONSOLE_COMMAND( LoadGLTF, "Loads an .gltf or .glb file", idCmdSystem::ArgCompletion_MapName )
 {
 
 	if( args.Argc() > 1 )

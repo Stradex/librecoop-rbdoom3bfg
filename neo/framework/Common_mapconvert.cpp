@@ -692,7 +692,7 @@ CONSOLE_COMMAND( convertMapToJSON, "Convert .map file to new .json map format wi
 	common->SetRefreshOnPrint( false );
 }
 
-CONSOLE_COMMAND( convertMapToValve220, "Convert .map file to the Valve 220 map format for TrenchBroom", idCmdSystem::ArgCompletion_MapNameNoJson )
+CONSOLE_COMMAND_SHIP( convertMapToValve220, "Convert .map file to the Valve 220 map format for TrenchBroom", idCmdSystem::ArgCompletion_MapNameNoJson )
 {
 	common->SetRefreshOnPrint( true );
 
@@ -799,7 +799,7 @@ CONSOLE_COMMAND( checkMapsForBrushEntities, "List all brush entities in all .map
 }
 
 
-CONSOLE_COMMAND( convertMapQuakeToDoom, "Convert Quake .map in Valve 220 map format for Doom 3 BFG", idCmdSystem::ArgCompletion_MapNameNoJson )
+CONSOLE_COMMAND_SHIP( convertMapQuakeToDoom, "Convert Quake .map in Valve 220 map format for Doom 3 BFG", idCmdSystem::ArgCompletion_MapNameNoJson )
 {
 	common->SetRefreshOnPrint( true );
 
