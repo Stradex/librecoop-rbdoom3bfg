@@ -1254,11 +1254,13 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 #else
 		enabledExtensions.layers.insert( "VK_LAYER_KHRONOS_validation" );
 
-		// SRS - Suppress WARNING-Shader-OutputNotConsumed: by design for vertex shader layouts
+		// SRS - Suppress specific [ WARNING-Shader-OutputNotConsumed ] false positive validation warnings which are by design:
+		// 0xc81ad50e: vkCreateGraphicsPipelines(): pCreateInfos[0].pVertexInputState Vertex attribute at location X not consumed by vertex shader.
+		// 0x9805298c: vkCreateGraphicsPipelines(): pCreateInfos[0] fragment shader writes to output location 0 with no matching attachment.
 	#ifdef _WIN32
-		SetEnvironmentVariable( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e" );
+		SetEnvironmentVariable( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e;0x9805298c" );
 	#else
-		setenv( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e", 1 );
+		setenv( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e:0x9805298c", 1 );
 	#endif
 	}
 
