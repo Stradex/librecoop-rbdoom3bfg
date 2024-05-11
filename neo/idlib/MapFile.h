@@ -192,6 +192,8 @@ public:
 	// so we can center the brush on a grid size of 1 in TrenchBroom
 	static idMapBrush*		MakeOriginBrush( const idVec3& origin, const idVec3& scale = vec3_one );
 
+	void					SetPlanePointsFromWindings( const idVec3& origin, int entityNum, int primitiveNum );
+
 	int						GetNumSides() const
 	{
 		return sides.Num();

@@ -145,6 +145,7 @@ void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform, idS
 		return;
 	}
 
+#if 0
 	// create p1, p2, p3
 	idVec3 forward = plane.Normal();
 	idVec3 p1 = forward * plane.Dist();
@@ -169,6 +170,25 @@ void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform, idS
 	planepts[0] = entityTransform * p1;
 	planepts[1] = entityTransform * p2;
 	planepts[2] = entityTransform * p3;
+
+#else
+	// from DoomEdit's void BrushPrimit_Parse( brush_t* b, bool newFormat, const idVec3 origin )
+
+	idVec3 origin = entityTransform.GetTranslation();
+
+	idPlane fixedPlane = plane;
+	fixedPlane.FixDegeneracies( DEGENERATE_DIST_EPSILON );
+
+	idWinding w;
+	w.BaseForPlane( fixedPlane );
+
+	for( int j = 0; j < 3; j++ )
+	{
+		planepts[j].x = w[j].x + origin.x;
+		planepts[j].y = w[j].y + origin.y;
+		planepts[j].z = w[j].z + origin.z;
+	}
+#endif
 
 	idVec3 texX, texY;
 
@@ -943,7 +963,75 @@ bool idMapBrush::WriteValve220( idFile* fp, int primitiveNum, const idVec3& orig
 	return true;
 }
 
+/*
+============
+RB idMapBrush::SetPlanePointsFromWindings
+============
+*/
+void idMapBrush::SetPlanePointsFromWindings( const idVec3& origin, int entityNum, int primitiveNum )
+{
+	// fix degenerate planes
+	idPlane* planes = ( idPlane* ) _alloca16( GetNumSides() * sizeof( planes[0] ) );
+	for( int i = 0; i < GetNumSides(); i++ )
+	{
+		planes[i] = GetSide( i )->GetPlane();
+		planes[i].FixDegeneracies( DEGENERATE_DIST_EPSILON );
+	}
 
+	idBounds bounds;
+	bounds.Clear();
+
+	idFixedWinding w;
+
+	for( int i = 0; i < GetNumSides(); i++ )
+	{
+		idMapBrushSide* mapSide = GetSide( i );
+
+		//const idMaterial* material = declManager->FindMaterial( mapSide->GetMaterial() );
+
+		// chop base plane by other brush sides
+		w.BaseForPlane( -planes[i] );
+
+		if( !w.GetNumPoints() )
+		{
+			common->Printf( "Entity %i, Brush %i: base winding has no points\n", entityNum, primitiveNum );
+			break;
+		}
+
+		for( int j = 0; j < GetNumSides() && w.GetNumPoints(); j++ )
+		{
+			if( i == j )
+			{
+				continue;
+			}
+
+			if( !w.ClipInPlace( -planes[j], 0 ) )
+			{
+				// no intersection
+				//badBrush = true;
+				common->Printf( "Entity %i, Brush %i: no intersection with other brush plane\n", entityNum, primitiveNum );
+				break;
+			}
+		}
+
+		if( w.GetNumPoints() >= 3 )
+		{
+			for( int j = 0; j < 3; j++ )
+			{
+				mapSide->planepts[j].x = w[j].x + origin.x;
+				mapSide->planepts[j].y = w[j].y + origin.y;
+				mapSide->planepts[j].z = w[j].z + origin.z;
+			}
+		}
+
+		// only used for debugging
+		for( int j = 0; j < w.GetNumPoints(); j++ )
+		{
+			const idVec3& v = w[j].ToVec3();
+			bounds.AddPoint( v );
+		}
+	}
+}
 
 /*
 ===============
@@ -3144,6 +3232,8 @@ bool idMapFile::ConvertToValve220Format()
 							idMapBrushSide* side = brushPrim->GetSide( s );
 							side->ConvertToValve220Format( transform, textureCollections );
 						}
+
+						//brushPrim->SetPlanePointsFromWindings( transform.GetTranslation(), j, i );
 					}
 					else if( mapPrim->GetType() == idMapPrimitive::TYPE_PATCH )
 					{
