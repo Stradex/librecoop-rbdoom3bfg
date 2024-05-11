@@ -270,6 +270,9 @@ private:
 #if defined( VK_KHR_format_feature_flags2 )
 			VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME,
 #endif
+#if defined( VK_KHR_maintenance4 )
+			VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
+#endif
 			VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
 			VK_EXT_MEMORY_BUDGET_EXTENSION_NAME
 		},
