@@ -278,7 +278,7 @@ void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform, idS
 idMapPatch::Parse
 =================
 */
-idMapPatch* idMapPatch::Parse( idLexer& src, const idVec3& origin, bool patchDef3, float version )
+idMapPatch* idMapPatch::Parse( idLexer& src, const idVec3& origin, bool patchDef3, int version )
 {
 	float		info[7];
 	idDrawVert* vert;
@@ -318,7 +318,11 @@ idMapPatch* idMapPatch::Parse( idLexer& src, const idVec3& origin, bool patchDef
 	idMapPatch* patch = new( TAG_IDLIB ) idMapPatch( info[0], info[1] );
 
 	patch->SetSize( info[0], info[1] );
-	if( version < 2.0f )
+
+	idStr matName = token;
+
+	// version 220 might be missing textures/ if saved by TrenchBroom
+	if( version < 2 || ( version == 220 && matName.IcmpPrefix( "textures/" ) != 0 ) )
 	{
 		patch->SetMaterial( "textures/" + token );
 	}
@@ -480,7 +484,7 @@ unsigned int idMapPatch::GetGeometryCRC() const
 idMapBrush::Parse
 =================
 */
-idMapBrush* idMapBrush::Parse( idLexer& src, const idVec3& origin, bool newFormat, float version )
+idMapBrush* idMapBrush::Parse( idLexer& src, const idVec3& origin, bool newFormat, int version )
 {
 	int i;
 	idVec3 planepts[3];
@@ -596,7 +600,7 @@ idMapBrush* idMapBrush::Parse( idLexer& src, const idVec3& origin, bool newForma
 		}
 
 		// we had an implicit 'textures/' in the old format...
-		if( version < 2.0f )
+		if( version < 2 )
 		{
 			side->material = "textures/" + token;
 		}
@@ -1076,7 +1080,7 @@ bool idMapBrush::IsOriginBrush() const
 idMapEntity::Parse
 ================
 */
-idMapEntity* idMapEntity::Parse( idLexer& src, bool worldSpawn, float version )
+idMapEntity* idMapEntity::Parse( idLexer& src, bool worldSpawn, int version )
 {
 	idToken	token;
 	idMapEntity* mapEnt;
@@ -1771,13 +1775,14 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 		if( token == "Version" )
 		{
 			src.ReadTokenOnLine( &token );
-			version = token.GetFloatValue();
+			version = token.GetIntValue();
 		}
 		else
 		{
 			// Valve 220 format and idMapEntity::Parse will expect {
 			src.UnreadToken( &token );
 			valve220Format = true;
+			version = 220;
 		}
 
 		while( 1 )
@@ -1963,7 +1968,7 @@ bool idMapFile::Write( const char* fileName, const char* ext, bool fromBasePath 
 	}
 	else
 	{
-		fp->WriteFloatString( "Version %f\n", ( float ) CURRENT_MAP_VERSION );
+		fp->WriteFloatString( "Version %d\n", CURRENT_MAP_VERSION );
 	}
 
 	for( i = 0; i < entities.Num(); i++ )
@@ -2004,7 +2009,7 @@ bool idMapFile::WriteJSON( const char* fileName, const char* ext, bool fromBaseP
 	}
 
 	fp->Printf( "{\n" );
-	fp->WriteFloatString( "\t\"version\": \"%f\",\n", ( float ) CURRENT_MAP_VERSION );
+	fp->WriteFloatString( "\t\"version\": \"%d\",\n", CURRENT_MAP_VERSION );
 	fp->Printf( "\t\"entities\": \n\t[\n" );
 
 	for( i = 0; i < entities.Num(); i++ )
