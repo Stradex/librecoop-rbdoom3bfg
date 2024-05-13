@@ -497,7 +497,7 @@ void idRenderWorldLocal::UpdateLightDef( qhandle_t lightHandle, const renderLigh
 				rlight->parallel == light->parms.parallel && rlight->pointLight == light->parms.pointLight &&
 				rlight->right == light->parms.right && rlight->start == light->parms.start &&
 				rlight->target == light->parms.target && rlight->up == light->parms.up &&
-				rlight->shader == light->lightShader && rlight->prelightModel == light->parms.prelightModel )
+				rlight->shader == light->lightShader )
 		{
 			justUpdate = true;
 		}
@@ -526,11 +526,6 @@ void idRenderWorldLocal::UpdateLightDef( qhandle_t lightHandle, const renderLigh
 	if( light->parms.shader && light->parms.shader->Spectrum() )
 	{
 		light->parms.noShadows = true;
-	}
-
-	if( light->lightHasMoved )
-	{
-		light->parms.prelightModel = NULL;
 	}
 
 	if( !justUpdate )

@@ -71,6 +71,7 @@ ID_INLINE void rvmLightStyleState_t::Reset()
 // jmarshall end
 
 
+//class idStaticEntity;
 
 class idLight : public idEntity
 {
@@ -173,6 +174,9 @@ private:
 	int				fadeStart;
 	int				fadeEnd;
 	bool			soundWasPlaying;
+
+	// RB: pointing to static model because this light entity was split into 2 entities by convertMapToValve220
+	//idEntityPtr<idStaticEntity> staticModel;
 
 private:
 	void			PresentLightDefChange();

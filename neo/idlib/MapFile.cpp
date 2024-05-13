@@ -3157,7 +3157,6 @@ bool idMapFile::ConvertToValve220Format()
 
 						lightEnt->epairs.Delete( "light_rotation" );
 						lightEnt->epairs.Delete( "light_angles" );
-						lightEnt->epairs.Delete( "angles" );
 						lightEnt->epairs.Delete( "angle" );
 						lightEnt->epairs.Delete( "model" );
 
@@ -3177,6 +3176,8 @@ bool idMapFile::ConvertToValve220Format()
 
 					ent->epairs.Set( "name", uniqueName );
 					ent->epairs.Set( "model", uniqueName );
+
+					// TODO replace this with other key that links idLight to func_static entity for syncing color/broken model
 					lightEnt->epairs.Set( "model", uniqueName );
 					ent->epairs.SetInt( "_tb_group", tbGroupID );
 
