@@ -44,9 +44,9 @@ extern const idEventDef EV_Light_SetLightParm;
 extern const idEventDef EV_Light_SetLightParms;
 
 // jmarshall
-struct rvmLightStyleState_t
+struct iceLightStyleState_t
 {
-	rvmLightStyleState_t();
+	iceLightStyleState_t();
 
 	int				dl_frame;
 	float			dl_framef;
@@ -57,12 +57,12 @@ struct rvmLightStyleState_t
 	void			Reset();
 };
 
-ID_INLINE rvmLightStyleState_t::rvmLightStyleState_t()
+ID_INLINE iceLightStyleState_t::iceLightStyleState_t()
 {
 	Reset();
 }
 
-ID_INLINE void rvmLightStyleState_t::Reset()
+ID_INLINE void iceLightStyleState_t::Reset()
 {
 	dl_frame = 0;
 	dl_framef = 0;
@@ -202,7 +202,7 @@ private:
 
 // jmarshall
 	idList<idStr>	light_styles;
-	rvmLightStyleState_t lightStyleState;
+	iceLightStyleState_t lightStyleState;
 // jmarshall end
 };
 
