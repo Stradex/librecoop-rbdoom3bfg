@@ -3,6 +3,8 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2021 Justin Marshall
+Copyright (C) 2021-2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -176,7 +178,7 @@ private:
 	bool			soundWasPlaying;
 
 	// RB: pointing to static model because this light entity was split into 2 entities by convertMapToValve220
-	//idEntityPtr<idStaticEntity> staticModel;
+	idEntityPtr<idStaticEntity> modelTarget;
 
 private:
 	void			PresentLightDefChange();
@@ -196,6 +198,7 @@ private:
 	void			Event_SetSoundHandles();
 	void			Event_FadeOut( float time );
 	void			Event_FadeIn( float time );
+	void			Event_UpdateModelTarget();
 
 // jmarshall
 	idList<idStr>	light_styles;

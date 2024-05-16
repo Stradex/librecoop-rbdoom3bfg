@@ -38,8 +38,10 @@ entityDef light {
 	"editor_var shaderParm7"	"shaderParm 7"
 	"editor_var count"			"how many times light must be triggered to toggle."
 	"editor_var break"			"break when triggered."
-	"editor_model model"			"model to use."
-	"editor_model broken"			"model to use when the light is broken (defaults to model name with '_broken' appended to name)"
+	// RB: modelTarget key to support light groups of lights and func_static models in TrenchBroom
+	"editor_var modelTarget"	"name of func_static entity as a replacement for model on this entity"
+	"editor_model model"		"model to use."
+	"editor_model broken"		"model to use when the light is broken (defaults to model name with '_broken' appended to name)"
 	"editor_var hideModelOnBreak" "hides the model when broken"
 	"editor_var health"			"amount of damage to recieve before becoming broken.  0 is nonbreakable."
 	"editor_var target"			"entities to trigger if shot."
