@@ -276,6 +276,8 @@ idLight::idLight():
 	lightStyleBase.Set( 300, 300, 300 );
 
 	lightStyleState.Reset();
+
+	modelTarget			= NULL;
 // RB end
 }
 
@@ -324,6 +326,9 @@ void idLight::Save( idSaveGame* savefile ) const
 	savefile->WriteInt( fadeStart );
 	savefile->WriteInt( fadeEnd );
 	savefile->WriteBool( soundWasPlaying );
+
+	// RB: TODO light styles
+	modelTarget.Save( savefile );
 }
 
 /*
@@ -359,6 +364,11 @@ void idLight::Restore( idRestoreGame* savefile )
 	savefile->ReadInt( fadeStart );
 	savefile->ReadInt( fadeEnd );
 	savefile->ReadBool( soundWasPlaying );
+
+	if( savefile->GetBuildNumber() >= BUILD_NUMBER_SAVE_VERSION_LIGHT_MODELTARGET_CHANGE )
+	{
+		modelTarget.Restore( savefile );
+	}
 
 	lightDefHandle = -1;
 
@@ -519,6 +529,15 @@ void idLight::Spawn()
 		// make sure the collision model gets cached
 		idClipModel::CheckModel( brokenModel );
 	}
+
+	// RB: link func_static modelTarget
+	//modelTarget = NULL;
+	const char* target = spawnArgs.GetString( "modelTarget" );
+	if( target != NULL && target[0] != '\0' )
+	{
+		PostEventMS( &EV_Light_UpdateModelTarget, 0 );
+	}
+	// RB end
 
 	PostEventMS( &EV_PostSpawn, 0 );
 
