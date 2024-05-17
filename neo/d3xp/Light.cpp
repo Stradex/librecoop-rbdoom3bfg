@@ -234,7 +234,16 @@ void idLight::UpdateChangeableSpawnArgs( const idDict* source )
 
 	// link func_static modelTarget
 	modelTarget = NULL;
-	const char* target = source->GetString( "modelTarget" );
+	const char* target = NULL;
+	if( source )
+	{
+		target = source->GetString( "modelTarget" );
+	}
+	else
+	{
+		target = spawnArgs.GetString( "modelTarget" );
+	}
+
 	if( target != NULL && target[0] != '\0' )
 	{
 		PostEventMS( &EV_Light_UpdateModelTarget, 0 );

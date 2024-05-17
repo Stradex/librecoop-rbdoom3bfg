@@ -320,18 +320,19 @@ void idGameEdit::ParseSpawnArgsToRenderEntity( const idDict* args, renderEntity_
 	if( !args->GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", renderEntity->axis ) )
 	{
 		// RB: TrenchBroom interop
-		// support "angles" like in Quake 3
+		// support "angles", "modelscale" and "modelscale_vec" like in Quake 3
 		idAngles angles;
+		idMat3 rotMat;
+		idMat3 scaleMat;
+
+		rotMat.Identity();
+		scaleMat.Identity();
 
 		if( args->GetAngles( "angles", "0 0 0", angles ) )
 		{
 			if( angles.pitch != 0.0f || angles.yaw != 0.0f || angles.roll != 0.0f )
 			{
-				renderEntity->axis = angles.ToMat3();
-			}
-			else
-			{
-				renderEntity->axis.Identity();
+				rotMat = angles.ToMat3();
 			}
 		}
 		else
@@ -339,13 +340,33 @@ void idGameEdit::ParseSpawnArgsToRenderEntity( const idDict* args, renderEntity_
 			angle = args->GetFloat( "angle" );
 			if( angle != 0.0f )
 			{
-				renderEntity->axis = idAngles( 0.0f, angle, 0.0f ).ToMat3();
-			}
-			else
-			{
-				renderEntity->axis.Identity();
+				rotMat = idAngles( 0.0f, angle, 0.0f ).ToMat3();
 			}
 		}
+
+		idVec3 scaleVec;
+		if( args->GetVector( "modelscale_vec", "1 1 1", scaleVec ) )
+		{
+			// don't allow very small and negative values
+			if( ( scaleVec.x != 1.0f || scaleVec.y != 1.0f || scaleVec.z != 1.0f ) && ( scaleVec.x > 0.01f && scaleVec.y > 0.01f && scaleVec.z > 0.01f ) )
+			{
+				scaleMat[0][0] = scaleVec.x;
+				scaleMat[1][1] = scaleVec.y;
+				scaleMat[2][2] = scaleVec.z;
+			}
+		}
+		else
+		{
+			float scale = args->GetFloat( "modelscale", 1.0f );
+			if( scale != 1.0f && scale > 0.01f )
+			{
+				scaleMat[0][0] = scale;
+				scaleMat[1][1] = scale;
+				scaleMat[2][2] = scale;
+			}
+		}
+
+		renderEntity->axis = scaleMat * rotMat;
 		// RB end
 	}
 
