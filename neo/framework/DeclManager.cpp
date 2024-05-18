@@ -2641,16 +2641,7 @@ void idDeclManagerLocal::ExportEntityDefsToTrenchBroom_f( const idCmdArgs& args 
 
 						// precache model/animations
 						const idDeclModelDef* modelDef = static_cast<const idDeclModelDef*>( declManager->FindType( DECL_MODELDEF, kv->GetValue(), false ) );
-						if( modelDef == NULL )
-						{
-							// there is no modelDef so use direct path
-							renderModelManager->FindModel( kv->GetValue() );
-
-							exportedModelFileName = "_tb/";
-							exportedModelFileName.AppendPath( kv->GetValue() );
-							exportedModelFileName.SetFileExtension( ".obj" );
-						}
-						else
+						if( modelDef != NULL )
 						{
 							idRenderModel* renderModel = modelDef->ModelHandle();
 							if( renderModel )
@@ -2659,6 +2650,15 @@ void idDeclManagerLocal::ExportEntityDefsToTrenchBroom_f( const idCmdArgs& args 
 								exportedModelFileName.AppendPath( renderModel->Name() );
 								exportedModelFileName.SetFileExtension( ".obj" );
 							}
+						}
+						else
+						{
+							// there is no modelDef so use direct path
+							renderModelManager->FindModel( kv->GetValue() );
+
+							exportedModelFileName = "_tb/";
+							exportedModelFileName.AppendPath( kv->GetValue() );
+							exportedModelFileName.SetFileExtension( ".obj" );
 						}
 					}
 				}
@@ -2669,6 +2669,7 @@ void idDeclManagerLocal::ExportEntityDefsToTrenchBroom_f( const idCmdArgs& args 
 				file->Printf( "model({ \"path\": \"%s\" }) ", exportedModelFileName.c_str() );
 			}
 			else if( idStr::Icmp( decl->GetName(), "misc_model" ) == 0 ||
+					 idStr::Icmp( decl->GetName(), "func_animate" ) == 0 ||
 					 idStr::Icmp( decl->GetName(), "func_bobbing_model" ) == 0 ||
 					 idStr::Icmp( decl->GetName(), "func_door_model" ) == 0 ||
 					 idStr::Icmp( decl->GetName(), "func_elevator_model" ) == 0 ||
@@ -2871,7 +2872,7 @@ void idDeclManagerLocal::ExportEntityDefsToTrenchBroom_f( const idCmdArgs& args 
 	}
 
 	//declManagerLocal.Reload( true );
-	common->FatalError( "Exporting successful, need to restart manually" );
+	common->FatalError( "Exporting successful, need to restart engine manually" );
 }
 
 void idDeclManagerLocal::ExportImagesToTrenchBroom_f( const idCmdArgs& args )
