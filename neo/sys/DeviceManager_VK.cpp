@@ -270,9 +270,6 @@ private:
 #if defined( VK_KHR_format_feature_flags2 )
 			VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME,
 #endif
-#if defined( VK_KHR_maintenance4 )
-			VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
-#endif
 			VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
 			VK_EXT_MEMORY_BUDGET_EXTENSION_NAME
 		},
@@ -1254,13 +1251,17 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 #else
 		enabledExtensions.layers.insert( "VK_LAYER_KHRONOS_validation" );
 
-		// SRS - Suppress specific [ WARNING-Shader-OutputNotConsumed ] false positive validation warnings which are by design:
+		// SRS - Suppress specific [ WARNING-Shader-OutputNotConsumed ] validation warnings which are by design:
 		// 0xc81ad50e: vkCreateGraphicsPipelines(): pCreateInfos[0].pVertexInputState Vertex attribute at location X not consumed by vertex shader.
-		// 0x9805298c: vkCreateGraphicsPipelines(): pCreateInfos[0] fragment shader writes to output location 0 with no matching attachment.
+		// 0x9805298c: vkCreateGraphicsPipelines(): pCreateInfos[0] fragment shader writes to output location X with no matching attachment.
+		// SRS - Suppress similar [ UNASSIGNED-CoreValidation-Shader-OutputNotConsumed ] warnings for older Vulkan SDKs:
+		// 0x609a13b: vertex shader writes to output location X.0 which is not consumed by fragment shader...
+		// 0x609a13b: Vertex attribute at location X not consumed by vertex shader.
+		// 0x609a13b: fragment shader writes to output location X with no matching attachment.
 	#ifdef _WIN32
-		SetEnvironmentVariable( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e;0x9805298c" );
+		SetEnvironmentVariable( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e;0x9805298c;0x609a13b" );
 	#else
-		setenv( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e:0x9805298c", 1 );
+		setenv( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e:0x9805298c:0x609a13b", 1 );
 	#endif
 	}
 
