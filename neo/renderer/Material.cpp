@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2014-2023 Robert Beckebans
+Copyright (C) 2014-2024 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 Copyright (C) 2022 Stephen Pridham
 
@@ -3864,6 +3864,61 @@ void idMaterial::ExportJSON( idFile* file, bool lastEntry ) const
 	}
 }
 
+/*
+from Blender 4.1 Node Wrangler addon
+
+# Principled prefs
+class NWPrincipledPreferences(bpy.types.PropertyGroup):
+    base_color: StringProperty(
+        name='Base Color',
+        default='diffuse diff albedo base col color basecolor',
+        description='Naming Components for Base Color maps')
+    metallic: StringProperty(
+        name='Metallic',
+        default='metallic metalness metal mtl',
+        description='Naming Components for metallness maps')
+    specular: StringProperty(
+        name='Specular',
+        default='specularity specular spec spc',
+        description='Naming Components for Specular maps')
+    normal: StringProperty(
+        name='Normal',
+        default='normal nor nrm nrml norm',
+        description='Naming Components for Normal maps')
+    bump: StringProperty(
+        name='Bump',
+        default='bump bmp',
+        description='Naming Components for bump maps')
+    rough: StringProperty(
+        name='Roughness',
+        default='roughness rough rgh',
+        description='Naming Components for roughness maps')
+    gloss: StringProperty(
+        name='Gloss',
+        default='gloss glossy glossiness',
+        description='Naming Components for glossy maps')
+    displacement: StringProperty(
+        name='Displacement',
+        default='displacement displace disp dsp height heightmap',
+        description='Naming Components for displacement maps')
+    transmission: StringProperty(
+        name='Transmission',
+        default='transmission transparency',
+        description='Naming Components for transmission maps')
+    emission: StringProperty(
+        name='Emission',
+        default='emission emissive emit',
+        description='Naming Components for emission maps')
+    alpha: StringProperty(
+        name='Alpha',
+        default='alpha opacity',
+        description='Naming Components for alpha maps')
+    ambient_occlusion: StringProperty(
+        name='Ambient Occlusion',
+        default='ao ambient occlusion',
+        description='Naming Components for AO maps')
+*/
+
 // RB: completely rewritten from IcedTech1 and adjusted to generate PBR materials for typical asset store conventions
 // this also supports file suffices used by Blender's Node Wranger addon
 CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures folder using PBR conventions", idCmdSystem::ArgCompletion_ImageName )
@@ -3890,26 +3945,42 @@ CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures f
 			continue;
 		}
 
-		if( idStr::FindText( imageName, "_BaseColor", false ) != -1 || idStr::FindText( imageName, "_Color", false ) != -1 )
+		if( idStr::FindText( imageName, "_diffuse", false ) != -1 ||
+				idStr::FindText( imageName, "_diff", false ) != -1 ||
+				idStr::FindText( imageName, "_albedo", false ) != -1 ||
+				idStr::FindText( imageName, "_basecolor", false ) != -1 ||
+				idStr::FindText( imageName, "_base", false ) != -1 ||
+				idStr::FindText( imageName, "_color", false ) != -1 ||
+				idStr::FindText( imageName, "_col", false ) != -1 )
 		{
 			imageName = imageName.StripFileExtension();
 
 			idStr baseName = imageName;
-			baseName.StripTrailing( "_BaseColor" );
-			baseName.StripTrailing( "_Color" );
+			baseName.StripTrailing( "_diffuse" );
+			baseName.StripTrailing( "_diff" );
+			baseName.StripTrailing( "_albedo" );
+			baseName.StripTrailing( "_basecolor" );
+			baseName.StripTrailing( "_base" );
+			baseName.StripTrailing( "_color" );
+			baseName.StripTrailing( "_col" );
 
 			//mtrBuffer += va( "%s/%s\n", folderName, imageName.c_str() );
 			mtrBuffer += baseName.c_str();
 			mtrBuffer += "\n{\n";
 
-			//mtrBuffer += va( "\tqer_editorimage %s/%s_d.%s\n", folderName, args.Argv( 2 ), imagepath.c_str() );
+			// TODO qer_editorImage
+			//mtrBuffer += va( "\tqer_editorimage %s\n\n", imageName.c_str() );
 
 			// test opacity / transparency map
-			ID_TIME_T timestamp;
+			ID_TIME_T opacityStamp;
+			ID_TIME_T alphaStamp;
 
-			idStr opacityName = baseName + "_Opacity";
-			R_LoadImage( opacityName, NULL, NULL, NULL, &timestamp, true, NULL );
-			if( timestamp != FILE_NOT_FOUND_TIMESTAMP )
+			idStr opacityName = baseName + "_opacity";
+			R_LoadImage( opacityName, NULL, NULL, NULL, &opacityStamp, true, NULL );
+
+			opacityName = baseName + "_alpha";
+			R_LoadImage( opacityName, NULL, NULL, NULL, &alphaStamp, true, NULL );
+			if( opacityStamp != FILE_NOT_FOUND_TIMESTAMP || alphaStamp != FILE_NOT_FOUND_TIMESTAMP )
 			{
 				// TODO load opacity map and store values in the alpha channel of the base color image
 
