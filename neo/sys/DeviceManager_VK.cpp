@@ -253,7 +253,7 @@ private:
 #endif
 #endif
 			VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME,
-			VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+			VK_EXT_DEBUG_REPORT_EXTENSION_NAME
 		},
 		// layers
 		{ },
@@ -948,8 +948,6 @@ bool DeviceManager_VK::createDevice()
 
 	auto accelStructFeatures = vk::PhysicalDeviceAccelerationStructureFeaturesKHR()
 							   .setAccelerationStructure( true );
-	auto bufferAddressFeatures = vk::PhysicalDeviceBufferAddressFeaturesEXT()
-								 .setBufferDeviceAddress( true );
 	auto rayPipelineFeatures = vk::PhysicalDeviceRayTracingPipelineFeaturesKHR()
 							   .setRayTracingPipeline( true )
 							   .setRayTraversalPrimitiveCulling( true );
@@ -986,7 +984,6 @@ bool DeviceManager_VK::createDevice()
 #endif
 #define APPEND_EXTENSION(condition, desc) if (condition) { (desc).pNext = pNext; pNext = &(desc); }  // NOLINT(cppcoreguidelines-macro-usage)
 	APPEND_EXTENSION( accelStructSupported, accelStructFeatures )
-	APPEND_EXTENSION( bufferAddressSupported, bufferAddressFeatures )
 	APPEND_EXTENSION( rayPipelineSupported, rayPipelineFeatures )
 	APPEND_EXTENSION( rayQuerySupported, rayQueryFeatures )
 	APPEND_EXTENSION( meshletsSupported, meshletFeatures )
@@ -1246,7 +1243,6 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 
 	if( m_DeviceParams.enableDebugRuntime )
 	{
-		enabledExtensions.instance.insert( VK_EXT_DEBUG_REPORT_EXTENSION_NAME );
 #if defined(__APPLE__) && defined( USE_MoltenVK )
 	}
 
@@ -1254,6 +1250,19 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 	static const vk::DynamicLoader dl( "libMoltenVK.dylib" );
 #else
 		enabledExtensions.layers.insert( "VK_LAYER_KHRONOS_validation" );
+
+		// SRS - Suppress specific [ WARNING-Shader-OutputNotConsumed ] validation warnings which are by design:
+		// 0xc81ad50e: vkCreateGraphicsPipelines(): pCreateInfos[0].pVertexInputState Vertex attribute at location X not consumed by vertex shader.
+		// 0x9805298c: vkCreateGraphicsPipelines(): pCreateInfos[0] fragment shader writes to output location X with no matching attachment.
+		// SRS - Suppress similar [ UNASSIGNED-CoreValidation-Shader-OutputNotConsumed ] warnings for older Vulkan SDKs:
+		// 0x609a13b: vertex shader writes to output location X.0 which is not consumed by fragment shader...
+		// 0x609a13b: Vertex attribute at location X not consumed by vertex shader.
+		// 0x609a13b: fragment shader writes to output location X with no matching attachment.
+#ifdef _WIN32
+		SetEnvironmentVariable( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e;0x9805298c;0x609a13b" );
+#else
+		setenv( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e:0x9805298c:0x609a13b", 1 );
+#endif
 	}
 
 	// SRS - make static so ~DynamicLoader() does not prematurely unload vulkan dynamic lib
