@@ -2676,6 +2676,9 @@ void idSessionLocal::UpdateSignInManager()
 #if defined( USE_DOOMCLASSIC )
 		// If we don't have a master user at all, then we need to be at "Press Start"
 		MoveToPressStart( GDM_SP_SIGNIN_CHANGE_POST );
+#else
+		// RB: automatically sign in the first user. This enumerates the savegames #892
+		session->GetSignInManager().RegisterLocalUser( 0 );
 #endif
 		return;
 	}
