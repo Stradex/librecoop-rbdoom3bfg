@@ -125,7 +125,7 @@ namespace Optick
 				(PFN_vkAllocateCommandBuffers_)vkAllocateCommandBuffers,
 				(PFN_vkCreateFence_)vkCreateFence,
 				vkCmdResetQueryPool,
-				vkResetQueryPool,
+				nullptr, // dynamically define vkResetQueryPool via VK_EXT_host_query_reset extension or Vulkan 1.2 hostQueryReset feature
 				(PFN_vkCmdWaitEvents_)vkCmdWaitEvents,
 				(PFN_vkResetEvent_)vkResetEvent,
 				(PFN_vkSetEvent_)vkSetEvent,
@@ -196,6 +196,9 @@ namespace Optick
 				vulkanFunctions.vkCreateFence = (PFN_vkCreateFence_)vkGetDeviceProcAddr_(devices[i], "vkCreateFence");
 				vulkanFunctions.vkCmdResetQueryPool = (PFN_vkCmdResetQueryPool_)vkGetDeviceProcAddr_(devices[i], "vkCmdResetQueryPool");
 				vulkanFunctions.vkResetQueryPool = (PFN_vkResetQueryPool_)vkGetDeviceProcAddr_(devices[i], "vkResetQueryPool");
+				if (!vulkanFunctions.vkResetQueryPool) {	// if vkResetQueryPool not defined via Vulkan 1.2, try vkResetQueryPoolEXT
+					vulkanFunctions.vkResetQueryPool = (PFN_vkResetQueryPool_)vkGetDeviceProcAddr_(devices[i], "vkResetQueryPoolEXT");
+				}
 				vulkanFunctions.vkCmdWaitEvents = (PFN_vkCmdWaitEvents_)vkGetDeviceProcAddr_(devices[i], "vkCmdWaitEvents");
 				vulkanFunctions.vkResetEvent = (PFN_vkResetEvent_)vkGetDeviceProcAddr_(devices[i], "vkResetEvent");
 				vulkanFunctions.vkSetEvent = (PFN_vkSetEvent_)vkGetDeviceProcAddr_(devices[i], "vkSetEvent");
@@ -215,11 +218,18 @@ namespace Optick
 				vulkanFunctions.vkGetPastPresentationTimingGOOGLE = (PFN_vkGetPastPresentationTimingGOOGLE_)vkGetDeviceProcAddr_(devices[i], "vkGetPastPresentationTimingGOOGLE");
 			}
 #if OPTICK_STATIC_VULKAN_FUNCTIONS
-			else if (!vulkanFunctions.vkGetPastPresentationTimingGOOGLE)
+			else
 			{
+				vulkanFunctions.vkResetQueryPool = (PFN_vkResetQueryPool_)vkGetDeviceProcAddr(devices[i], "vkResetQueryPool");
+				if (!vulkanFunctions.vkResetQueryPool) {	// if vkResetQueryPool not defined via Vulkan 1.2, try vkResetQueryPoolEXT
+					vulkanFunctions.vkResetQueryPool = (PFN_vkResetQueryPool_)vkGetDeviceProcAddr(devices[i], "vkResetQueryPoolEXT");
+				}
 				vulkanFunctions.vkGetPastPresentationTimingGOOGLE = (PFN_vkGetPastPresentationTimingGOOGLE_)vkGetDeviceProcAddr(devices[i], "vkGetPastPresentationTimingGOOGLE");
 			}
 #endif
+			if (!vulkanFunctions.vkResetQueryPool) {
+				OPTICK_FAILED("vkResetQueryPool must be enabled via VK_EXT_host_query_reset extension or Vulkan 1.2 hostQueryReset feature. Can't initialize GPU Profiler!");
+			}
 
 			VkPhysicalDeviceProperties properties = { 0 };
 			(*vulkanFunctions.vkGetPhysicalDeviceProperties)(physicalDevices[i], &properties);
