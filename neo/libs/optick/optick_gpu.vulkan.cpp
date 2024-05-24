@@ -217,21 +217,27 @@ namespace Optick
 				vulkanFunctions.vkGetPastPresentationTimingGOOGLE = (PFN_vkGetPastPresentationTimingGOOGLE_)vkGetDeviceProcAddr_(devices[i], "vkGetPastPresentationTimingGOOGLE");
 			}
 #if OPTICK_STATIC_VULKAN_FUNCTIONS
-			else
+			else	// this condition can also run if vulkanFunctions are manually-defined via the "functions" parameter and vulkanFunctions.vkGetInstanceProcAddr == nullptr
 			{
-				vulkanFunctions.vkResetQueryPool = (PFN_vkResetQueryPool_)vkGetDeviceProcAddr(devices[i], "vkResetQueryPool");
-				if (!vulkanFunctions.vkResetQueryPool) {	// if vkResetQueryPool not defined via Vulkan 1.2, try vkResetQueryPoolEXT
-					vulkanFunctions.vkResetQueryPool = (PFN_vkResetQueryPool_)vkGetDeviceProcAddr(devices[i], "vkResetQueryPoolEXT");
+				// SRS - First check for nullptr to make sure we don't overwrite any manually-defined function pointers
+				if (!vulkanFunctions.vkResetQueryPool) {
+					vulkanFunctions.vkResetQueryPool = (PFN_vkResetQueryPool_)vkGetDeviceProcAddr(devices[i], "vkResetQueryPool");
+					if (!vulkanFunctions.vkResetQueryPool) {	// if vkResetQueryPool not defined via Vulkan 1.2, try vkResetQueryPoolEXT
+						vulkanFunctions.vkResetQueryPool = (PFN_vkResetQueryPool_)vkGetDeviceProcAddr(devices[i], "vkResetQueryPoolEXT");
+					}
 				}
-				vulkanFunctions.vkGetPastPresentationTimingGOOGLE = (PFN_vkGetPastPresentationTimingGOOGLE_)vkGetDeviceProcAddr(devices[i], "vkGetPastPresentationTimingGOOGLE");
+
+				if (!vulkanFunctions.vkGetPastPresentationTimingGOOGLE) {
+					vulkanFunctions.vkGetPastPresentationTimingGOOGLE = (PFN_vkGetPastPresentationTimingGOOGLE_)vkGetDeviceProcAddr(devices[i], "vkGetPastPresentationTimingGOOGLE");
+				}
 			}
 #endif
+			if (!vulkanFunctions.vkResetQueryPool) {
+				OPTICK_FAILED("vkResetQueryPool must be enabled via VK_EXT_host_query_reset extension or Vulkan 1.2 hostQueryReset feature. Can't initialize GPU Profiler!");
+			}
 
 			VkPhysicalDeviceProperties properties = { 0 };
 			(*vulkanFunctions.vkGetPhysicalDeviceProperties)(physicalDevices[i], &properties);
-			if (!vulkanFunctions.vkResetQueryPool) {
-				OPTICK_FAILED("vkResetQueryPool must be enabled via VK_EXT_host_query_reset extension or Vulkan 1.2 hostQueryReset feature! Can't initialize GPU Profiler for device: " << properties.deviceName);
-			}
 			GPUProfiler::InitNode(properties.deviceName, i);
 
 			NodePayload* nodePayload = Memory::New<NodePayload>();
@@ -573,5 +579,5 @@ namespace Optick
 		OPTICK_FAILED("OPTICK_ENABLE_GPU_VULKAN is disabled! Can't initialize GPU Profiler!");
 	}
 }
-#endif //OPTICK_ENABLE_GPU_D3D12
+#endif //OPTICK_ENABLE_GPU_VULKAN
 #endif //USE_OPTICK
