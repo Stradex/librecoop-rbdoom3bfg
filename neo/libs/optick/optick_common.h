@@ -135,11 +135,7 @@ static const ProcessID INVALID_PROCESS_ID = (ProcessID)-1;
 // Asserts
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined(OPTICK_MSVC)
-#ifdef UNICODE
-	#define OPTICK_DEBUG_BREAK(description) OutputDebugString(L"Optick ERROR: " description L"\n"); __debugbreak()
-#else
-	#define OPTICK_DEBUG_BREAK(description) OutputDebugString("Optick ERROR: " description "\n"); __debugbreak()
-#endif
+	#define OPTICK_DEBUG_BREAK(description) OutputDebugString(TEXT("Optick ERROR: ") description TEXT("\n")); __debugbreak()
 #elif defined(OPTICK_GCC)
 #if __has_builtin(__builtin_debugtrap)
 	#define OPTICK_DEBUG_BREAK(description) std::cerr << "Optick ERROR: " << description << std::endl; __builtin_debugtrap()
