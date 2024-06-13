@@ -891,6 +891,27 @@ bool idStr::StripTrailingOnce( const char* string )
 
 /*
 ============
+idStr::IStripTrailingOnce
+============
+*/
+bool idStr::IStripTrailingOnce( const char* string )
+{
+	int l;
+
+	// RB: 64 bit fixes,  conversion from 'size_t' to 'int', possible loss of data
+	l = ( int )strlen( string );
+	// RB end
+	if( ( l > 0 ) && ( len >= l ) && !Icmpn( string, data + len - l, l ) )
+	{
+		len -= l;
+		data[len] = '\0';
+		return true;
+	}
+	return false;
+}
+
+/*
+============
 idStr::Replace
 ============
 */

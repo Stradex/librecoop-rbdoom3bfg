@@ -262,6 +262,7 @@ public:
 	void				StripTrailing( const char c );					// strip char from end as many times as the char occurs
 	void				StripTrailing( const char* string );			// strip string from end as many times as the string occurs
 	bool				StripTrailingOnce( const char* string );		// strip string from end just once if it occurs
+	bool				IStripTrailingOnce( const char* string );		// RB: case insensitive, strip string from end just once if it occurs
 	void				Strip( const char c );							// strip char from front and end as many times as the char occurs
 	void				Strip( const char* string );					// strip string from front and end as many times as the string occurs
 	void				StripTrailingWhitespace();				// strip trailing white space characters
