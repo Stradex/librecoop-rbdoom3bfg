@@ -130,6 +130,8 @@ If you have questions concerning this license or the applicable additional terms
 			#define CPUSTRING						"sparc"
 		#elif defined(__loongarch64)
 			#define CPUSTRING						"loongarch64"
+		#elif defined(__arm__)
+			#define CPUSTRING						"arm"
 		#else
 			#error unknown CPU
 		#endif
