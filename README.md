@@ -666,6 +666,7 @@ postLoadExportFlashAtlas               | Cvar: Set to 1 at startup to dump the F
 postLoadExportFlashToSWF               | Cvar: Set to 1 at startup to dump the Flash .bswf files as .swf (WIP)
 postLoadExportFlashToJSON              | Cvar: Set to 1 at startup to dump the Flash .bswf files as .json. Can be reimported into the engine and imported into Blender for inspection
 swf_show                               | Cvar: Draws the bounding box of instanced Flash sprites in red and their names
+makeMaterials `<folder>`               | Command: Make a .mtr file based on PBR naming conventions
 
 
 ---

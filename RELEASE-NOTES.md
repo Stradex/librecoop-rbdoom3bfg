@@ -19,6 +19,40 @@ TBD - RBDOOM-3-BFG 1.6.0
 _______________________________
 
 
+## .plan - June 14, 2024
+
+This is a preview build that solves several issues with TrenchBroom and the required convertMapToValve220 command.
+
+Light entities that have models get automatically grouped to new light groups and the models are moved to new func_static entities.
+Neither the vanilla Doom 3 ingame light editor which editLights is based on nor TrenchBroom supported editing those lights properly and this is the proper workaround to work with TrenchBroom's clean architecture where point entities can't have optional brushes/patches.
+
+Changelog:
+
+* Allow scalable models like in Quake 3 using modelscale/modelscale_vec keys in TrenchBroom
+
+* Support linked group instances by TrenchBroom
+
+* Restored internal envprobe fallback if map has no envprobes
+
+* Bumped savegame version for idLight::modelTarget
+
+* Split lights with brushes/patches into light groups for TrenchBroom
+
+* Fixed leaking problems when converting a map to the Valve 220 format
+
+* New makeMaterials `<folder>` cmd that generates a .mtr file based on PBR naming conventions
+
+* extractResourceFile copysound automatically converts .idwav files to .wav files in the ADPCM format
+
+* Added options "all" and "copysound" to extractResourceFile cmd
+
+* Save .bcanim files under generated/cameraanim/. close #866
+
+* Reduced Spam and crashes when r_useValidationLayers 2 was enabled (Thanks to Stephen Saunders)
+
+* Fixed crash with Vulkan when using the colorProcess shader (bathroom mirror horror effect)
+
+
 ## .plan - April 24, 2024
 
 Cudos to Stephen Saunders for most changes in this build. NVRHI was updated to the version on 25 February.
