@@ -452,6 +452,7 @@ if(OPTICK)
 endif()
 
 add_subdirectory(idlib)
+add_subdirectory(tools/compilers)
 
 file(GLOB NATVIS_SOURCES .natvis)
 

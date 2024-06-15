@@ -1712,6 +1712,8 @@ idFile_InZip
 =================================================================================
 */
 
+#if !defined( TYPEINFOPROJECT ) && !defined( DMAP )
+
 /*
 =================
 idFile_InZip::idFile_InZip
@@ -1872,7 +1874,7 @@ int idFile_InZip::Seek( long offset, fsOrigin_t origin )
 	return -1;
 }
 
-#if 1
+#endif
 
 /*
 =================================================================================
@@ -2003,7 +2005,6 @@ int idFile_InnerResource::Seek( long offset, fsOrigin_t origin )
 	}
 	return -1;
 }
-#endif
 
 /*
 ================================================================================================

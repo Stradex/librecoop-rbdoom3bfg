@@ -31,7 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <zlib.h>
 
 // DG: all the zip access stuff from minizip is now in minizip/zip.h
-#ifndef TYPEINFOPROJECT
+#if !defined( TYPEINFOPROJECT ) && !defined( DMAP )
 	#include "libs/zlib/minizip/zip.h"
 #endif
 
