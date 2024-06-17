@@ -38,7 +38,7 @@
 
 // RB: avoid problems with SourceAnnotations.h
 #define VERIFY_FORMAT_STRING
-#ifndef TYPEINFOPROJECT
+#if !defined( TYPEINFOPROJECT ) && !defined( DMAP )
 #include "idlib/sys/sys_defines.h"
 #endif
 

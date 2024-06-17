@@ -29,7 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 #include "precompiled.h"
 #pragma hdrstop
-#include "framework/Common_local.h"
+
 #include "DXTCodec_local.h"
 #include "DXTCodec.h"
 
@@ -956,7 +956,7 @@ void idDxtEncoder::CompressImageDXT1Fast_SSE2( const byte* inBuf, byte* outBuf, 
 
 	for( int j = 0; j < height; j += 4, inBuf += width * 4 * 4 )
 	{
-		commonLocal.LoadPacifierBinarizeProgressIncrement( width * 4 );
+		common->LoadPacifierBinarizeProgressIncrement( width * 4 );
 
 		for( int i = 0; i < width; i += 4 )
 		{
@@ -1019,7 +1019,7 @@ void idDxtEncoder::CompressImageDXT1AlphaFast_SSE2( const byte* inBuf, byte* out
 
 	for( int j = 0; j < height; j += 4, inBuf += width * 4 * 4 )
 	{
-		commonLocal.LoadPacifierBinarizeProgressIncrement( width * 4 );
+		common->LoadPacifierBinarizeProgressIncrement( width * 4 );
 		for( int i = 0; i < width; i += 4 )
 		{
 			ExtractBlock_SSE2( inBuf + i * 4, width, block );
@@ -1366,7 +1366,7 @@ void idDxtEncoder::CompressYCoCgDXT5Fast_SSE2( const byte* inBuf, byte* outBuf, 
 
 	for( int j = 0; j < height; j += 4, inBuf += width * 4 * 4 )
 	{
-		commonLocal.LoadPacifierBinarizeProgressIncrement( width * 4 );
+		common->LoadPacifierBinarizeProgressIncrement( width * 4 );
 
 		for( int i = 0; i < width; i += 4 )
 		{
@@ -1591,7 +1591,7 @@ void idDxtEncoder::CompressNormalMapDXT5Fast_SSE2( const byte* inBuf, byte* outB
 
 	for( int j = 0; j < height; j += 4, inBuf += width * 4 * 4 )
 	{
-		commonLocal.LoadPacifierBinarizeProgressIncrement( width * 4 );
+		common->LoadPacifierBinarizeProgressIncrement( width * 4 );
 
 		for( int i = 0; i < width; i += 4 )
 		{

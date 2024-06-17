@@ -445,6 +445,7 @@ void Dmap( const idCmdArgs& args )
 	common->Printf( "-----------------------\n" );
 	common->Printf( "%5.0f seconds for dmap\n", ( end - start ) * 0.001f );
 
+#if 0 // DMAP TODO
 	if( !leaked )
 	{
 		if( !noCM )
@@ -470,6 +471,7 @@ void Dmap( const idCmdArgs& args )
 			RunAAS_f( args );
 		}
 	}
+#endif
 
 	// free the common .map representation
 	delete dmapGlobals.dmapFile;
@@ -485,7 +487,6 @@ Dmap_f
 */
 void Dmap_f( const idCmdArgs& args )
 {
-
 	common->ClearWarnings( "running dmap" );
 
 	// refresh the screen each time we print so it doesn't look

@@ -340,6 +340,7 @@ else (RAPIDJSON_FOUND)
 endif (RAPIDJSON_FOUND)
 
 include_directories("libs/imgui")
+include_directories("libs/mikktspace")
 
 macro(SET_OPTION option value)
   set(${option} ${value} CACHE "" INTERNAL FORCE)

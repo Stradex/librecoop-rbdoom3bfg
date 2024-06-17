@@ -32,7 +32,62 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "RenderCommon.h"
 
-#include "libs/mikktspace/mikktspace.h"
+#include <mikktspace.h>
+
+idCVar r_useSilRemap( "r_useSilRemap", "1", CVAR_RENDERER | CVAR_BOOL, "consider verts with the same XYZ, but different ST the same for shadows" );
+
+#if defined( DMAP )
+/*
+==========================================================================================
+
+FONT-END STATIC MEMORY ALLOCATION
+
+==========================================================================================
+*/
+
+/*
+=================
+R_StaticAlloc
+=================
+*/
+void* R_StaticAlloc( int bytes, const memTag_t tag )
+{
+	//tr.pc.c_alloc++;
+
+	void* buf = Mem_Alloc( bytes, tag );
+
+	// don't exit on failure on zero length allocations since the old code didn't
+	if( buf == NULL && bytes != 0 )
+	{
+		common->FatalError( "R_StaticAlloc failed on %i bytes", bytes );
+	}
+	return buf;
+}
+
+/*
+=================
+R_ClearedStaticAlloc
+=================
+*/
+void* R_ClearedStaticAlloc( int bytes )
+{
+	void* buf = R_StaticAlloc( bytes );
+	memset( buf, 0, bytes );
+	return buf;
+}
+
+/*
+=================
+R_StaticFree
+=================
+*/
+void R_StaticFree( void* data )
+{
+	//tr.pc.c_free++;
+	Mem_Free( data );
+}
+
+#endif
 
 /*
 ==============================================================================
@@ -1392,7 +1447,9 @@ void R_DeriveTangents( srfTriangles_t* tri )
 		return;
 	}
 
+#if !defined( DMAP )
 	tr.pc.c_tangentIndexes += tri->numIndexes;
+#endif
 
 	if( tri->dominantTris != NULL )
 	{
@@ -1819,8 +1876,10 @@ Uploads static vertices to the vertex cache.
 */
 void R_CreateDeformStaticVertices( deformInfo_t* deform, nvrhi::ICommandList* commandList )
 {
+#if !defined( DMAP )
 	deform->staticAmbientCache = vertexCache.AllocStaticVertex( deform->verts, deform->numOutputVerts * sizeof( idDrawVert ), commandList );
 	deform->staticIndexCache = vertexCache.AllocStaticIndex( deform->indexes, deform->numIndexes * sizeof( triIndex_t ), commandList );
+#endif
 }
 
 /*
@@ -1895,6 +1954,8 @@ VERTEX / INDEX CACHING
 ===================================================================================
 */
 
+#if !defined( DMAP )
+
 /*
 ===================
 R_InitDrawSurfFromTri
@@ -1957,6 +2018,8 @@ void R_CreateStaticBuffersForTri( srfTriangles_t& tri, nvrhi::ICommandList* comm
 		tri.ambientCache = vertexCache.AllocStaticVertex( tri.verts, tri.numVerts * sizeof( tri.verts[0] ), commandList );
 	}
 }
+
+#endif
 
 // SP begin
 static void* mkAlloc( int bytes )

@@ -30,7 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 #include "precompiled.h"
 #pragma hdrstop
-#include "framework/Common_local.h"
+
 #include "DXTCodec_local.h"
 #include "DXTCodec.h"
 
@@ -2211,7 +2211,7 @@ void idDxtEncoder::CompressImageDXT1HQ( const byte* inBuf, byte* outBuf, int wid
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -2293,7 +2293,7 @@ void idDxtEncoder::CompressImageDXT5HQ( const byte* inBuf, byte* outBuf, int wid
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -2393,7 +2393,7 @@ void idDxtEncoder::CompressImageCTX1HQ( const byte* inBuf, byte* outBuf, int wid
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -2887,7 +2887,7 @@ void idDxtEncoder::CompressYCoCgDXT5HQ( const byte* inBuf, byte* outBuf, int wid
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 			ScaleYCoCg( block );
@@ -2994,7 +2994,7 @@ void idDxtEncoder::CompressYCoCgCTX1DXT5AHQ( const byte* inBuf, byte* outBuf, in
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -3143,7 +3143,7 @@ void idDxtEncoder::CompressNormalMapDXT1HQ( const byte* inBuf, byte* outBuf, int
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -3213,7 +3213,7 @@ void idDxtEncoder::CompressNormalMapDXT1RenormalizeHQ( const byte* inBuf, byte* 
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -3476,7 +3476,7 @@ void idDxtEncoder::CompressNormalMapDXT5HQ( const byte* inBuf, byte* outBuf, int
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -3588,7 +3588,7 @@ void idDxtEncoder::CompressNormalMapDXT5RenormalizeHQ( const byte* inBuf, byte* 
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -3675,7 +3675,7 @@ void idDxtEncoder::CompressNormalMapDXN2HQ( const byte* inBuf, byte* outBuf, int
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -4437,7 +4437,7 @@ void idDxtEncoder::CompressImageDXT1Fast_Generic( const byte* inBuf, byte* outBu
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -4482,7 +4482,7 @@ void idDxtEncoder::CompressImageDXT1AlphaFast_Generic( const byte* inBuf, byte* 
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -4536,7 +4536,7 @@ void idDxtEncoder::CompressImageDXT5Fast_Generic( const byte* inBuf, byte* outBu
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -4887,7 +4887,7 @@ void idDxtEncoder::CompressYCoCgDXT5Fast_Generic( const byte* inBuf, byte* outBu
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -4942,7 +4942,7 @@ void idDxtEncoder::CompressYCoCgAlphaDXT5Fast( const byte* inBuf, byte* outBuf, 
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -5010,7 +5010,7 @@ void idDxtEncoder::CompressYCoCgCTX1DXT5AFast_Generic( const byte* inBuf, byte* 
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -5204,7 +5204,7 @@ void idDxtEncoder::CompressNormalMapDXT5Fast_Generic( const byte* inBuf, byte* o
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -5253,7 +5253,7 @@ void idDxtEncoder::CompressImageDXN1Fast_Generic( const byte* inBuf, byte* outBu
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -5297,7 +5297,7 @@ void idDxtEncoder::CompressNormalMapDXN2Fast_Generic( const byte* inBuf, byte* o
 	{
 		for( int i = 0; i < width; i += 4 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			ExtractBlock( inBuf + i * 4, width, block );
 
@@ -5460,7 +5460,7 @@ void idDxtEncoder::ConvertNormalMapDXN2_DXT5( const byte* inBuf, byte* outBuf, i
 	{
 		for( int i = 0; i < width; i += 4, inBuf += 16, outBuf += 16 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			// decode normal Y stored as a DXT5 alpha channel
 			DecodeDXNAlphaValues( inBuf + 0, values );
@@ -5612,7 +5612,7 @@ void idDxtEncoder::ConvertNormalMapDXT5_DXN2( const byte* inBuf, byte* outBuf, i
 	{
 		for( int i = 0; i < width; i += 4, inBuf += 16, outBuf += 16 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			// decode normal Y stored as a DXT5 alpha channel
 			DecodeNormalYValues( inBuf + 8, minNormalY, maxNormalY, values );
@@ -5664,7 +5664,7 @@ void idDxtEncoder::ConvertImageDXN1_DXT1( const byte* inBuf, byte* outBuf, int w
 	{
 		for( int i = 0; i < width; i += 4, inBuf += 8, outBuf += 8 )
 		{
-			commonLocal.LoadPacifierBinarizeProgressIncrement( 16 );
+			common->LoadPacifierBinarizeProgressIncrement( 16 );
 
 			// decode single channel stored as a DXT5 alpha channel
 			DecodeDXNAlphaValues( inBuf + 0, values );

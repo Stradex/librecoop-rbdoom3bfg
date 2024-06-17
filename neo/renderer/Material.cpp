@@ -32,8 +32,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
-
 #include "RenderCommon.h"
+
+idCVar r_useConstantMaterials( "r_useConstantMaterials", "1", CVAR_RENDERER | CVAR_BOOL, "use pre-calculated material registers if possible" );
 
 /*
 
@@ -1767,8 +1768,10 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 					continue;
 				}
 			}
+#if !defined( DMAP )
 			ts->cinematic = idCinematic::Alloc();
 			ts->cinematic->InitFromFile( token.c_str(), loop, NULL );
+#endif
 			continue;
 		}
 
@@ -1779,8 +1782,10 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 				common->Warning( "missing parameter for 'soundmap' keyword in material '%s'", GetName() );
 				continue;
 			}
+#if !defined( DMAP )
 			ts->cinematic = new( TAG_MATERIAL ) idSndWindow();
 			ts->cinematic->InitFromFile( token.c_str(), true, NULL );
+#endif
 			continue;
 		}
 
@@ -2139,9 +2144,11 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		{
 			if( src.ReadTokenOnLine( &token ) )
 			{
+#if !defined( DMAP )
 				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" } };
 				newStage.vertexProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_VERTEX, "", macros, false );
 				newStage.fragmentProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_FRAGMENT, "", macros, false );
+#endif
 			}
 			continue;
 		}
@@ -2149,8 +2156,10 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		{
 			if( src.ReadTokenOnLine( &token ) )
 			{
+#if !defined( DMAP )
 				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" } };
 				newStage.fragmentProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_FRAGMENT, "", macros, false );
+#endif
 			}
 			continue;
 		}
@@ -2158,8 +2167,10 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		{
 			if( src.ReadTokenOnLine( &token ) )
 			{
+#if !defined( DMAP )
 				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" } };
 				newStage.vertexProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_VERTEX, "", macros, false );
+#endif
 			}
 			continue;
 		}
@@ -2202,7 +2213,9 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 	// if we are using newStage, allocate a copy of it
 	if( newStage.fragmentProgram || newStage.vertexProgram )
 	{
+#if !defined( DMAP )
 		newStage.glslProgram = renderProgManager.FindProgram( GetName(), newStage.vertexProgram, newStage.fragmentProgram, BINDING_LAYOUT_POST_PROCESS_INGAME );
+#endif
 		ss->newStage = ( newShaderStage_t* )Mem_Alloc( sizeof( newStage ), TAG_MATERIAL );
 		*( ss->newStage ) = newStage;
 	}
@@ -2777,7 +2790,9 @@ void idMaterial::ParseMaterial( idLexer& src )
 			}
 			else
 			{
+#if !defined( DMAP )
 				gui = uiManager->FindGui( token.c_str(), true );
+#endif
 			}
 			continue;
 		}
@@ -2975,7 +2990,9 @@ idMaterial::SetGui
 */
 void idMaterial::SetGui( const char* _gui ) const
 {
+#if !defined( DMAP )
 	gui = uiManager->FindGui( _gui, true, false, true );
+#endif
 }
 
 /*
@@ -3720,6 +3737,7 @@ const shaderStage_t* idMaterial::GetBumpStage() const
 idMaterial::ReloadImages
 ===================
 */
+#if !defined( DMAP )
 void idMaterial::ReloadImages( bool force, nvrhi::ICommandList* commandList ) const
 {
 	for( int i = 0 ; i < numStages ; i++ )
@@ -3740,6 +3758,7 @@ void idMaterial::ReloadImages( bool force, nvrhi::ICommandList* commandList ) co
 		}
 	}
 }
+#endif
 
 /*
 =============
@@ -3918,6 +3937,8 @@ class NWPrincipledPreferences(bpy.types.PropertyGroup):
         default='ao ambient occlusion',
         description='Naming Components for AO maps')
 */
+
+#if !defined( DMAP )
 
 // RB: completely rewritten from IcedTech1 and adjusted to generate PBR materials for typical asset store conventions
 // this also supports file suffices used by Blender's Node Wranger addon
@@ -4218,4 +4239,6 @@ CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures f
 
 	fileSystem->WriteFile( mtrName.c_str(), mtrBuffer.c_str(), mtrBuffer.Length(), "fs_basepath" );
 }
+
+#endif // #if !defined( DMAP )
 // RB end

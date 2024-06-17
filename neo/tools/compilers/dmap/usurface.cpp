@@ -758,6 +758,7 @@ void PutPrimitivesInAreas( uEntity_t* e )
 		}
 	}
 
+#if DMAP_INLINE_MODELS
 
 	// optionally inline some of the func_static models
 	if( dmapGlobals.entityNum == 0 )
@@ -831,6 +832,7 @@ void PutPrimitivesInAreas( uEntity_t* e )
 			}
 		}
 	}
+#endif
 }
 
 //============================================================================

@@ -32,15 +32,17 @@ If you have questions concerning this license or the applicable additional terms
 
 
 #include "RenderCommon.h"
-#include <sys/DeviceManager.h>
+
+#if !defined( DMAP )
+	#include <sys/DeviceManager.h>
+	extern DeviceManager* deviceManager;
+	extern idCVar r_vkUploadBufferSizeMB;
+#endif
 
 // do this with a pointer, in case we want to make the actual manager
 // a private virtual subclass
 idImageManager	imageManager;
 idImageManager* globalImages = &imageManager;
-
-extern DeviceManager* deviceManager;
-extern idCVar r_vkUploadBufferSizeMB;
 
 idCVar preLoad_Images( "preLoad_Images", "1", CVAR_SYSTEM | CVAR_BOOL, "preload images during beginlevelload" );
 
@@ -56,6 +58,7 @@ New r_texturesize/r_texturedepth variables will take effect on reload
 reloadImages <all>
 ===============
 */
+#if !defined( DMAP )
 void R_ReloadImages_f( const idCmdArgs& args )
 {
 	bool all = false;
@@ -81,6 +84,7 @@ void R_ReloadImages_f( const idCmdArgs& args )
 	// Images (including the framebuffer images) were reloaded, reinitialize the framebuffers.
 	Framebuffer::ResizeFramebuffers();
 }
+#endif
 
 typedef struct
 {
@@ -756,9 +760,11 @@ void idImageManager::Init()
 	images.Resize( 1024, 1024 );
 	imageHash.ResizeIndex( 1024 );
 
+#if !defined( DMAP )
 	CreateIntrinsicImages();
 
 	cmdSystem->AddCommand( "reloadImages", R_ReloadImages_f, CMD_FL_RENDERER, "reloads images" );
+#endif
 	cmdSystem->AddCommand( "listImages", R_ListImages_f, CMD_FL_RENDERER, "lists images" );
 	cmdSystem->AddCommand( "combineCubeImages", R_CombineCubeImages_f, CMD_FL_RENDERER, "combines six images for roq compression" );
 
@@ -877,6 +883,7 @@ void idImageManager::Preload( const idPreloadManifest& manifest, const bool& map
 idImageManager::LoadLevelImages
 ===============
 */
+#if !defined( DMAP )
 int idImageManager::LoadLevelImages( bool pacifier )
 {
 	if( !commandList )
@@ -923,12 +930,14 @@ int idImageManager::LoadLevelImages( bool pacifier )
 
 	return loadCount;
 }
+#endif
 
 /*
 ===============
 idImageManager::EndLevelLoad
 ===============
 */
+#if !defined( DMAP )
 void idImageManager::EndLevelLoad()
 {
 	insideLevelLoad = false;
@@ -942,6 +951,7 @@ void idImageManager::EndLevelLoad()
 	idLib::Printf( "----------------------------------------\n" );
 	//R_ListImages_f( idCmdArgs( "sorted sorted", false ) );
 }
+#endif
 
 /*
 ===============
@@ -1002,6 +1012,7 @@ void idImageManager::PrintMemInfo( MemInfo_t* mi )
 
 void idImageManager::LoadDeferredImages( nvrhi::ICommandList* _commandList )
 {
+#if !defined( DMAP )
 	if( !commandList )
 	{
 		nvrhi::CommandListParameters params = {};
@@ -1027,12 +1038,23 @@ void idImageManager::LoadDeferredImages( nvrhi::ICommandList* _commandList )
 		// This is a "deferred" load of textures to the gpu.
 		globalImages->imagesToLoad[i]->FinalizeImage( false, thisCmdList );
 	}
+#else
+	for( int i = 0; i < globalImages->imagesToLoad.Num(); i++ )
+	{
+		// This is a "deferred" load of textures to the gpu.
+		globalImages->imagesToLoad[i]->FinalizeImage( false, NULL );
+	}
+#endif
 
+
+
+#if !defined( DMAP )
 	if( !_commandList )
 	{
 		thisCmdList->close();
 		deviceManager->GetDevice()->executeCommandList( thisCmdList );
 	}
+#endif
 
 	globalImages->imagesToLoad.Clear();
 }

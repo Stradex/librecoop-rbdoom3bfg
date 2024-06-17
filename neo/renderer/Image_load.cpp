@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2021 Robert Beckebans
+Copyright (C) 2013-2024 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 Copyright (C) 2016-2017 Dustin Land
 Copyright (C) 2022 Stephen Pridham
@@ -33,7 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
-#include "framework/Common_local.h"
+#include "../framework/Common_local.h"
 #include "RenderCommon.h"
 
 /*
@@ -592,7 +592,7 @@ void idImage::FinalizeImage( bool fromBackEnd, nvrhi::ICommandList* commandList 
 				idTempArray<byte> clear( opts.width * opts.height * 4 );
 				memset( clear.Ptr(), 0, clear.Size() );
 
-#if defined( USE_NVRHI )
+#if defined( USE_NVRHI ) && !defined( DMAP )
 				const nvrhi::FormatInfo& info = nvrhi::getFormatInfo( texture->getDesc().format );
 
 				commandList->beginTrackingTextureState( texture, nvrhi::AllSubresources, nvrhi::ResourceStates::Common );
@@ -603,10 +603,12 @@ void idImage::FinalizeImage( bool fromBackEnd, nvrhi::ICommandList* commandList 
 				commandList->setPermanentTextureState( texture, nvrhi::ResourceStates::ShaderResource );
 				commandList->commitBarriers();
 #else
+				/*
 				for( int level = 0; level < opts.numLevels; level++ )
 				{
 					SubImageUpload( level, 0, 0, 0, opts.width >> level, opts.height >> level, clear.Ptr() );
 				}
+				*/
 #endif
 				isLoaded = true;
 				return;
@@ -673,7 +675,7 @@ void idImage::FinalizeImage( bool fromBackEnd, nvrhi::ICommandList* commandList 
 
 	AllocImage();
 
-#if defined( USE_NVRHI )
+#if defined( USE_NVRHI ) && !defined( DMAP )
 	const nvrhi::FormatInfo& info = nvrhi::getFormatInfo( texture->getDesc().format );
 	const int bytesPerPixel = info.bytesPerBlock / info.blockSize;
 
@@ -727,12 +729,14 @@ void idImage::FinalizeImage( bool fromBackEnd, nvrhi::ICommandList* commandList 
 	commandList->setPermanentTextureState( texture, nvrhi::ResourceStates::ShaderResource );
 	commandList->commitBarriers();
 #else
+	/*
 	for( int i = 0; i < im.NumImages(); i++ )
 	{
 		const bimageImage_t& img = im.GetImageHeader( i );
 		const byte* data = im.GetImageData( i );
 		SubImageUpload( img.level, 0, 0, img.destZ, img.width, img.height, data );
 	}
+	*/
 #endif
 
 	isLoaded = true;
@@ -994,7 +998,7 @@ void idImage::GenerateImage( const byte* pic, int width, int height, textureFilt
 
 		AllocImage();
 
-#if defined( USE_NVRHI )
+#if defined( USE_NVRHI ) && !defined( DMAP )
 		if( commandList )
 		{
 			const nvrhi::FormatInfo& info = nvrhi::getFormatInfo( texture->getDesc().format );
@@ -1015,12 +1019,14 @@ void idImage::GenerateImage( const byte* pic, int width, int height, textureFilt
 			commandList->commitBarriers();
 		}
 #else
+		/*
 		for( int i = 0; i < im.NumImages(); i++ )
 		{
 			const bimageImage_t& img = im.GetImageHeader( i );
 			const byte* data = im.GetImageData( i );
 			SubImageUpload( img.level, 0, 0, img.destZ, img.width, img.height, data );
 		}
+		*/
 #endif
 
 		isLoaded = true;
@@ -1054,10 +1060,12 @@ void idImage::GenerateCubeImage( const byte* pic[6], int size, textureFilter_t f
 	// have filled in the parms.  We must have the values set, or
 	// an image match from a shader before the render starts would miss
 	// the generated texture
+#if !defined( DMAP )
 	if( !tr.IsInitialized() )
 	{
 		return;
 	}
+#endif
 
 	idBinaryImage im( GetName() );
 
@@ -1078,7 +1086,7 @@ void idImage::GenerateCubeImage( const byte* pic[6], int size, textureFilter_t f
 
 	AllocImage();
 
-#if defined( USE_NVRHI )
+#if defined( USE_NVRHI ) && !defined( DMAP )
 	int numChannels = 4;
 	int bytesPerPixel = numChannels;
 	if( opts.format == FMT_ALPHA || opts.format == FMT_DXT1 || opts.format == FMT_INT8 || opts.format == FMT_R8 )
@@ -1102,13 +1110,14 @@ void idImage::GenerateCubeImage( const byte* pic[6], int size, textureFilter_t f
 	commandList->setPermanentTextureState( texture, nvrhi::ResourceStates::ShaderResource );
 	commandList->commitBarriers();
 #else
-
+	/*
 	for( int i = 0; i < im.NumImages(); i++ )
 	{
 		const bimageImage_t& img = im.GetImageHeader( i );
 		const byte* data = im.GetImageData( i );
 		SubImageUpload( img.level, 0, 0, img.destZ, img.width, img.height, data );
 	}
+	*/
 #endif
 
 	isLoaded = true;
@@ -1150,6 +1159,8 @@ if rows = cols * 6, assume it is a cube map animation
 */
 void idImage::UploadScratch( const byte* data, int cols, int rows, nvrhi::ICommandList* commandList )
 {
+#if !defined( DMAP )
+
 	// if rows = cols * 6, assume it is a cube map animation
 	if( rows == cols * 6 )
 	{
@@ -1204,10 +1215,12 @@ void idImage::UploadScratch( const byte* data, int cols, int rows, nvrhi::IComma
 		commandList->setPermanentTextureState( texture, nvrhi::ResourceStates::ShaderResource );
 		commandList->commitBarriers();
 #else
+		/*
 		for( int i = 0; i < 6; i++ )
 		{
 			SubImageUpload( 0, 0, 0, i, opts.width, opts.height, pic[i] );
 		}
+		*/
 #endif
 	}
 	else
@@ -1269,4 +1282,6 @@ void idImage::UploadScratch( const byte* data, int cols, int rows, nvrhi::IComma
 	}
 
 	isLoaded = true;
+
+#endif
 }

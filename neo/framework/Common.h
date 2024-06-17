@@ -349,6 +349,14 @@ public:
 	virtual void				SwitchToGame( currentGame_t newGame ) = 0;
 #endif
 	// RB end
+
+	virtual void				LoadPacifierBinarizeFilename( const char* filename, const char* reason ) = 0;
+	virtual void				LoadPacifierBinarizeInfo( const char* info ) = 0;
+	virtual void				LoadPacifierBinarizeMiplevel( int level, int maxLevel ) = 0;
+	virtual void				LoadPacifierBinarizeProgress( float progress ) = 0;
+	virtual void				LoadPacifierBinarizeEnd() = 0;
+	virtual void				LoadPacifierBinarizeProgressTotal( int total ) = 0;
+	virtual void				LoadPacifierBinarizeProgressIncrement( int step ) = 0;
 };
 
 extern idCommon* 		common;

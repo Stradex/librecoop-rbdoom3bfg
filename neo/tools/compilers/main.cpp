@@ -1,3 +1,31 @@
+/*
+===========================================================================
+
+Doom 3 GPL Source Code
+Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.
+
+This file is part of the Doom 3 GPL Source Code (?Doom 3 Source Code?).
+
+Doom 3 Source Code is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Doom 3 Source Code is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Doom 3 Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, the Doom 3 Source Code is also subject to certain additional terms. You should have received a copy of these additional terms immediately following the terms and conditions of the GNU General Public License which accompanied the Doom 3 Source Code.  If not, please request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
+
+===========================================================================
+*/
+
 #include "precompiled.h"
 #include "../sys/sys_local.h"
 #include "../framework/EventLoop.h"
@@ -20,6 +48,15 @@ idSys* sys = NULL;
 	va_end( argptr )
 
 idCVar com_productionMode( "com_productionMode", "0", CVAR_SYSTEM | CVAR_BOOL, "0 - no special behavior, 1 - building a production build, 2 - running a production build" );
+
+
+/*
+==============================================================
+
+	idSys
+
+==============================================================
+*/
 
 
 /*
@@ -224,6 +261,14 @@ int Sys_Milliseconds()
 	static DWORD sys_timeBase = timeGetTime();
 	return timeGetTime() - sys_timeBase;
 }
+
+/*
+==============================================================
+
+	idCommon
+
+==============================================================
+*/
 
 class idCommonLocal : public idCommon
 {
@@ -458,7 +503,49 @@ public:
 	//	return DOOM_CLASSIC;
 	//};
 	//virtual void				SwitchToGame(currentGame_t newGame) { };
+
+	void LoadPacifierBinarizeFilename( const char* filename, const char* reason ) { };
+	void LoadPacifierBinarizeInfo( const char* info ) { };
+	void LoadPacifierBinarizeMiplevel( int level, int maxLevel ) { };
+	void LoadPacifierBinarizeProgress( float progress ) { };
+	void LoadPacifierBinarizeEnd() { };
+	// for images in particular we can measure more accurately this way (to deal with mipmaps)
+	void LoadPacifierBinarizeProgressTotal( int total ) { };
+	void LoadPacifierBinarizeProgressIncrement( int step ) { };
 };
+
+//idCVar com_developer( "developer", "0", CVAR_BOOL|CVAR_SYSTEM, "developer mode" );
 
 idCommonLocal		commonLocal;
 idCommon* common = &commonLocal;
+
+
+/*
+==============================================================
+
+	main
+
+==============================================================
+*/
+
+int main( int argc, char** argv )
+{
+	idLib::common = common;
+	idLib::cvarSystem = cvarSystem;
+	idLib::fileSystem = fileSystem;
+	idLib::sys = sys;
+
+	idLib::Init();
+	cmdSystem->Init();
+	cvarSystem->Init();
+	idCVar::RegisterStaticVars();
+	fileSystem->Init();
+
+	idCmdArgs args;
+	for( int i = 0; i < argc; i++ )
+	{
+		args.AppendArg( argv[i] );
+	}
+
+	Dmap_f( args );
+}

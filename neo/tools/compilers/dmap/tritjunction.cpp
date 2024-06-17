@@ -662,6 +662,7 @@ void	FixGlobalTjunctions( uEntity_t* e )
 		}
 	}
 
+#if DMAP_INLINE_MODELS
 	// add all the func_static model vertexes to the hash buckets
 	// optionally inline some of the func_static models
 	if( dmapGlobals.entityNum == 0 )
@@ -728,8 +729,7 @@ void	FixGlobalTjunctions( uEntity_t* e )
 			}
 		}
 	}
-
-
+#endif
 
 	// now fix each area
 	for( areaNum = 0 ; areaNum < e->numAreas ; areaNum++ )

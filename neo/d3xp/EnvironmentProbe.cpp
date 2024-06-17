@@ -69,7 +69,7 @@ END_CLASS
 
 /*
 ================
-idGameEdit::ParseSpawnArgsToRenderLight
+idGameEdit::ParseSpawnArgsToRenderEnvprobe
 
 parse the light parameters
 this is the canonical renderLight parm parsing,
