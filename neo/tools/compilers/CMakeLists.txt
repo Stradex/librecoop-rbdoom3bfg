@@ -27,6 +27,7 @@ set(BSPT_FRAMEWORK_INCLUDES
 	../../framework/File_Resource.h
 	../../framework/FileSystem.h
 	../../framework/Licensee.h
+	../../framework/DeclManager.h
 	../../framework/DeclTable.h
 	../../idlib/precompiled.h
 	)
@@ -37,6 +38,7 @@ set(BSPT_FRAMEWORK_SOURCES
 	../../framework/File_Manifest.cpp
 	../../framework/File_Resource.cpp
 	../../framework/FileSystem.cpp
+	../../framework/DeclManager.cpp
 	../../framework/DeclTable.cpp
 	)
 

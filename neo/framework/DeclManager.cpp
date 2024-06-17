@@ -29,10 +29,13 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "precompiled.h"
 #pragma hdrstop
-#include "../renderer/Image.h"
-#include "../renderer/DXT/DXTCodec.h"
-#include "../renderer/Color/ColorSpace.h"
-#include "../renderer/CmdlineProgressbar.h"
+
+#if !defined( DMAP )
+	#include "../renderer/Image.h"
+	#include "../renderer/DXT/DXTCodec.h"
+	#include "../renderer/Color/ColorSpace.h"
+	#include "../renderer/CmdlineProgressbar.h"
+#endif
 
 /*
 
@@ -218,12 +221,15 @@ public:
 	virtual void				WritePrecacheCommands( idFile* f );
 
 	virtual const idMaterial* 		FindMaterial( const char* name, bool makeDefault = true );
-	virtual const idDeclSkin* 		FindSkin( const char* name, bool makeDefault = true );
-	virtual const idSoundShader* 	FindSound( const char* name, bool makeDefault = true );
-
 	virtual const idMaterial* 		MaterialByIndex( int index, bool forceParse = true );
+
+#if !defined( DMAP )
+	virtual const idDeclSkin* 		FindSkin( const char* name, bool makeDefault = true );
 	virtual const idDeclSkin* 		SkinByIndex( int index, bool forceParse = true );
+
+	virtual const idSoundShader* 	FindSound( const char* name, bool makeDefault = true );
 	virtual const idSoundShader* 	SoundByIndex( int index, bool forceParse = true );
+#endif
 
 	virtual void					Touch( const idDecl* decl );
 
@@ -895,7 +901,6 @@ idDeclManagerLocal::Init
 */
 void idDeclManagerLocal::Init()
 {
-
 	common->Printf( "----- Initializing Decls -----\n" );
 
 	checksum = 0;
@@ -911,6 +916,8 @@ void idDeclManagerLocal::Init()
 	// decls used throughout the engine
 	RegisterDeclType( "table",				DECL_TABLE,			idDeclAllocator<idDeclTable> );
 	RegisterDeclType( "material",			DECL_MATERIAL,		idDeclAllocator<idMaterial> );
+
+#if !defined( DMAP )
 	RegisterDeclType( "skin",				DECL_SKIN,			idDeclAllocator<idDeclSkin> );
 	RegisterDeclType( "sound",				DECL_SOUND,			idDeclAllocator<idSoundShader> );
 
@@ -923,9 +930,11 @@ void idDeclManagerLocal::Init()
 	RegisterDeclType( "email",				DECL_EMAIL,			idDeclAllocator<idDeclEmail> );
 	RegisterDeclType( "video",				DECL_VIDEO,			idDeclAllocator<idDeclVideo> );
 	RegisterDeclType( "audio",				DECL_AUDIO,			idDeclAllocator<idDeclAudio> );
+#endif
 
 	RegisterDeclFolder( "materials",		".mtr",				DECL_MATERIAL );
 
+#if !defined( DMAP )
 	// add console commands
 	cmdSystem->AddCommand( "listDecls", ListDecls_f, CMD_FL_SYSTEM, "lists all decls" );
 
@@ -974,6 +983,7 @@ void idDeclManagerLocal::Init()
 	cmdSystem->AddCommand( "exportImagesToTrenchBroom", ExportImagesToTrenchBroom_f, CMD_FL_SYSTEM, "exports all generated bimages to _tb/*.png" );
 
 	cmdSystem->AddCommand( "makeZooMapForModels", MakeZooMapForModels_f, CMD_FL_SYSTEM, "make a Source engine style zoo map with all generated models like .blwo, .base, .bmd5mesh et cetera" );
+#endif
 	// RB end
 
 	common->Printf( "------------------------------\n" );
@@ -1781,6 +1791,8 @@ const idMaterial* idDeclManagerLocal::MaterialByIndex( int index, bool forcePars
 	return static_cast<const idMaterial*>( DeclByIndex( DECL_MATERIAL, index, forceParse ) );
 }
 
+#if !defined( DMAP )
+
 /********************************************************************/
 
 const idDeclSkin* idDeclManagerLocal::FindSkin( const char* name, bool makeDefault )
@@ -1804,6 +1816,8 @@ const idSoundShader* idDeclManagerLocal::SoundByIndex( int index, bool forcePars
 {
 	return static_cast<const idSoundShader*>( DeclByIndex( DECL_SOUND, index, forceParse ) );
 }
+
+#endif
 
 /*
 ===================
@@ -1978,6 +1992,8 @@ void idDeclManagerLocal::TouchDecl_f( const idCmdArgs& args )
 }
 
 // RB begin
+#if !defined( DMAP )
+
 void idDeclManagerLocal::ExportEntityDefsToBlender_f( const idCmdArgs& args )
 {
 	idStr jsonStringsFileName = "_bl/entities.json";
@@ -4083,6 +4099,9 @@ void idDeclManagerLocal::MakeZooMapForModels_f( const idCmdArgs& args )
 	common->Printf( "Wrote %d Entities in %d Groups and %d Cateogories\n", totalEntitiesCount, entitiesPerFolder.Num(), categories.Num() );
 }
 // RB  end
+
+
+#endif // #if !defined( DMAP )
 
 /*
 ===================

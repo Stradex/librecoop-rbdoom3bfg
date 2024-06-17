@@ -35,7 +35,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <io.h>
 
 idEventLoop* eventLoop;
-idDeclManager* declManager;
+//idDeclManager* declManager;
 idSys* sys = NULL;
 
 #define STDIO_PRINT( pre, post )	\
@@ -540,6 +540,7 @@ int main( int argc, char** argv )
 	cvarSystem->Init();
 	idCVar::RegisterStaticVars();
 	fileSystem->Init();
+	declManager->Init();
 
 	idCmdArgs args;
 	for( int i = 0; i < argc; i++ )
