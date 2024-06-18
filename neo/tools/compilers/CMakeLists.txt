@@ -47,7 +47,14 @@ set(BSPT_RENDERER_INCLUDES
 	../../renderer/Color/ColorSpace.h
 	../../renderer/Image.h
 	../../renderer/Material.h
-	../../renderer/VertexCache.h
+	#../../renderer/VertexCache.h
+	../../renderer/ModelManager.h
+	../../renderer/Model.h
+	../../renderer/Model_gltf.h
+	../../renderer/Model_ase.h
+	../../renderer/Model_lwo.h
+	../../renderer/Model_ma.h
+	../../renderer/Model_obj.h
 	)
 set(BSPT_RENDERER_SOURCES
 	../../renderer/BinaryImage.cpp
@@ -65,6 +72,14 @@ set(BSPT_RENDERER_SOURCES
 	../../renderer/Material.cpp
 	../../renderer/tr_trisurf.cpp
 	#../../renderer/VertexCache.cpp
+	../../renderer/ModelManager.cpp
+	../../renderer/Model.cpp
+	../../renderer/Model_gltf.cpp
+	#../../renderer/Model_md5.cpp
+	../../renderer/Model_ase.cpp
+	../../renderer/Model_lwo.cpp
+	../../renderer/Model_ma.cpp
+	../../renderer/Model_obj.cpp
 	)
 	
 file(GLOB MIKKTSPACE_INCLUDES ../../libs/mikktspace/*.h)

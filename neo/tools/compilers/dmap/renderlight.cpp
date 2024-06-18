@@ -342,5 +342,15 @@ void R_FreeLightDefDerivedData( idRenderLightLocal* ldef )
 	ldef->references = NULL;
 }
 
+/*
+===================
+R_CheckForEntityDefsUsingModel
+===================
+*/
+void R_CheckForEntityDefsUsingModel( idRenderModel* model )
+{
+	// STUB
+}
+
 #endif
 

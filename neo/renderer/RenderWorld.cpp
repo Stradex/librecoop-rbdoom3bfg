@@ -2604,7 +2604,6 @@ R_RemapShaderBySkin
 */
 const idMaterial* R_RemapShaderBySkin( const idMaterial* shader, const idDeclSkin* skin, const idMaterial* customShader )
 {
-
 	if( !shader )
 	{
 		return NULL;

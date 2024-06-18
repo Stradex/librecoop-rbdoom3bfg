@@ -36,8 +36,12 @@ If you have questions concerning this license or the applicable additional terms
 #include "RenderCommon.h"
 
 // HVG_TODO: this has to be moved out before release
-#include "d3xp/anim/Anim.h"
-#include "d3xp/Game_local.h"
+#if !defined( DMAP )
+	#include "d3xp/anim/Anim.h"
+	#include "d3xp/Game_local.h"
+#endif
+
+idCVar r_useCachedDynamicModels( "r_useCachedDynamicModels", "1", CVAR_RENDERER | CVAR_BOOL, "cache snapshots of dynamic models" );
 
 idCVar gltf_ForceBspMeshTexture( "gltf_ForceBspMeshTexture", "0", CVAR_SYSTEM | CVAR_BOOL, "all world geometry has the same forced texture" );
 idCVar gltf_ModelSceneName( "gltf_ModelSceneName", "Scene", CVAR_SYSTEM , "Scene to use when loading specific models" );
@@ -875,6 +879,7 @@ void idRenderModelGLTF::UpdateMd5Joints()
 
 void idRenderModelGLTF::DrawJoints( const struct renderEntity_s* ent, const viewDef_t* view )
 {
+#if !defined( DMAP )
 	int					i;
 	int					num;
 	idVec3				pos;
@@ -918,78 +923,7 @@ void idRenderModelGLTF::DrawJoints( const struct renderEntity_s* ent, const view
 			common->RW()->DrawText( md5joints[i].name, pos + offset, scale, colorWhite, view->renderView.viewaxis, 1 );
 		}
 	}
-}
-
-static bool GatherBoneInfo( gltfData* data, gltfAnimation* gltfAnim, idList<int, TAG_MODEL>& bones, idList<jointAnimInfo_t, TAG_MD5_ANIM>& jointInfo , gltfSkin* skin,  const idImportOptions* options )
-{
-	bool boneLess = false;
-	int targetNode = lastMeshFromFile->GetRootID();
-
-	auto targets = data->GetAnimTargets( gltfAnim );
-	auto& nodeList = data->NodeList();
-	if( skin == nullptr )
-	{
-		boneLess = true;
-	}
-
-	// we cant be sure channels are sorted by bone?
-	if( !boneLess )
-	{
-		if( skin == nullptr )
-		{
-			skin = data->GetSkin( targetNode );
-		}
-		assert( skin );
-
-		// armature node is origin/root bone
-		//bones.Append( skin->skeleton );
-
-		// skeleton bones
-		bones.Append( skin->joints );
-	}
-	else
-	{
-		bones.Append( targetNode );
-	}
-
-	if( options )
-	{
-		if( options->keepjoints.Num() )
-		{
-			KeepNodes( data, options->keepjoints, bones );
-		}
-
-		if( options->addOrigin )
-		{
-			gltfNode* armatureNode = data->NodeList()[bones[0]]->parent;
-			AddOriginBone( data, bones, armatureNode );
-		}
-
-		if( options->remapjoints.Num() )
-		{
-			RemapNodes( data, options->remapjoints, bones );
-		}
-
-		if( options->renamejoints.Num() )
-		{
-			RenameNodes( data, options->renamejoints, bones );
-		}
-	}
-
-	// create jointInfo
-	jointInfo.SetGranularity( 1 );
-	jointInfo.SetNum( bones.Num() );
-	int idx = 0;
-	for( auto& joint : jointInfo )
-	{
-		joint.animBits = ~63;
-		joint.firstComponent = -1;
-
-		const char* name = nodeList[bones[idx++]]->name.c_str();
-		joint.nameIndex = animationLib.JointIndex( name );
-	}
-
-	return boneLess;
+#endif
 }
 
 static idList<idJointQuat> GetPose( idList<gltfNode>& bones, idJointMat* poseMat, const idMat4& globalTransform )
@@ -1069,6 +1003,80 @@ static int CopyBones( gltfData* data, const idList<int>& bones, idList<gltfNode>
 	}
 
 	return out.Num();
+}
+
+#if !defined( DMAP )
+
+static bool GatherBoneInfo( gltfData* data, gltfAnimation* gltfAnim, idList<int, TAG_MODEL>& bones, idList<jointAnimInfo_t, TAG_MD5_ANIM>& jointInfo , gltfSkin* skin,  const idImportOptions* options )
+{
+	bool boneLess = false;
+	int targetNode = lastMeshFromFile->GetRootID();
+
+	auto targets = data->GetAnimTargets( gltfAnim );
+	auto& nodeList = data->NodeList();
+	if( skin == nullptr )
+	{
+		boneLess = true;
+	}
+
+	// we cant be sure channels are sorted by bone?
+	if( !boneLess )
+	{
+		if( skin == nullptr )
+		{
+			skin = data->GetSkin( targetNode );
+		}
+		assert( skin );
+
+		// armature node is origin/root bone
+		//bones.Append( skin->skeleton );
+
+		// skeleton bones
+		bones.Append( skin->joints );
+	}
+	else
+	{
+		bones.Append( targetNode );
+	}
+
+	if( options )
+	{
+		if( options->keepjoints.Num() )
+		{
+			KeepNodes( data, options->keepjoints, bones );
+		}
+
+		if( options->addOrigin )
+		{
+			gltfNode* armatureNode = data->NodeList()[bones[0]]->parent;
+			AddOriginBone( data, bones, armatureNode );
+		}
+
+		if( options->remapjoints.Num() )
+		{
+			RemapNodes( data, options->remapjoints, bones );
+		}
+
+		if( options->renamejoints.Num() )
+		{
+			RenameNodes( data, options->renamejoints, bones );
+		}
+	}
+
+	// create jointInfo
+	jointInfo.SetGranularity( 1 );
+	jointInfo.SetNum( bones.Num() );
+	int idx = 0;
+	for( auto& joint : jointInfo )
+	{
+		joint.animBits = ~63;
+		joint.firstComponent = -1;
+
+		const char* name = nodeList[bones[idx++]]->name.c_str();
+		joint.nameIndex = animationLib.JointIndex( name );
+	}
+
+	return boneLess;
 }
 
 idFile_Memory* idRenderModelGLTF::GetAnimBin( const idStr& animName, const ID_TIME_T sourceTimeStamp, const idImportOptions* options )
@@ -1620,6 +1628,8 @@ idFile_Memory* idRenderModelGLTF::GetAnimBin( const idStr& animName, const ID_TI
 	return file;
 }
 
+#endif // #if !defined( DMAP )
+
 void idRenderModelGLTF::WriteBinaryModel( idFile* file, ID_TIME_T* _timeStamp /*= NULL */ ) const
 {
 	idRenderModelStatic::WriteBinaryModel( file , _timeStamp );
@@ -1881,6 +1891,7 @@ void idRenderModelGLTF::UpdateSurface( const struct renderEntity_s* ent, const i
 
 	idList<int> jointIds;
 
+#if !defined( DMAP )
 	if( r_useGPUSkinning.GetBool() )
 	{
 		if( tri->verts != NULL && tri->verts != verts )
@@ -1892,6 +1903,7 @@ void idRenderModelGLTF::UpdateSurface( const struct renderEntity_s* ent, const i
 		tri->referencedVerts = true;
 	}
 	else
+#endif
 	{
 		if( tri->verts == NULL || tri->verts == verts )
 		{
@@ -2058,6 +2070,9 @@ static void TransformJointsFast( idJointMat* __restrict outJoints, const int num
 
 idRenderModel* idRenderModelGLTF::InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel )
 {
+#if defined( DMAP )
+	return NULL;
+#else
 	if( cachedModel != NULL && !r_useCachedDynamicModels.GetBool() )
 	{
 		delete cachedModel;
@@ -2099,6 +2114,7 @@ idRenderModel* idRenderModelGLTF::InstantiateDynamicModel( const struct renderEn
 
 	staticModel->bounds.Clear();
 
+#if !defined( DMAP )
 	if( r_showSkel.GetInteger() )
 	{
 		if( ( view != NULL ) && ( !r_skipSuppress.GetBool() || !ent->suppressSurfaceInViewID || ( ent->suppressSurfaceInViewID != view->renderView.viewID ) ) )
@@ -2114,6 +2130,7 @@ idRenderModel* idRenderModelGLTF::InstantiateDynamicModel( const struct renderEn
 			return staticModel;
 		}
 	}
+#endif
 
 	// update the GPU joints array
 	const int numInvertedJoints = SIMD_ROUND_JOINTS( md5joints.Num() );
@@ -2160,6 +2177,7 @@ idRenderModel* idRenderModelGLTF::InstantiateDynamicModel( const struct renderEn
 	}
 
 	return staticModel;
+#endif
 }
 
 int idRenderModelGLTF::NumJoints() const

@@ -675,14 +675,23 @@ void	FixGlobalTjunctions( uEntity_t* e )
 			{
 				continue;
 			}
-			const char* modelName = entity->mapEntity->epairs.GetString( "model" );
-			if( !modelName )
+			idStrStatic< MAX_OSPATH > modelName = entity->mapEntity->epairs.GetString( "model" );
+			if( modelName.IsEmpty() )
 			{
 				continue;
 			}
 
-			// RB: DAE and OBJ support
-			if( !strstr( modelName, ".lwo" ) && !strstr( modelName, ".ase" ) && !strstr( modelName, ".ma" ) && !strstr( modelName, ".dae" ) && !strstr( modelName, ".obj" ) )
+			idStrStatic< MAX_OSPATH > extension;
+			modelName.ExtractFileExtension( extension );
+
+			// RB: glTF2 and OBJ support
+			bool isGLTF = false;
+			if( ( extension.Icmp( GLTF_GLB_EXT ) == 0 ) || ( extension.Icmp( GLTF_EXT ) == 0 ) )
+			{
+				isGLTF = true;
+			}
+
+			if( !isGLTF && !strstr( modelName, ".lwo" ) && !strstr( modelName, ".ase" ) && !strstr( modelName, ".ma" ) && !strstr( modelName, ".obj" ) )
 			{
 				continue;
 			}
