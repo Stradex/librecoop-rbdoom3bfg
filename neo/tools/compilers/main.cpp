@@ -35,20 +35,24 @@ If you have questions concerning this license or the applicable additional terms
 #include <io.h>
 
 idEventLoop* eventLoop;
-//idDeclManager* declManager;
 idSys* sys = NULL;
 
+
+
+#define MAXPRINTMSG 4096
+
 #define STDIO_PRINT( pre, post )	\
+	char msg[MAXPRINTMSG];			\
 	va_list argptr;					\
 	va_start( argptr, fmt );		\
-	printf( pre );					\
-	vprintf( fmt, argptr );			\
-	printf( post );					\
-	OutputDebugStringA(post);		\
-	va_end( argptr )
+	idStr::vsnPrintf( msg, MAXPRINTMSG - 1, fmt, argptr ); \
+	msg[ sizeof( msg ) - 1 ] = '\0'; \
+	va_end( argptr );				\
+	Sys_DebugPrintf( "%s%s%s", pre, msg, post );			\
 
+
+//idCVar com_developer( "developer", "0", CVAR_BOOL|CVAR_SYSTEM, "developer mode" );
 idCVar com_productionMode( "com_productionMode", "0", CVAR_SYSTEM | CVAR_BOOL, "0 - no special behavior, 1 - building a production build, 2 - running a production build" );
-
 
 /*
 ==============================================================
@@ -57,6 +61,28 @@ idCVar com_productionMode( "com_productionMode", "0", CVAR_SYSTEM | CVAR_BOOL, "
 
 ==============================================================
 */
+
+
+
+/*
+==============
+Sys_DebugPrintf
+==============
+*/
+
+void Sys_DebugPrintf( const char* fmt, ... )
+{
+	char msg[MAXPRINTMSG];
+
+	va_list argptr;
+	va_start( argptr, fmt );
+	idStr::vsnPrintf( msg, MAXPRINTMSG - 1, fmt, argptr );
+	msg[ sizeof( msg ) - 1 ] = '\0';
+	va_end( argptr );
+
+	printf( msg );
+	OutputDebugString( msg );
+}
 
 
 /*
@@ -331,7 +357,7 @@ public:
 	}
 	virtual void			DPrintf( const char* fmt, ... )
 	{
-		/*STDIO_PRINT( "", "" );*/
+		STDIO_PRINT( "", "" );
 	}
 	virtual void			Warning( const char* fmt, ... )
 	{
@@ -339,7 +365,7 @@ public:
 	}
 	virtual void			DWarning( const char* fmt, ... )
 	{
-		/*STDIO_PRINT( "WARNING: ", "\n" );*/
+		STDIO_PRINT( "WARNING: ", "\n" );
 	}
 
 	// Prints all queued warnings.
@@ -513,8 +539,6 @@ public:
 	void LoadPacifierBinarizeProgressTotal( int total ) { };
 	void LoadPacifierBinarizeProgressIncrement( int step ) { };
 };
-
-//idCVar com_developer( "developer", "0", CVAR_BOOL|CVAR_SYSTEM, "developer mode" );
 
 idCommonLocal		commonLocal;
 idCommon* common = &commonLocal;

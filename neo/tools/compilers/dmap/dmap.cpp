@@ -276,7 +276,7 @@ void Dmap( const idCmdArgs& args )
 		{
 			dmapGlobals.asciiTree = true;
 		}
-		else if( !idStr::Icmp( s, "v" ) )
+		else if( !idStr::Icmp( s, "v" ) || !idStr::Icmp( s, "verbose" ) )
 		{
 			common->Printf( "verbose = true\n" );
 			dmapGlobals.verbose = true;
