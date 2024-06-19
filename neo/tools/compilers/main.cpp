@@ -700,14 +700,28 @@ int main( int argc, char** argv )
 	cmdSystem->Init();
 	cvarSystem->Init();
 	idCVar::RegisterStaticVars();
-	fileSystem->Init();
-	declManager->InitTool();
 
+	// set cvars before filesystem init to use mod paths
 	idCmdArgs args;
 	for( int i = 0; i < argc; i++ )
 	{
-		args.AppendArg( argv[i] );
+		if( idStr::Icmp( argv[ i ], "+set" ) == 0 )
+		{
+			if( ( i + 2 ) < argc )
+			{
+				cvarSystem->SetCVarString( argv[ i + 1 ], argv[ i + 2 ] );
+			}
+
+			i += 2;
+		}
+		else
+		{
+			args.AppendArg( argv[i] );
+		}
 	}
+
+	fileSystem->Init();
+	declManager->InitTool();
 
 	Dmap_f( args );
 
