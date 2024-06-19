@@ -201,7 +201,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 		// try loading the TGA first
 		ID_TIME_T timestamp;
 		//LoadTGA( atlasFileName.c_str(), &atlasExportImageRGBA, &atlasExportImageWidth, &atlasExportImageHeight, &timestamp );
-		LoadPNG( atlasFileName.c_str(), &atlasExportImageRGBA, &atlasExportImageWidth, &atlasExportImageHeight, &timestamp );
+		LoadSTB_RGBA8( atlasFileName.c_str(), &atlasExportImageRGBA, &atlasExportImageWidth, &atlasExportImageHeight, &timestamp );
 
 		if( ( atlasExportImageRGBA == NULL ) || ( timestamp == FILE_NOT_FOUND_TIMESTAMP ) )
 		{

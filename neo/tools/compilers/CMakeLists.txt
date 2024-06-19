@@ -1,25 +1,26 @@
 
 add_definitions(-DDMAP -D__DOOM_DLL__)
 
-set(BSPT_INCLUDES
+# MC_ for MAP COMPILER
+set(MC_INCLUDES
 	#TypeInfoGen.h
 	)
-set(BSPT_SOURCES
+set(MC_SOURCES
 	#TypeInfoGen.cpp
 	#main.cpp
 	precompiled.cpp
 	)
 
-file(GLOB DMAP_INCLUDES dmap/*.h)
-file(GLOB DMAP_SOURCES dmap/*.cpp)
+file(GLOB MC_DMAP_INCLUDES dmap/*.h)
+file(GLOB MC_DMAP_SOURCES dmap/*.cpp)
 
 if(WIN32)
-	list(APPEND BSPT_SOURCES main.cpp)
+	list(APPEND MC_SOURCES main.cpp)
 else()
-	list(APPEND BSPT_SOURCES ../../stub/EngineStubPosix.cpp)
+	list(APPEND MC_SOURCES ../../stub/EngineStubPosix.cpp)
 endif()
 
-set(BSPT_FRAMEWORK_INCLUDES 
+set(MC_FRAMEWORK_INCLUDES 
 	../../framework/CmdSystem.h
 	../../framework/CVarSystem.h
 	../../framework/File.h
@@ -31,7 +32,7 @@ set(BSPT_FRAMEWORK_INCLUDES
 	../../framework/DeclTable.h
 	../../idlib/precompiled.h
 	)
-set(BSPT_FRAMEWORK_SOURCES
+set(MC_FRAMEWORK_SOURCES
 	../../framework/CmdSystem.cpp
 	../../framework/CVarSystem.cpp
 	../../framework/File.cpp
@@ -42,7 +43,7 @@ set(BSPT_FRAMEWORK_SOURCES
 	../../framework/DeclTable.cpp
 	)
 
-set(BSPT_RENDERER_INCLUDES 
+set(MC_RENDERER_INCLUDES 
 	../../renderer/BinaryImage.h
 	../../renderer/Color/ColorSpace.h
 	../../renderer/Image.h
@@ -56,7 +57,7 @@ set(BSPT_RENDERER_INCLUDES
 	../../renderer/Model_ma.h
 	../../renderer/Model_obj.h
 	)
-set(BSPT_RENDERER_SOURCES
+set(MC_RENDERER_SOURCES
 	../../renderer/BinaryImage.cpp
 	../../renderer/Color/ColorSpace.cpp
 	../../renderer/DXT/DXTEncoder.cpp
@@ -85,132 +86,51 @@ set(BSPT_RENDERER_SOURCES
 file(GLOB MIKKTSPACE_INCLUDES ../../libs/mikktspace/*.h)
 file(GLOB MIKKTSPACE_SOURCES ../../libs/mikktspace/*.c)
 
-if (NOT JPEG_FOUND)
-    set(JPEG_INCLUDES
-        ../../libs/jpeg-6/jchuff.h
-        ../../libs/jpeg-6/jconfig.h
-        ../../libs/jpeg-6/jdct.h
-        ../../libs/jpeg-6/jdhuff.h
-        ../../libs/jpeg-6/jerror.h
-        ../../libs/jpeg-6/jinclude.h
-        ../../libs/jpeg-6/jmemsys.h
-        ../../libs/jpeg-6/jmorecfg.h
-        ../../libs/jpeg-6/jpegint.h
-        ../../libs/jpeg-6/jpeglib.h
-        ../../libs/jpeg-6/jversion.h)
-
-    set(JPEG_SOURCES
-        ../../libs/jpeg-6/jcapimin.cpp
-        ../../libs/jpeg-6/jcapistd.cpp
-        ../../libs/jpeg-6/jccoefct.cpp
-        ../../libs/jpeg-6/jccolor.cpp
-        ../../libs/jpeg-6/jcdctmgr.cpp
-        ../../libs/jpeg-6/jchuff.cpp
-        ../../libs/jpeg-6/jcinit.cpp
-        ../../libs/jpeg-6/jcmainct.cpp
-        ../../libs/jpeg-6/jcmarker.cpp
-        ../../libs/jpeg-6/jcmaster.cpp
-        ../../libs/jpeg-6/jcomapi.cpp
-        ../../libs/jpeg-6/jcparam.cpp
-        ../../libs/jpeg-6/jcphuff.cpp
-        ../../libs/jpeg-6/jcprepct.cpp
-        ../../libs/jpeg-6/jcsample.cpp
-        ../../libs/jpeg-6/jctrans.cpp
-        ../../libs/jpeg-6/jdapimin.cpp
-        ../../libs/jpeg-6/jdapistd.cpp
-        ../../libs/jpeg-6/jdatadst.cpp
-        ../../libs/jpeg-6/jdatasrc.cpp
-        ../../libs/jpeg-6/jdcoefct.cpp
-        ../../libs/jpeg-6/jdcolor.cpp
-        ../../libs/jpeg-6/jddctmgr.cpp
-        ../../libs/jpeg-6/jdhuff.cpp
-        ../../libs/jpeg-6/jdinput.cpp
-        ../../libs/jpeg-6/jdmainct.cpp
-        ../../libs/jpeg-6/jdmarker.cpp
-        ../../libs/jpeg-6/jdmaster.cpp
-        ../../libs/jpeg-6/jdmerge.cpp
-        ../../libs/jpeg-6/jdphuff.cpp
-        ../../libs/jpeg-6/jdpostct.cpp
-        ../../libs/jpeg-6/jdsample.cpp
-        ../../libs/jpeg-6/jdtrans.cpp
-        ../../libs/jpeg-6/jerror.cpp
-        ../../libs/jpeg-6/jfdctflt.cpp
-        ../../libs/jpeg-6/jfdctfst.cpp
-        ../../libs/jpeg-6/jfdctint.cpp
-        ../../libs/jpeg-6/jidctflt.cpp
-        ../../libs/jpeg-6/jidctfst.cpp
-        ../../libs/jpeg-6/jidctint.cpp
-        ../../libs/jpeg-6/jidctred.cpp
-        ../../#libs/jpeg-6/jload.cpp
-        ../../libs/jpeg-6/jmemmgr.cpp
-        ../../libs/jpeg-6/jmemnobs.cpp
-        ../../#libs/jpeg-6/jpegtran.cpp
-        ../../libs/jpeg-6/jquant1.cpp
-        ../../libs/jpeg-6/jquant2.cpp
-        ../../libs/jpeg-6/jutils.cpp)
-else (NOT JPEG_FOUND)
-   set(JPEG_INCLUDES "")
-   set(JPEG_SOURCES "")
-endif (NOT JPEG_FOUND)
-
-if (NOT PNG_FOUND)
-    file(GLOB PNG_INCLUDES ../../libs/png/*.h)
-    file(GLOB PNG_SOURCES ../../libs/png/*.c)
-else (NOT PNG_FOUND)
-    set(PNG_INCLUDES "")
-    set(PNG_SOURCES "")
-endif (NOT PNG_FOUND)
-
-
 if(NOT ZLIB_FOUND)
-	file(GLOB BSPT_ZLIB_INCLUDES ../../libs/zlib/*.h)
-	file(GLOB BSPT_ZLIB_SOURCES ../../libs/zlib/*.c)
-#	list(APPEND BSPT_ZLIB_SOURCES ../../libs/zlib/minizip/unzip.cpp)
-#	list(APPEND BSPT_ZLIB_SOURCES ../../libs/zlib/minizip/ioapi.c)
+	#file(GLOB MC_ZLIB_INCLUDES ../../libs/zlib/*.h)
+	#file(GLOB MC_ZLIB_SOURCES ../../libs/zlib/*.c)
+#	list(APPEND MC_ZLIB_SOURCES ../../libs/zlib/minizip/unzip.cpp)
+#	list(APPEND MC_ZLIB_SOURCES ../../libs/zlib/minizip/ioapi.c)
 endif()
 
 
-set(BSPT_INCLUDES_ALL
-			${BSPT_INCLUDES}
-			${BSPT_FRAMEWORK_INCLUDES}
-			${BSPT_RENDERER_INCLUDES}
-			${DMAP_INCLUDES}
+set(MC_INCLUDES_ALL
+			${MC_INCLUDES}
+			${MC_FRAMEWORK_INCLUDES}
+			${MC_RENDERER_INCLUDES}
+			${MC_DMAP_INCLUDES}
 			${MIKKTSPACE_INCLUDES}
 			${JPG_INCLUDES}
 			${PNG_INCLUDES}
-			${BSPT_ZLIB_INCLUDES}
+			#${MC_ZLIB_INCLUDES}
 			)
 			
-set(BSPT_SOURCES_ALL
-			${BSPT_SOURCES}
-			${BSPT_FRAMEWORK_SOURCES}
-			${BSPT_RENDERER_SOURCES}
-			${DMAP_SOURCES}
+set(MC_SOURCES_ALL
+			${MC_SOURCES}
+			${MC_FRAMEWORK_SOURCES}
+			${MC_RENDERER_SOURCES}
+			${MC_DMAP_SOURCES}
 			${MIKKTSPACE_SOURCES}
 			${JPEG_SOURCES}
 			${PNG_SOURCES}
-			${BSPT_ZLIB_SOURCES}
+			#${MC_ZLIB_SOURCES}
 			)
 
-source_group("main" FILES ${BSPT_INCLUDES})
-source_group("main" FILES ${BSPT_SOURCES})
+source_group("main" FILES ${MC_INCLUDES})
+source_group("main" FILES ${MC_SOURCES})
 source_group("dmap" FILES ${DMAP_INCLUDES})
 source_group("dmap" FILES ${DMAP_SOURCES})
-source_group("framework" FILES ${BSPT_FRAMEWORK_INCLUDES})
-source_group("framework" FILES ${BSPT_FRAMEWORK_SOURCES})
-source_group("renderer" FILES ${BSPT_RENDERER_INCLUDES})
-source_group("renderer" FILES ${BSPT_RENDERER_SOURCES})
+source_group("framework" FILES ${MC_FRAMEWORK_INCLUDES})
+source_group("framework" FILES ${MC_FRAMEWORK_SOURCES})
+source_group("renderer" FILES ${MC_RENDERER_INCLUDES})
+source_group("renderer" FILES ${MC_RENDERER_SOURCES})
 source_group("libs\\mikktspace" FILES ${MIKKTSPACE_INCLUDES})
 source_group("libs\\mikktspace" FILES ${MIKKTSPACE_SOURCES})
-source_group("libs\\jpeg-6" FILES ${JPEG_INCLUDES})
-source_group("libs\\jpeg-6" FILES ${JPEG_SOURCES})
-source_group("libs\\png" FILES ${PNG_INCLUDES})
-source_group("libs\\png" FILES ${PNG_SOURCES})
-#source_group("zlib" FILES ${BSPT_ZLIB_INCLUDES})
-#source_group("zlib" FILES ${BSPT_ZLIB_SOURCES})
+#source_group("zlib" FILES ${MC_ZLIB_INCLUDES})
+#source_group("zlib" FILES ${MC_ZLIB_SOURCES})
 
-set(BSPT_PRECOMPILED_SOURCES ${BSPT_SOURCES_ALL})
-list(REMOVE_ITEM BSPT_PRECOMPILED_SOURCES ${BSPT_ZLIB_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${MIKKTSPACE_SOURCES})
+set(MC_PRECOMPILED_SOURCES ${MC_SOURCES_ALL})
+list(REMOVE_ITEM MC_PRECOMPILED_SOURCES ${MC_ZLIB_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${MIKKTSPACE_SOURCES})
 
 include_directories(
 	.
@@ -220,9 +140,9 @@ include_directories(
 
 if(MSVC)
 
-	list(REMOVE_ITEM BSPT_PRECOMPILED_SOURCES precompiled.cpp) 
+	list(REMOVE_ITEM MC_PRECOMPILED_SOURCES precompiled.cpp) 
 
-	#foreach( src_file ${BSPT_PRECOMPILED_SOURCES} )
+	#foreach( src_file ${MC_PRECOMPILED_SOURCES} )
 	#	message(STATUS "-include precompiled.h for ${src_file}")
 	#endforeach()
 
@@ -234,13 +154,13 @@ if(MSVC)
         )
 		
 	set_source_files_properties(
-		${BSPT_PRECOMPILED_SOURCES}
+		${MC_PRECOMPILED_SOURCES}
 		PROPERTIES
 		COMPILE_FLAGS "/Yuprecompiled.h"
 		OBJECT_DEPENDS "precompiled.pch"
 		)
 
-    add_executable(rbdmap ${BSPT_SOURCES_ALL} ${BSPT_INCLUDES_ALL})
+    add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
 	add_dependencies(rbdmap idlib)
 	target_link_libraries(rbdmap idlib winmm)
 
@@ -251,7 +171,7 @@ if(MSVC)
 	
 else()
 	if (USE_PRECOMPILED_HEADERS)
-	foreach( src_file ${BSPT_PRECOMPILED_SOURCES} )
+	foreach( src_file ${MC_PRECOMPILED_SOURCES} )
 		#message(STATUS "-include precompiled.h for ${src_file}")
 		set_source_files_properties(
 			${src_file}
@@ -286,7 +206,7 @@ else()
 	                  )
 	endif()
 	
-	add_executable(typeinfogen ${BSPT_SOURCES_ALL} ${BSPT_INCLUDES_ALL})
+	add_executable(typeinfogen ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
 	add_dependencies(typeinfogen idlib)
 	if (USE_PRECOMPILED_HEADERS)
 	add_dependencies(typeinfogen precomp_header_typeinfo)

@@ -28,12 +28,25 @@ If you have questions concerning this license or the applicable additional terms
 */
 #include "precompiled.h"
 #pragma hdrstop
+
+#undef strncmp
+
 #include "../renderer/Image.h"
 //#include "../../renderer/ImageTools/ImageProcess.h"
-#include <jpeglib.h>
+
+// DG: get rid of libjpeg; as far as I can tell no roqs that actually use it exist
+//#define ID_USE_LIBJPEG 1
+#ifdef ID_USE_LIBJPEG
+	#include <jpeglib.h>
+	#include <jerror.h>
+#else
+	#define STBI_NO_STDIO  // images are passed as buffers
+	#include "../libs/stb/stb_image.h"
+#endif
 
 idCVar swf_useChannelScale( "swf_useChannelScale", "0", CVAR_BOOL, "compress texture atlas colors" );
 
+#ifdef ID_USE_LIBJPEG
 /*
 ========================
 idSWF::idDecompressJPEG
@@ -79,6 +92,7 @@ void swf_jpeg_skip_input_data( jpeg_decompress_struct* cinfo, long num_bytes )
 void swf_jpeg_term_source( jpeg_decompress_struct* cinfo )
 {
 }
+#endif
 
 /*
 ========================
@@ -87,6 +101,7 @@ idSWF::idDecompressJPEG::idDecompressJPEG
 */
 idSWF::idDecompressJPEG::idDecompressJPEG()
 {
+#ifdef ID_USE_LIBJPEG
 	jpeg_decompress_struct* cinfo = new( TAG_SWF ) jpeg_decompress_struct;
 	memset( cinfo, 0, sizeof( *cinfo ) );
 
@@ -99,6 +114,9 @@ idSWF::idDecompressJPEG::idDecompressJPEG()
 	jpeg_create_decompress( cinfo );
 
 	vinfo = cinfo;
+#else
+	vinfo = NULL;
+#endif
 }
 
 /*
@@ -108,11 +126,13 @@ idSWF::idDecompressJPEG::~idDecompressJPEG
 */
 idSWF::idDecompressJPEG::~idDecompressJPEG()
 {
+#ifdef ID_USE_LIBJPEG
 	jpeg_decompress_struct* cinfo = ( jpeg_decompress_struct* )vinfo;
 
 	jpeg_destroy_decompress( cinfo );
 	delete cinfo->err;
 	delete cinfo;
+#endif
 }
 
 /*
@@ -122,6 +142,7 @@ idSWF::idDecompressJPEG::Load
 */
 byte* idSWF::idDecompressJPEG::Load( const byte* input, int inputSize, int& width, int& height )
 {
+#ifdef ID_USE_LIBJPEG
 	jpeg_decompress_struct* cinfo = ( jpeg_decompress_struct* )vinfo;
 
 	try
@@ -184,6 +205,24 @@ byte* idSWF::idDecompressJPEG::Load( const byte* input, int inputSize, int& widt
 		swf_jpeg_output_message( ( jpeg_common_struct* )cinfo );
 		return NULL;
 	}
+#else
+	int32 numChannels;
+
+	byte* rgba = stbi_load_from_memory( ( stbi_uc const* ) input, inputSize, &width, &height, &numChannels, 4 );
+	if( rgba )
+	{
+		int32 pixelCount = width * height;
+		byte* output = ( byte* )Mem_Alloc( pixelCount * 4, TAG_SWF );
+
+		memcpy( output, rgba, pixelCount * 4 );
+
+		stbi_image_free( rgba );
+
+		return output;
+	}
+
+	return NULL;
+#endif
 }
 
 
