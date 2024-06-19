@@ -303,7 +303,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 				atlasFileNameExport.Replace( "generated/", "exported/" );
 				atlasFileNameExport.SetFileExtension( ".png" );
 
-				R_WritePNG( atlasFileNameExport, rgba.Ptr(), 4, img.width, img.height, true, "fs_basepath" );
+				R_WritePNG( atlasFileNameExport, rgba.Ptr(), 4, img.width, img.height, "fs_basepath" );
 
 				if( postLoadExportFlashToSWF.GetBool() )
 				{

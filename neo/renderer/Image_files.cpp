@@ -515,7 +515,7 @@ static void WriteScreenshotForSTBIW( void* context, void* data, int size )
 R_WritePNG
 ================
 */
-void R_WritePNG( const char* filename, const byte* data, int bytesPerPixel, int width, int height, bool flipVertical, const char* basePath )
+void R_WritePNG( const char* filename, const byte* data, int bytesPerPixel, int width, int height, const char* basePath )
 {
 	if( bytesPerPixel != 4  && bytesPerPixel != 3 )
 	{

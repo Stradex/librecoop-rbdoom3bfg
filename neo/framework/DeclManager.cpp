@@ -3052,7 +3052,7 @@ void idDeclManagerLocal::ExportImagesToTrenchBroom_f( const idCmdArgs& args )
 
 					if( img.width > 16 && img.height > 16 )
 					{
-						R_WritePNG( exportName, scaled, 4, img.width, img.height, true, "fs_basepath" );
+						R_WritePNG( exportName, scaled, 4, img.width, img.height, "fs_basepath" );
 					}
 					else
 					{
@@ -3066,7 +3066,7 @@ void idDeclManagerLocal::ExportImagesToTrenchBroom_f( const idCmdArgs& args )
 				{
 					if( img.width > 16 && img.height > 16 )
 					{
-						R_WritePNG( exportName, rgba.Ptr(), 4, img.width, img.height, true, "fs_basepath" );
+						R_WritePNG( exportName, rgba.Ptr(), 4, img.width, img.height, "fs_basepath" );
 					}
 					else
 					{

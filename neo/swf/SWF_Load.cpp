@@ -236,7 +236,7 @@ void idSWF::WriteSWF( const char* swfFilename, const byte* atlasImageRGBA, int a
 				filenameWithoutExt.StripFileExtension();
 				sprintf( imageExportFileName, "exported/%s/image_characterid_%i.png", filenameWithoutExt.c_str(), i );
 
-				R_WritePNG( imageExportFileName.c_str(), pngData.Ptr(), 4, width, height, true, "fs_basepath" );
+				R_WritePNG( imageExportFileName.c_str(), pngData.Ptr(), 4, width, height, "fs_basepath" );
 
 				// RB: add some extra space for zlib
 				idTempArray<byte> compressedData( width * height * 4 * 1.02 + 12 );

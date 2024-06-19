@@ -4030,7 +4030,7 @@ CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures f
 
 						// don't destroy the original image and save it as new one
 						idStr mergedName = baseName + "_rgba.png";
-						R_WritePNG( mergedName, static_cast<byte*>( pic ), 4, width, height, true, "fs_basepath" );
+						R_WritePNG( mergedName, static_cast<byte*>( pic ), 4, width, height, "fs_basepath" );
 
 						mtrBuffer += "\t{\n";
 						mtrBuffer += "\t\tblend basecolormap\n";
@@ -4184,7 +4184,7 @@ CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures f
 
 					// don't destroy the original image and save it as new one
 					idStr mergedName = baseName + "_rmao.png";
-					R_WritePNG( mergedName, static_cast<byte*>( roughPic ), 4, roughWidth, roughHeight, true, "fs_basepath" );
+					R_WritePNG( mergedName, static_cast<byte*>( roughPic ), 4, roughWidth, roughHeight, "fs_basepath" );
 
 					mtrBuffer += va( "\trmaomap %s\n", mergedName.c_str() );
 				}

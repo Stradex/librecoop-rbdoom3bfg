@@ -533,7 +533,7 @@ void	R_WriteTGA( const char* filename, const byte* data, int width, int height, 
 // data is in top-to-bottom raster order unless flipVertical is set
 
 // RB begin
-void	R_WritePNG( const char* filename, const byte* data, int bytesPerPixel, int width, int height, bool flipVertical = false, const char* basePath = "fs_savepath" );
+void	R_WritePNG( const char* filename, const byte* data, int bytesPerPixel, int width, int height, const char* basePath = "fs_savepath" );
 void	R_WriteEXR( const char* filename, const void* data, int channelsPerPixel, int width, int height, const char* basePath = "fs_savepath" );
 // RB end
 
