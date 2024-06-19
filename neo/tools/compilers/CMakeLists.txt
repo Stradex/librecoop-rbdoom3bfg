@@ -17,7 +17,7 @@ file(GLOB MC_DMAP_SOURCES dmap/*.cpp)
 if(WIN32)
 	list(APPEND MC_SOURCES main.cpp)
 else()
-	list(APPEND MC_SOURCES ../../stub/EngineStubPosix.cpp)
+	list(APPEND MC_SOURCES main_posix.cpp)
 endif()
 
 set(MC_FRAMEWORK_INCLUDES 
@@ -86,23 +86,12 @@ set(MC_RENDERER_SOURCES
 file(GLOB MIKKTSPACE_INCLUDES ../../libs/mikktspace/*.h)
 file(GLOB MIKKTSPACE_SOURCES ../../libs/mikktspace/*.c)
 
-if(NOT ZLIB_FOUND)
-	#file(GLOB MC_ZLIB_INCLUDES ../../libs/zlib/*.h)
-	#file(GLOB MC_ZLIB_SOURCES ../../libs/zlib/*.c)
-#	list(APPEND MC_ZLIB_SOURCES ../../libs/zlib/minizip/unzip.cpp)
-#	list(APPEND MC_ZLIB_SOURCES ../../libs/zlib/minizip/ioapi.c)
-endif()
-
-
 set(MC_INCLUDES_ALL
 			${MC_INCLUDES}
 			${MC_FRAMEWORK_INCLUDES}
 			${MC_RENDERER_INCLUDES}
 			${MC_DMAP_INCLUDES}
 			${MIKKTSPACE_INCLUDES}
-			${JPG_INCLUDES}
-			${PNG_INCLUDES}
-			#${MC_ZLIB_INCLUDES}
 			)
 			
 set(MC_SOURCES_ALL
@@ -111,9 +100,6 @@ set(MC_SOURCES_ALL
 			${MC_RENDERER_SOURCES}
 			${MC_DMAP_SOURCES}
 			${MIKKTSPACE_SOURCES}
-			${JPEG_SOURCES}
-			${PNG_SOURCES}
-			#${MC_ZLIB_SOURCES}
 			)
 
 source_group("main" FILES ${MC_INCLUDES})
@@ -126,16 +112,13 @@ source_group("renderer" FILES ${MC_RENDERER_INCLUDES})
 source_group("renderer" FILES ${MC_RENDERER_SOURCES})
 source_group("libs\\mikktspace" FILES ${MIKKTSPACE_INCLUDES})
 source_group("libs\\mikktspace" FILES ${MIKKTSPACE_SOURCES})
-#source_group("zlib" FILES ${MC_ZLIB_INCLUDES})
-#source_group("zlib" FILES ${MC_ZLIB_SOURCES})
 
 set(MC_PRECOMPILED_SOURCES ${MC_SOURCES_ALL})
-list(REMOVE_ITEM MC_PRECOMPILED_SOURCES ${MC_ZLIB_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${MIKKTSPACE_SOURCES})
+list(REMOVE_ITEM MC_PRECOMPILED_SOURCES ${MIKKTSPACE_SOURCES})
 
 include_directories(
 	.
 	../../idlib
-	../../libs/zlib
 	)
 
 if(MSVC)
@@ -199,19 +182,19 @@ else()
 	SEPARATE_ARGUMENTS(_compiler_FLAGS)
 	
 	if (USE_PRECOMPILED_HEADERS)
-	add_custom_target(precomp_header_typeinfo ALL
+	add_custom_target(precomp_header_rbdmap ALL
 	                  COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header precompiled.h -o precompiled.h.gch
 	                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	                  COMMENT "Creating idlib/precompiled.h.gch for typeinfogen"
+	                  COMMENT "Creating tools/compilers/precompiled.h.gch for rbdmap"
 	                  )
 	endif()
 	
-	add_executable(typeinfogen ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
-	add_dependencies(typeinfogen idlib)
+	add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
+	add_dependencies(rbdmap idlib)
 	if (USE_PRECOMPILED_HEADERS)
-	add_dependencies(typeinfogen precomp_header_typeinfo)
+	add_dependencies(rbdmap precomp_header_rbdmap)
 	endif()
-	target_link_libraries(typeinfogen idlib)
+	target_link_libraries(rbdmap idlib)
 	
 endif()
 	

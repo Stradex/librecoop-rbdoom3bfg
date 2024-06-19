@@ -38,8 +38,9 @@ If you have questions concerning this license or the applicable additional terms
 #include <fnmatch.h>
 
 idEventLoop* eventLoop;
-idDeclManager* declManager;
 idSys* sys = NULL;
+
+
 
 #define STDIO_PRINT( pre, post )	\
 	va_list argptr;					\
@@ -48,9 +49,19 @@ idSys* sys = NULL;
 	vprintf( fmt, argptr );			\
 	printf( post );					\
 	printf(post);		\
-	va_end( argptr )
+	va_end( argptr )			\
 
+
+//idCVar com_developer( "developer", "0", CVAR_BOOL|CVAR_SYSTEM, "developer mode" );
 idCVar com_productionMode( "com_productionMode", "0", CVAR_SYSTEM | CVAR_BOOL, "0 - no special behavior, 1 - building a production build, 2 - running a production build" );
+
+/*
+==============================================================
+
+	idSys
+
+==============================================================
+*/
 
 void Sys_Printf( const char* fmt, ... )
 {
@@ -317,6 +328,14 @@ int Sys_Milliseconds()
 	// DG end
 }
 
+/*
+==============================================================
+
+	idCommon
+
+==============================================================
+*/
+
 class idCommonLocal : public idCommon
 {
 public:
@@ -378,7 +397,7 @@ public:
 	}
 	virtual void			DPrintf( const char* fmt, ... )
 	{
-		/*STDIO_PRINT( "", "" );*/
+		STDIO_PRINT( "", "" );
 	}
 	virtual void			Warning( const char* fmt, ... )
 	{
@@ -386,7 +405,7 @@ public:
 	}
 	virtual void			DWarning( const char* fmt, ... )
 	{
-		/*STDIO_PRINT( "WARNING: ", "\n" );*/
+		STDIO_PRINT( "WARNING: ", "\n" );
 	}
 
 	// Prints all queued warnings.
@@ -550,7 +569,50 @@ public:
 	//	return DOOM_CLASSIC;
 	//};
 	//virtual void				SwitchToGame(currentGame_t newGame) { };
+
+	void LoadPacifierBinarizeFilename( const char* filename, const char* reason ) { };
+	void LoadPacifierBinarizeInfo( const char* info ) { };
+	void LoadPacifierBinarizeMiplevel( int level, int maxLevel ) { };
+	void LoadPacifierBinarizeProgress( float progress ) { };
+	void LoadPacifierBinarizeEnd() { };
+	// for images in particular we can measure more accurately this way (to deal with mipmaps)
+	void LoadPacifierBinarizeProgressTotal( int total ) { };
+	void LoadPacifierBinarizeProgressIncrement( int step ) { };
 };
 
 idCommonLocal		commonLocal;
 idCommon* common = &commonLocal;
+
+
+/*
+==============================================================
+
+	main
+
+==============================================================
+*/
+
+int main( int argc, char** argv )
+{
+	idLib::common = common;
+	idLib::cvarSystem = cvarSystem;
+	idLib::fileSystem = fileSystem;
+	idLib::sys = sys;
+
+	idLib::Init();
+	cmdSystem->Init();
+	cvarSystem->Init();
+	idCVar::RegisterStaticVars();
+	fileSystem->Init();
+	declManager->Init();
+
+	idCmdArgs args;
+	for( int i = 0; i < argc; i++ )
+	{
+		args.AppendArg( argv[i] );
+	}
+
+	Dmap_f( args );
+
+	return 0;
+}
