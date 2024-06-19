@@ -141,10 +141,12 @@ bool idDeclEntityDef::Parse( const char* text, const int textLength, bool allowB
 
 	// precache all referenced media
 	// do this as long as we arent in modview
+#if !defined( DMAP )
 	if( !( com_editors & ( EDITOR_AAS | EDITOR_EXPORTDEFS ) ) )
 	{
 		game->CacheDictionaryMedia( &dict );
 	}
+#endif
 
 	return true;
 }

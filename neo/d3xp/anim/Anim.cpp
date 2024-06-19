@@ -31,7 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 
 
 #include "../Game_local.h"
-#include "renderer/Model_gltf.h"
+#include "../../renderer/Model_gltf.h"
 
 idCVar binaryLoadAnim( "binaryLoadAnim", "1", 0, "enable binary load/write of idMD5Anim" );
 
@@ -228,7 +228,9 @@ bool idMD5Anim::LoadAnim( const char* filename, const idImportOptions* options )
 
 		if( fileptr == nullptr )
 		{
+#if !defined( DMAP )
 			fileptr = idRenderModelGLTF::GetAnimBin( filenameStr, sourceTimeStamp, options );
+#endif
 			doWrite = fileptr != nullptr;
 		}
 	}
@@ -1130,6 +1132,7 @@ void idMD5Anim::GetSingleFrame( int framenum, idJointQuat* joints, const int* in
 idMD5Anim::CheckModelHierarchy
 ====================
 */
+#if !defined( DMAP )
 void idMD5Anim::CheckModelHierarchy( const idRenderModel* model ) const
 {
 	// RB
@@ -1172,6 +1175,7 @@ void idMD5Anim::CheckModelHierarchy( const idRenderModel* model ) const
 		}
 	}
 }
+#endif
 
 /***********************************************************************
 
@@ -1240,7 +1244,11 @@ idMD5Anim* idAnimManager::GetAnim( const char* name, const idImportOptions* opti
 		anim = new( TAG_ANIM ) idMD5Anim();
 		if( !anim->LoadAnim( filename, options ) )
 		{
+#if defined( DMAP )
+			common->Warning( "Couldn't load anim: '%s'", filename.c_str() );
+#else
 			gameLocal.Warning( "Couldn't load anim: '%s'", filename.c_str() );
+#endif
 			delete anim;
 			anim = NULL;
 		}
@@ -1330,6 +1338,7 @@ const char* idAnimManager::JointName( int index ) const
 	return jointnames[ index ];
 }
 
+#if !defined( DMAP )
 /*
 ================
 idAnimManager::ListAnims
@@ -1369,6 +1378,7 @@ void idAnimManager::ListAnims() const
 	gameLocal.Printf( "\n%d memory used in %d anims\n", size, num );
 	gameLocal.Printf( "%d memory used in %d joint names\n", namesize, jointnames.Num() );
 }
+#endif
 
 /*
 ================

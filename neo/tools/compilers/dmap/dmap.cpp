@@ -445,13 +445,14 @@ void Dmap( const idCmdArgs& args )
 	common->Printf( "-----------------------\n" );
 	common->Printf( "%5.0f seconds for dmap\n", ( end - start ) * 0.001f );
 
-#if 0 // DMAP TODO
 	if( !leaked )
 	{
 		if( !noCM )
 		{
+#if !defined( DMAP )
 			// make sure the collision model manager is not used by the game
 			cmdSystem->BufferCommandText( CMD_EXEC_NOW, "disconnect" );
+#endif
 
 			// create the collision map
 			start = Sys_Milliseconds();
@@ -471,7 +472,6 @@ void Dmap( const idCmdArgs& args )
 			RunAAS_f( args );
 		}
 	}
-#endif
 
 	// free the common .map representation
 	delete dmapGlobals.dmapFile;

@@ -192,6 +192,7 @@ class idDeclManagerLocal : public idDeclManager
 public:
 	virtual void				Init();
 	virtual void				Init2();
+	virtual void				InitTool();
 	virtual void				Shutdown();
 	virtual void				Reload( bool force );
 	virtual void				BeginLevelLoad();
@@ -223,10 +224,10 @@ public:
 	virtual const idMaterial* 		FindMaterial( const char* name, bool makeDefault = true );
 	virtual const idMaterial* 		MaterialByIndex( int index, bool forceParse = true );
 
-#if !defined( DMAP )
 	virtual const idDeclSkin* 		FindSkin( const char* name, bool makeDefault = true );
 	virtual const idDeclSkin* 		SkinByIndex( int index, bool forceParse = true );
 
+#if !defined( DMAP )
 	virtual const idSoundShader* 	FindSound( const char* name, bool makeDefault = true );
 	virtual const idSoundShader* 	SoundByIndex( int index, bool forceParse = true );
 #endif
@@ -916,12 +917,11 @@ void idDeclManagerLocal::Init()
 	// decls used throughout the engine
 	RegisterDeclType( "table",				DECL_TABLE,			idDeclAllocator<idDeclTable> );
 	RegisterDeclType( "material",			DECL_MATERIAL,		idDeclAllocator<idMaterial> );
+	RegisterDeclType( "skin",				DECL_SKIN,			idDeclAllocator<idDeclSkin> );
+	RegisterDeclType( "entityDef",			DECL_ENTITYDEF,		idDeclAllocator<idDeclEntityDef> );
 
 #if !defined( DMAP )
-	RegisterDeclType( "skin",				DECL_SKIN,			idDeclAllocator<idDeclSkin> );
 	RegisterDeclType( "sound",				DECL_SOUND,			idDeclAllocator<idSoundShader> );
-
-	RegisterDeclType( "entityDef",			DECL_ENTITYDEF,		idDeclAllocator<idDeclEntityDef> );
 	RegisterDeclType( "mapDef",				DECL_MAPDEF,		idDeclAllocator<idDeclEntityDef> );
 	RegisterDeclType( "fx",					DECL_FX,			idDeclAllocator<idDeclFX> );
 	RegisterDeclType( "particle",			DECL_PARTICLE,		idDeclAllocator<idDeclParticle> );
@@ -993,6 +993,46 @@ void idDeclManagerLocal::Init2()
 {
 	RegisterDeclFolder( "skins",			".skin",			DECL_SKIN );
 	RegisterDeclFolder( "sound",			".sndshd",			DECL_SOUND );
+}
+
+/*
+===================
+idDeclManagerLocal::InitTool
+
+RB: only called by rbdmap
+===================
+*/
+
+#include "../d3xp/anim/Anim.h"
+
+void idDeclManagerLocal::InitTool()
+{
+	common->Printf( "----- Initializing Decls -----\n" );
+
+	checksum = 0;
+
+#ifdef USE_COMPRESSED_DECLS
+	SetupHuffman();
+#endif
+
+#ifdef GET_HUFFMAN_FREQUENCIES
+	ClearHuffmanFrequencies();
+#endif
+
+	// decls used throughout the engine
+	RegisterDeclType( "table",				DECL_TABLE,			idDeclAllocator<idDeclTable> );
+	RegisterDeclType( "material",			DECL_MATERIAL,		idDeclAllocator<idMaterial> );
+	RegisterDeclType( "model",				DECL_MODELDEF,		idDeclAllocator<idDeclModelDef> );
+	RegisterDeclType( "export",				DECL_MODELEXPORT,	idDeclAllocator<idDecl> );
+	RegisterDeclType( "skin",				DECL_SKIN,			idDeclAllocator<idDeclSkin> );
+	RegisterDeclType( "entityDef",			DECL_ENTITYDEF,		idDeclAllocator<idDeclEntityDef> );
+	RegisterDeclType( "mapDef",				DECL_MAPDEF,		idDeclAllocator<idDeclEntityDef> );
+
+	RegisterDeclFolder( "materials",		".mtr",				DECL_MATERIAL );
+	RegisterDeclFolder( "skins",			".skin",			DECL_SKIN );
+	RegisterDeclFolder( "def",				".def",				DECL_ENTITYDEF );
+
+	common->Printf( "------------------------------\n" );
 }
 
 /*
@@ -1791,8 +1831,6 @@ const idMaterial* idDeclManagerLocal::MaterialByIndex( int index, bool forcePars
 	return static_cast<const idMaterial*>( DeclByIndex( DECL_MATERIAL, index, forceParse ) );
 }
 
-#if !defined( DMAP )
-
 /********************************************************************/
 
 const idDeclSkin* idDeclManagerLocal::FindSkin( const char* name, bool makeDefault )
@@ -1804,6 +1842,8 @@ const idDeclSkin* idDeclManagerLocal::SkinByIndex( int index, bool forceParse )
 {
 	return static_cast<const idDeclSkin*>( DeclByIndex( DECL_SKIN, index, forceParse ) );
 }
+
+#if !defined( DMAP )
 
 /********************************************************************/
 

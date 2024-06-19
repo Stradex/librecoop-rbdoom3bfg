@@ -25,8 +25,9 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 #include "precompiled.h"
+#pragma hdrstop
+
 #include "../sys/sys_local.h"
 #include "../framework/EventLoop.h"
 #include "../framework/DeclManager.h"
@@ -35,7 +36,6 @@ If you have questions concerning this license or the applicable additional terms
 #include <io.h>
 
 idEventLoop* eventLoop;
-idSys* sys = NULL;
 
 
 
@@ -84,6 +84,21 @@ void Sys_DebugPrintf( const char* fmt, ... )
 	OutputDebugString( msg );
 }
 
+/*
+==============
+Sys_DebugVPrintf
+==============
+*/
+void Sys_DebugVPrintf( const char* fmt, va_list arg )
+{
+	char msg[MAXPRINTMSG];
+
+	idStr::vsnPrintf( msg, MAXPRINTMSG - 1, fmt, arg );
+	msg[ sizeof( msg ) - 1 ] = '\0';
+
+	printf( msg );
+	OutputDebugString( msg );
+}
 
 /*
 ==============
@@ -248,6 +263,38 @@ ID_TIME_T Sys_FileTimeStamp( idFileHandle fp )
 }
 
 /*
+================
+Sys_GetClockTicks
+================
+*/
+double Sys_GetClockTicks()
+{
+	LARGE_INTEGER li;
+
+	QueryPerformanceCounter( &li );
+	return ( double ) li.LowPart + ( double ) 0xFFFFFFFF * li.HighPart;
+}
+
+/*
+================
+Sys_ClockTicksPerSecond
+================
+*/
+double Sys_ClockTicksPerSecond()
+{
+	static double ticks = 0;
+
+	if( !ticks )
+	{
+		LARGE_INTEGER li;
+		QueryPerformanceFrequency( &li );
+		ticks = li.QuadPart;
+	}
+
+	return ticks;
+}
+
+/*
 ==============
 Sys_Cwd
 ==============
@@ -288,6 +335,95 @@ int Sys_Milliseconds()
 	return timeGetTime() - sys_timeBase;
 }
 
+class idSysCmdline : public idSys
+{
+public:
+	virtual void			DebugPrintf( VERIFY_FORMAT_STRING const char* fmt, ... )
+	{
+		va_list argptr;
+
+		va_start( argptr, fmt );
+		Sys_DebugVPrintf( fmt, argptr );
+		va_end( argptr );
+	}
+
+	virtual void			DebugVPrintf( const char* fmt, va_list arg )
+	{
+		Sys_DebugVPrintf( fmt, arg );
+	}
+
+	virtual double			GetClockTicks()
+	{
+		return Sys_GetClockTicks();
+	}
+
+	virtual double			ClockTicksPerSecond()
+	{
+		return Sys_ClockTicksPerSecond();
+	}
+
+	virtual cpuid_t			GetProcessorId()
+	{
+		return CPUID_NONE;
+	}
+
+	virtual const char* 	GetProcessorString()
+	{
+		return NULL;
+	}
+	virtual const char* 	FPU_GetState()
+	{
+		return NULL;
+	}
+	virtual bool			FPU_StackIsEmpty()
+	{
+		return NULL;
+	}
+	virtual void			FPU_SetFTZ( bool enable ) {}
+	virtual void			FPU_SetDAZ( bool enable ) {}
+
+	virtual void			FPU_EnableExceptions( int exceptions ) {}
+
+	virtual bool			LockMemory( void* ptr, int bytes )
+	{
+		return false;
+	}
+	virtual bool			UnlockMemory( void* ptr, int bytes )
+	{
+		return false;
+	}
+
+	virtual int				DLL_Load( const char* dllName )
+	{
+		return 0;
+	}
+	virtual void* 			DLL_GetProcAddress( int dllHandle, const char* procName )
+	{
+		return NULL;
+	}
+	virtual void			DLL_Unload( int dllHandle ) {}
+	virtual void			DLL_GetFileName( const char* baseName, char* dllName, int maxLength ) {}
+
+	virtual sysEvent_t		GenerateMouseButtonEvent( int button, bool down )
+	{
+		sysEvent_t ev;
+		ev.evType = SE_NONE;
+		return ev;
+	}
+	virtual sysEvent_t		GenerateMouseMoveEvent( int deltax, int deltay )
+	{
+		sysEvent_t ev;
+		ev.evType = SE_NONE;
+		return ev;
+	}
+
+	virtual void			OpenURL( const char* url, bool quit ) {}
+	virtual void			StartProcess( const char* exeName, bool quit ) {}
+};
+
+idSysCmdline		idSysLocal;
+idSys* 				sys = &idSysLocal;
+
 /*
 ==============================================================
 
@@ -306,16 +442,16 @@ public:
 	virtual void				Init( int argc, const char* const* argv, const char* cmdline ) { };
 
 	// Shuts down everything.
-	virtual void				Shutdown() { };
+	virtual void				Shutdown() {}
 	virtual bool				IsShuttingDown() const
 	{
 		return false;
 	};
 
-	virtual	void				CreateMainMenu() { };
+	virtual	void				CreateMainMenu() {}
 
 	// Shuts down everything.
-	virtual void				Quit() { };
+	virtual void				Quit() {}
 
 	// Returns true if common initialization is complete.
 	virtual bool				IsInitialized() const
@@ -324,28 +460,28 @@ public:
 	};
 
 	// Called repeatedly as the foreground thread for rendering and game logic.
-	virtual void				Frame() { };
+	virtual void				Frame() {}
 
 	// Redraws the screen, handling games, guis, console, etc
 	// in a modal manner outside the normal frame loop
-	virtual void				UpdateScreen() { };
+	virtual void				UpdateScreen() {}
 
-	virtual void				UpdateLevelLoadPacifier() { };
+	virtual void				UpdateLevelLoadPacifier() {}
 
 
 	// Checks for and removes command line "+set var arg" constructs.
 	// If match is NULL, all set commands will be executed, otherwise
 	// only a set with the exact name.
-	virtual void				StartupVariable( const char* match ) { };
+	virtual void				StartupVariable( const char* match ) {}
 
 	// Begins redirection of console output to the given buffer.
 	virtual void				BeginRedirect( char* buffer, int buffersize, void ( *flush )( const char* ) ) { };
 
 	// Stops redirection of console output.
-	virtual void				EndRedirect() { };
+	virtual void				EndRedirect() {}
 
 	// Update the screen with every message printed.
-	virtual void				SetRefreshOnPrint( bool set ) { };
+	virtual void				SetRefreshOnPrint( bool set ) {}
 
 	virtual void			Printf( const char* fmt, ... )
 	{
@@ -369,10 +505,10 @@ public:
 	}
 
 	// Prints all queued warnings.
-	virtual void				PrintWarnings() { };
+	virtual void				PrintWarnings() {}
 
 	// Removes all queued warnings.
-	virtual void				ClearWarnings( const char* reason ) { };
+	virtual void				ClearWarnings( const char* reason ) {}
 
 	virtual void			Error( const char* fmt, ... )
 	{
@@ -481,14 +617,14 @@ public:
 		return useless;
 	};
 
-	virtual void				OnSaveCompleted( idSaveLoadParms& parms ) { };
-	virtual void				OnLoadCompleted( idSaveLoadParms& parms ) { };
-	virtual void				OnLoadFilesCompleted( idSaveLoadParms& parms ) { };
-	virtual void				OnEnumerationCompleted( idSaveLoadParms& parms ) { };
-	virtual void				OnDeleteCompleted( idSaveLoadParms& parms ) { };
-	virtual void				TriggerScreenWipe( const char* _wipeMaterial, bool hold ) { };
+	virtual void				OnSaveCompleted( idSaveLoadParms& parms ) {}
+	virtual void				OnLoadCompleted( idSaveLoadParms& parms ) {}
+	virtual void				OnLoadFilesCompleted( idSaveLoadParms& parms ) {}
+	virtual void				OnEnumerationCompleted( idSaveLoadParms& parms ) {}
+	virtual void				OnDeleteCompleted( idSaveLoadParms& parms ) {}
+	virtual void				TriggerScreenWipe( const char* _wipeMaterial, bool hold ) {}
 
-	virtual void				OnStartHosting( idMatchParameters& parms ) { };
+	virtual void				OnStartHosting( idMatchParameters& parms ) {}
 
 	virtual int					GetGameFrame()
 	{
@@ -514,7 +650,7 @@ public:
 		return useless;
 	};
 
-	virtual void				ResetPlayerInput( int playerIndex ) { };
+	virtual void				ResetPlayerInput( int playerIndex ) {}
 
 	virtual bool				JapaneseCensorship() const
 	{
@@ -523,26 +659,27 @@ public:
 
 	virtual void				QueueShowShell() { };		// Will activate the shell on the next frame.
 	virtual void				UpdateScreen( bool, bool ) { }
-	void						InitTool( const toolFlag_t, const idDict*, idEntity* ) { }
+	void						InitTool( const toolFlag_t, const idDict*, idEntity* ) {}
 
 	//virtual currentGame_t		GetCurrentGame() const {
 	//	return DOOM_CLASSIC;
 	//};
-	//virtual void				SwitchToGame(currentGame_t newGame) { };
+	//virtual void				SwitchToGame(currentGame_t newGame) {}
 
-	void LoadPacifierBinarizeFilename( const char* filename, const char* reason ) { };
-	void LoadPacifierBinarizeInfo( const char* info ) { };
-	void LoadPacifierBinarizeMiplevel( int level, int maxLevel ) { };
-	void LoadPacifierBinarizeProgress( float progress ) { };
+	void LoadPacifierBinarizeFilename( const char* filename, const char* reason ) {}
+	void LoadPacifierBinarizeInfo( const char* info ) {}
+	void LoadPacifierBinarizeMiplevel( int level, int maxLevel ) {}
+	void LoadPacifierBinarizeProgress( float progress ) {}
 	void LoadPacifierBinarizeEnd() { };
 	// for images in particular we can measure more accurately this way (to deal with mipmaps)
-	void LoadPacifierBinarizeProgressTotal( int total ) { };
-	void LoadPacifierBinarizeProgressIncrement( int step ) { };
+	void LoadPacifierBinarizeProgressTotal( int total ) {}
+	void LoadPacifierBinarizeProgressIncrement( int step ) {}
 };
 
 idCommonLocal		commonLocal;
 idCommon* common = &commonLocal;
 
+int com_editors = 0;
 
 /*
 ==============================================================
@@ -564,7 +701,7 @@ int main( int argc, char** argv )
 	cvarSystem->Init();
 	idCVar::RegisterStaticVars();
 	fileSystem->Init();
-	declManager->Init();
+	declManager->InitTool();
 
 	idCmdArgs args;
 	for( int i = 0; i < argc; i++ )

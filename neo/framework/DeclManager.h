@@ -334,6 +334,7 @@ public:
 
 	virtual void			Init() = 0;
 	virtual void			Init2() = 0;
+	virtual void			InitTool() = 0;
 	virtual void			Shutdown() = 0;
 	virtual void			Reload( bool force ) = 0;
 

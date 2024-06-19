@@ -29,8 +29,13 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
+#if defined( DMAP )
+	#include "Anim.h"
 
-#include "../Game_local.h"
+	idAnimManager				animationLib;
+#else
+	#include "../Game_local.h"
+#endif
 
 static const char* channelNames[ ANIM_NumAnimChannels ] =
 {
@@ -342,11 +347,13 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 			return "Unexpected end of line";
 		}
 		fc.type = FC_SCRIPTFUNCTION;
+#if !defined( DMAP )
 		fc.function = gameLocal.program.FindFunction( token );
 		if( !fc.function )
 		{
 			return va( "Function '%s' not found", token.c_str() );
 		}
+#endif
 	}
 	else if( token == "object_call" )
 	{
@@ -364,6 +371,7 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 			return "Unexpected end of line";
 		}
 		fc.type = FC_EVENTFUNCTION;
+#if !defined( DMAP )
 		const idEventDef* ev = idEventDef::FindEvent( token );
 		if( !ev )
 		{
@@ -373,6 +381,7 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 		{
 			return va( "Event '%s' has arguments", token.c_str() );
 		}
+#endif
 		fc.string = new( TAG_ANIM ) idStr( token );
 	}
 	else if( token == "sound" )
@@ -388,11 +397,13 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 		}
 		else
 		{
+#if !defined( DMAP )
 			fc.soundShader = declManager->FindSound( token );
 			if( fc.soundShader->GetState() == DS_DEFAULTED )
 			{
 				gameLocal.Warning( "Sound '%s' not found", token.c_str() );
 			}
+#endif
 		}
 	}
 	else if( token == "sound_voice" )
@@ -408,11 +419,13 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 		}
 		else
 		{
+#if !defined( DMAP )
 			fc.soundShader = declManager->FindSound( token );
 			if( fc.soundShader->GetState() == DS_DEFAULTED )
 			{
 				gameLocal.Warning( "Sound '%s' not found", token.c_str() );
 			}
+#endif
 		}
 	}
 	else if( token == "sound_voice2" )
@@ -428,11 +441,13 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 		}
 		else
 		{
+#if !defined( DMAP )
 			fc.soundShader = declManager->FindSound( token );
 			if( fc.soundShader->GetState() == DS_DEFAULTED )
 			{
 				gameLocal.Warning( "Sound '%s' not found", token.c_str() );
 			}
+#endif
 		}
 	}
 	else if( token == "sound_body" )
@@ -448,11 +463,13 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 		}
 		else
 		{
+#if !defined( DMAP )
 			fc.soundShader = declManager->FindSound( token );
 			if( fc.soundShader->GetState() == DS_DEFAULTED )
 			{
 				gameLocal.Warning( "Sound '%s' not found", token.c_str() );
 			}
+#endif
 		}
 	}
 	else if( token == "sound_body2" )
@@ -468,11 +485,13 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 		}
 		else
 		{
+#if !defined( DMAP )
 			fc.soundShader = declManager->FindSound( token );
 			if( fc.soundShader->GetState() == DS_DEFAULTED )
 			{
 				gameLocal.Warning( "Sound '%s' not found", token.c_str() );
 			}
+#endif
 		}
 	}
 	else if( token == "sound_body3" )
@@ -488,11 +507,13 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 		}
 		else
 		{
+#if !defined( DMAP )
 			fc.soundShader = declManager->FindSound( token );
 			if( fc.soundShader->GetState() == DS_DEFAULTED )
 			{
 				gameLocal.Warning( "Sound '%s' not found", token.c_str() );
 			}
+#endif
 		}
 	}
 	else if( token == "sound_weapon" )
@@ -508,11 +529,13 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 		}
 		else
 		{
+#if !defined( DMAP )
 			fc.soundShader = declManager->FindSound( token );
 			if( fc.soundShader->GetState() == DS_DEFAULTED )
 			{
 				gameLocal.Warning( "Sound '%s' not found", token.c_str() );
 			}
+#endif
 		}
 	}
 	else if( token == "sound_global" )
@@ -528,11 +551,13 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 		}
 		else
 		{
+#if !defined( DMAP )
 			fc.soundShader = declManager->FindSound( token );
 			if( fc.soundShader->GetState() == DS_DEFAULTED )
 			{
 				gameLocal.Warning( "Sound '%s' not found", token.c_str() );
 			}
+#endif
 		}
 	}
 	else if( token == "sound_item" )
@@ -548,11 +573,13 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 		}
 		else
 		{
+#if !defined( DMAP )
 			fc.soundShader = declManager->FindSound( token );
 			if( fc.soundShader->GetState() == DS_DEFAULTED )
 			{
 				gameLocal.Warning( "Sound '%s' not found", token.c_str() );
 			}
+#endif
 		}
 	}
 	else if( token == "sound_chatter" )
@@ -568,11 +595,13 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 		}
 		else
 		{
+#if !defined( DMAP )
 			fc.soundShader = declManager->FindSound( token );
 			if( fc.soundShader->GetState() == DS_DEFAULTED )
 			{
 				gameLocal.Warning( "Sound '%s' not found", token.c_str() );
 			}
+#endif
 		}
 	}
 	else if( token == "skin" )
@@ -602,10 +631,12 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 			return "Unexpected end of line";
 		}
 		fc.type = FC_FX;
+#if !defined( DMAP )
 		if( !declManager->FindType( DECL_FX, token.c_str() ) )
 		{
 			return va( "fx '%s' not found", token.c_str() );
 		}
+#endif
 		fc.string = new( TAG_ANIM ) idStr( token );
 	}
 	else if( token == "trigger" )
@@ -624,10 +655,12 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 			return "Unexpected end of line";
 		}
 		fc.type = FC_TRIGGER_SMOKE_PARTICLE;
+#if !defined( DMAP )
 		if( !declManager->FindType( DECL_PARTICLE, token.c_str() ) )
 		{
 			return va( "Particle '%s' not found", token.c_str() );
 		}
+#endif
 		fc.string = new( TAG_ANIM ) idStr( token );
 	}
 	else if( token == "melee" )
@@ -637,10 +670,12 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 			return "Unexpected end of line";
 		}
 		fc.type = FC_MELEE;
+#if !defined( DMAP )
 		if( !gameLocal.FindEntityDef( token.c_str(), false ) )
 		{
 			return va( "Unknown entityDef '%s'", token.c_str() );
 		}
+#endif
 		fc.string = new( TAG_ANIM ) idStr( token );
 	}
 	else if( token == "direct_damage" )
@@ -650,10 +685,12 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 			return "Unexpected end of line";
 		}
 		fc.type = FC_DIRECTDAMAGE;
+#if !defined( DMAP )
 		if( !gameLocal.FindEntityDef( token.c_str(), false ) )
 		{
 			return va( "Unknown entityDef '%s'", token.c_str() );
 		}
+#endif
 		fc.string = new( TAG_ANIM ) idStr( token );
 	}
 	else if( token == "attack_begin" )
@@ -663,10 +700,12 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 			return "Unexpected end of line";
 		}
 		fc.type = FC_BEGINATTACK;
+#if !defined( DMAP )
 		if( !gameLocal.FindEntityDef( token.c_str(), false ) )
 		{
 			return va( "Unknown entityDef '%s'", token.c_str() );
 		}
+#endif
 		fc.string = new( TAG_ANIM ) idStr( token );
 	}
 	else if( token == "attack_end" )
@@ -760,10 +799,12 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 		{
 			return "Unexpected end of line";
 		}
+#if !defined( DMAP )
 		if( !declManager->FindType( DECL_FX, token, false ) )
 		{
 			return "Unknown FX def";
 		}
+#endif
 
 		fc.type = FC_TRIGGER_FX;
 		fc.string = new( TAG_ANIM ) idStr( token );
@@ -941,6 +982,7 @@ const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenu
 	return NULL;
 }
 
+#if !defined( DMAP )
 /*
 =====================
 idAnim::CallFrameCommands
@@ -1347,6 +1389,7 @@ void idAnim::CallFrameCommands( idEntity* ent, int from, int to ) const
 		}
 	}
 }
+#endif // #if !defined( DMAP )
 
 /*
 =====================
@@ -1429,6 +1472,8 @@ const animFlags_t& idAnim::GetAnimFlags() const
 	idAnimBlend
 
 ***********************************************************************/
+
+#if !defined( DMAP )
 
 /*
 =====================
@@ -2687,6 +2732,8 @@ bool idAnimBlend::AddBounds( int currentTime, idBounds& bounds, bool removeOrigi
 	return true;
 }
 
+#endif
+
 /***********************************************************************
 
 	idDeclModelDef
@@ -2833,6 +2880,7 @@ idDeclModelDef::GetJointList
 */
 void idDeclModelDef::GetJointList( const char* jointnames, idList<jointHandle_t>& jointList ) const
 {
+#if !defined( DMAP )
 	const char*			pos;
 	idStr				jointname;
 	const jointInfo_t*	joint;
@@ -2938,6 +2986,7 @@ void idDeclModelDef::GetJointList( const char* jointnames, idList<jointHandle_t>
 			}
 		}
 	}
+#endif
 }
 
 /*
@@ -2980,6 +3029,7 @@ idDeclModelDef::SetupJoints
 */
 void idDeclModelDef::SetupJoints( int* numJoints, idJointMat** jointList, idBounds& frameBounds, bool removeOriginOffset ) const
 {
+#if !defined( DMAP )
 	int					num;
 	const idJointQuat*	pose;
 	idJointMat*			list;
@@ -3031,6 +3081,7 @@ void idDeclModelDef::SetupJoints( int* numJoints, idJointMat** jointList, idBoun
 
 	// get the bounds of the default pose
 	frameBounds = modelHandle->Bounds( NULL );
+#endif
 }
 
 /*
@@ -3174,7 +3225,9 @@ bool idDeclModelDef::ParseAnim( idLexer& src, int numDefaultAnims, const idStr& 
 			return false;
 		}
 
+#if !defined( DMAP )
 		md5anim->CheckModelHierarchy( modelHandle );
+#endif
 
 		if( numAnims > 0 )
 		{
@@ -3728,6 +3781,7 @@ const idAnim* idDeclModelDef::GetAnim( int index ) const
 idDeclModelDef::GetAnim
 =====================
 */
+#if !defined( DMAP )
 int idDeclModelDef::GetAnim( const char* name ) const
 {
 	int				i;
@@ -3768,6 +3822,7 @@ int idDeclModelDef::GetAnim( const char* name ) const
 	which = gameLocal.random.RandomInt( numAnims );
 	return animList[ which ] + 1;
 }
+#endif
 
 /*
 =====================
@@ -3825,6 +3880,8 @@ int idDeclModelDef::NumJoints() const
 {
 	return joints.Num();
 }
+
+#if !defined( DMAP )
 
 /*
 =====================
@@ -3903,11 +3960,15 @@ const idVec3& idDeclModelDef::GetVisualOffset() const
 	return offset;
 }
 
+#endif // #if !defined( DMAP )
+
 /***********************************************************************
 
 	idAnimator
 
 ***********************************************************************/
+
+#if !defined( DMAP )
 
 /*
 =====================
@@ -5866,11 +5927,15 @@ const idVec3& idAnimator::TotalMovementDelta( int animNum ) const
 	}
 }
 
+#endif // #if !defined( DMAP )
+
 /***********************************************************************
 
 	Util functions
 
 ***********************************************************************/
+
+#if !defined( DMAP )
 
 /*
 =====================
@@ -6275,3 +6340,5 @@ idRenderModel* idGameEdit::ANIM_CreateMeshForAnim( idRenderModel* model, const c
 
 	return newmodel;
 }
+
+#endif // #if !defined( DMAP )
