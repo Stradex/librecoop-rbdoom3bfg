@@ -35,9 +35,152 @@ If you have questions concerning this license or the applicable additional terms
 #include <direct.h>
 #include <io.h>
 
+#include "imtui/imtui.h"
+#include "imtui/imtui-impl-ncurses.h"
+#include "imtui/imtui-demo.h"
+
+
 idEventLoop* eventLoop;
 
 
+
+//-----------------------------------------------------------------------------
+// [SECTION] Example App: Debug Log / ShowExampleAppLog()
+//-----------------------------------------------------------------------------
+
+// Usage:
+//  static ExampleAppLog my_log;
+//  my_log.AddLog("Hello %d world\n", 123);
+//  my_log.Draw("title");
+struct ExampleAppLog
+{
+	ImGuiTextBuffer     Buf;
+	ImGuiTextFilter     Filter;
+	ImVector<int>       LineOffsets;        // Index to lines offset. We maintain this with AddLog() calls, allowing us to have a random access on lines
+	bool                AutoScroll;     // Keep scrolling if already at the bottom
+
+	ExampleAppLog()
+	{
+		AutoScroll = true;
+		Clear();
+	}
+
+	void    Clear()
+	{
+		Buf.clear();
+		LineOffsets.clear();
+		LineOffsets.push_back( 0 );
+	}
+
+	void    AddLog( const char* fmt, ... ) IM_FMTARGS( 2 )
+	{
+		int old_size = Buf.size();
+		va_list args;
+		va_start( args, fmt );
+		Buf.appendfv( fmt, args );
+		va_end( args );
+		for( int new_size = Buf.size(); old_size < new_size; old_size++ )
+			if( Buf[old_size] == '\n' )
+			{
+				LineOffsets.push_back( old_size + 1 );
+			}
+	}
+
+	void    Draw( const char* title, bool* p_open = NULL )
+	{
+		if( !ImGui::Begin( title, p_open ) )
+		{
+			ImGui::End();
+			return;
+		}
+
+		// Options menu
+		if( ImGui::BeginPopup( "Options" ) )
+		{
+			ImGui::Checkbox( "Auto-scroll", &AutoScroll );
+			ImGui::EndPopup();
+		}
+
+		// Main window
+		if( ImGui::Button( "Options" ) )
+		{
+			ImGui::OpenPopup( "Options" );
+		}
+		ImGui::SameLine();
+		bool clear = ImGui::Button( "Clear" );
+		ImGui::SameLine();
+		bool copy = ImGui::Button( "Copy" );
+		ImGui::SameLine();
+		Filter.Draw( "Filter", -100.0f );
+
+		ImGui::Separator();
+		ImGui::BeginChild( "scrolling", ImVec2( 0, 0 ), false, ImGuiWindowFlags_HorizontalScrollbar );
+
+		if( clear )
+		{
+			Clear();
+		}
+		if( copy )
+		{
+			ImGui::LogToClipboard();
+		}
+
+		ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
+		const char* buf = Buf.begin();
+		const char* buf_end = Buf.end();
+		if( Filter.IsActive() )
+		{
+			// In this example we don't use the clipper when Filter is enabled.
+			// This is because we don't have a random access on the result on our filter.
+			// A real application processing logs with ten of thousands of entries may want to store the result of search/filter.
+			// especially if the filtering function is not trivial (e.g. reg-exp).
+			for( int line_no = 0; line_no < LineOffsets.Size; line_no++ )
+			{
+				const char* line_start = buf + LineOffsets[line_no];
+				const char* line_end = ( line_no + 1 < LineOffsets.Size ) ? ( buf + LineOffsets[line_no + 1] - 1 ) : buf_end;
+				if( Filter.PassFilter( line_start, line_end ) )
+				{
+					ImGui::TextUnformatted( line_start, line_end );
+				}
+			}
+		}
+		else
+		{
+			// The simplest and easy way to display the entire buffer:
+			//   ImGui::TextUnformatted(buf_begin, buf_end);
+			// And it'll just work. TextUnformatted() has specialization for large blob of text and will fast-forward to skip non-visible lines.
+			// Here we instead demonstrate using the clipper to only process lines that are within the visible area.
+			// If you have tens of thousands of items and their processing cost is non-negligible, coarse clipping them on your side is recommended.
+			// Using ImGuiListClipper requires A) random access into your data, and B) items all being the  same height,
+			// both of which we can handle since we an array pointing to the beginning of each line of text.
+			// When using the filter (in the block of code above) we don't have random access into the data to display anymore, which is why we don't use the clipper.
+			// Storing or skimming through the search result would make it possible (and would be recommended if you want to search through tens of thousands of entries)
+			ImGuiListClipper clipper;
+			clipper.Begin( LineOffsets.Size );
+			while( clipper.Step() )
+			{
+				for( int line_no = clipper.DisplayStart; line_no < clipper.DisplayEnd; line_no++ )
+				{
+					const char* line_start = buf + LineOffsets[line_no];
+					const char* line_end = ( line_no + 1 < LineOffsets.Size ) ? ( buf + LineOffsets[line_no + 1] - 1 ) : buf_end;
+					ImGui::TextUnformatted( line_start, line_end );
+				}
+			}
+			clipper.End();
+		}
+		ImGui::PopStyleVar();
+
+		if( AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() )
+		{
+			ImGui::SetScrollHereY( 1.0f );
+		}
+
+		ImGui::EndChild();
+		ImGui::End();
+	}
+};
+
+static ExampleAppLog tuiLog;
 
 #define MAXPRINTMSG 4096
 
@@ -82,6 +225,8 @@ void Sys_DebugPrintf( const char* fmt, ... )
 
 	printf( msg );
 	OutputDebugString( msg );
+
+	tuiLog.AddLog( "%s", msg );
 }
 
 /*
@@ -98,6 +243,8 @@ void Sys_DebugVPrintf( const char* fmt, va_list arg )
 
 	printf( msg );
 	OutputDebugString( msg );
+
+	tuiLog.AddLog( "%s", msg );
 }
 
 /*
@@ -434,7 +581,13 @@ idSys* 				sys = &idSysLocal;
 
 class idCommonLocal : public idCommon
 {
+private:
+
+
 public:
+	bool						com_refreshOnPrint = true;		// update the screen every print for dmap
+	ImTui::TScreen*				screen;
+
 
 	// Initialize everything.
 	// if the OS allows, pass argc/argv directly (without executable name)
@@ -464,7 +617,7 @@ public:
 
 	// Redraws the screen, handling games, guis, console, etc
 	// in a modal manner outside the normal frame loop
-	virtual void				UpdateScreen() {}
+	virtual void				UpdateScreen( bool captureToImage, bool releaseMouse = true );
 
 	virtual void				UpdateLevelLoadPacifier() {}
 
@@ -481,27 +634,60 @@ public:
 	virtual void				EndRedirect() {}
 
 	// Update the screen with every message printed.
-	virtual void				SetRefreshOnPrint( bool set ) {}
+	virtual void				SetRefreshOnPrint( bool set )
+	{
+		com_refreshOnPrint = set;
+	}
 
 	virtual void			Printf( const char* fmt, ... )
 	{
 		STDIO_PRINT( "", "" );
+
+		if( com_refreshOnPrint )
+		{
+			bool captureToImage = false;
+			common->UpdateScreen( captureToImage );
+		}
 	}
 	virtual void			VPrintf( const char* fmt, va_list arg )
 	{
-		vprintf( fmt, arg );
+		Sys_DebugVPrintf( fmt, arg );
+
+		if( com_refreshOnPrint )
+		{
+			bool captureToImage = false;
+			common->UpdateScreen( captureToImage );
+		}
 	}
 	virtual void			DPrintf( const char* fmt, ... )
 	{
 		STDIO_PRINT( "", "" );
+
+		if( com_refreshOnPrint )
+		{
+			bool captureToImage = false;
+			common->UpdateScreen( captureToImage );
+		}
 	}
 	virtual void			Warning( const char* fmt, ... )
 	{
 		STDIO_PRINT( "WARNING: ", "\n" );
+
+		if( com_refreshOnPrint )
+		{
+			bool captureToImage = false;
+			common->UpdateScreen( captureToImage );
+		}
 	}
 	virtual void			DWarning( const char* fmt, ... )
 	{
 		STDIO_PRINT( "WARNING: ", "\n" );
+
+		if( com_refreshOnPrint )
+		{
+			bool captureToImage = false;
+			common->UpdateScreen( captureToImage );
+		}
 	}
 
 	// Prints all queued warnings.
@@ -513,11 +699,23 @@ public:
 	virtual void			Error( const char* fmt, ... )
 	{
 		STDIO_PRINT( "ERROR: ", "\n" );
+
+		if( com_refreshOnPrint )
+		{
+			bool captureToImage = false;
+			common->UpdateScreen( captureToImage );
+		}
 		exit( 0 );
 	}
 	virtual void			FatalError( const char* fmt, ... )
 	{
 		STDIO_PRINT( "FATAL ERROR: ", "\n" );
+
+		if( com_refreshOnPrint )
+		{
+			bool captureToImage = false;
+			common->UpdateScreen( captureToImage );
+		}
 		exit( 0 );
 	}
 
@@ -658,7 +856,6 @@ public:
 	};
 
 	virtual void				QueueShowShell() { };		// Will activate the shell on the next frame.
-	virtual void				UpdateScreen( bool, bool ) { }
 	void						InitTool( const toolFlag_t, const idDict*, idEntity* ) {}
 
 	//virtual currentGame_t		GetCurrentGame() const {
@@ -730,6 +927,293 @@ int main( int argc, char** argv )
 	return 0;
 }
 
+#elif 1
+
+
+#include <array>
+#include <map>
+#include <vector>
+#include <string>
+#include <functional>
+
+namespace UI
+{
+
+enum class WindowContent : int
+{
+	Top,
+	//Best,
+	Show,
+	Ask,
+	New,
+	Count,
+};
+
+enum class ColorScheme : int
+{
+	Default,
+	Dark,
+	Green,
+	COUNT,
+};
+
+
+std::map<WindowContent, std::string> kContentStr =
+{
+	{ WindowContent::Top, "Top" },
+	//{ WindowContent::Best, "Best" },
+	{ WindowContent::Show, "Show" },
+	{ WindowContent::Ask, "Ask" },
+	{ WindowContent::New, "New" },
+};
+
+struct WindowData
+{
+	WindowContent content;
+	bool showComments = false;
+	//HN::ItemId selectedStoryId = 0;
+	int hoveredStoryId = 0;
+	int hoveredCommentId = 0;
+	int maxStories = 10;
+};
+
+struct State
+{
+	int hoveredWindowId = 0;
+	int statusWindowHeight = 4;
+
+	ColorScheme colorScheme = ColorScheme::Dark;
+
+	bool showHelpWelcome = false;
+	bool showHelpModal = false;
+	bool showStatusWindow = true;
+
+	int nWindows = 1;
+
+	char statusWindowHeader[512];
+	idStrStatic<512> statusActiveTool;
+
+	std::map<int, bool> collapsed;
+
+	void ChangeColorScheme( bool inc = true )
+	{
+		if( inc )
+		{
+			colorScheme = ( ColorScheme )( ( ( int ) colorScheme + 1 ) % ( ( int )ColorScheme::COUNT ) );
+		}
+
+		ImVec4* colors = ImGui::GetStyle().Colors;
+		switch( colorScheme )
+		{
+			case ColorScheme::Default:
+			{
+				colors[ImGuiCol_Text]                   = ImVec4( 0.00f, 0.00f, 0.00f, 1.00f );
+				colors[ImGuiCol_TextDisabled]           = ImVec4( 0.60f, 0.60f, 0.60f, 1.00f );
+				colors[ImGuiCol_WindowBg]               = ImVec4( 0.96f, 0.96f, 0.94f, 1.00f );
+				colors[ImGuiCol_TitleBg]                = ImVec4( 1.00f, 0.40f, 0.00f, 1.00f );
+				colors[ImGuiCol_TitleBgActive]          = ImVec4( 1.00f, 0.40f, 0.00f, 1.00f );
+				colors[ImGuiCol_TitleBgCollapsed]       = ImVec4( 0.69f, 0.25f, 0.00f, 1.00f );
+				colors[ImGuiCol_ChildBg]                = ImVec4( 0.96f, 0.96f, 0.94f, 1.00f );
+				colors[ImGuiCol_PopupBg]                = ImVec4( 0.96f, 0.96f, 0.94f, 1.00f );
+				colors[ImGuiCol_ModalWindowDimBg]       = ImVec4( 0.00f, 0.00f, 0.00f, 0.00f );
+			}
+			break;
+			case ColorScheme::Dark:
+			{
+				colors[ImGuiCol_Text]                   = ImVec4( 1.00f, 1.00f, 1.00f, 1.00f );
+				colors[ImGuiCol_TextDisabled]           = ImVec4( 0.60f, 0.60f, 0.60f, 1.00f );
+				colors[ImGuiCol_WindowBg]               = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
+				colors[ImGuiCol_TitleBg]                = ImVec4( 1.00f, 0.40f, 0.00f, 0.50f );
+				colors[ImGuiCol_TitleBgActive]          = ImVec4( 1.00f, 0.40f, 0.00f, 0.50f );
+				colors[ImGuiCol_TitleBgCollapsed]       = ImVec4( 0.69f, 0.25f, 0.00f, 0.50f );
+				colors[ImGuiCol_ChildBg]                = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
+				colors[ImGuiCol_PopupBg]                = ImVec4( 0.20f, 0.20f, 0.20f, 1.00f );
+				colors[ImGuiCol_ModalWindowDimBg]       = ImVec4( 0.00f, 0.00f, 0.00f, 0.00f );
+			}
+			break;
+			case ColorScheme::Green:
+			{
+				colors[ImGuiCol_Text]                   = ImVec4( 0.00f, 1.00f, 0.00f, 1.00f );
+				colors[ImGuiCol_TextDisabled]           = ImVec4( 0.60f, 0.60f, 0.60f, 1.00f );
+				colors[ImGuiCol_WindowBg]               = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
+				colors[ImGuiCol_TitleBg]                = ImVec4( 0.25f, 0.25f, 0.25f, 1.00f );
+				colors[ImGuiCol_TitleBgActive]          = ImVec4( 0.25f, 0.25f, 0.25f, 1.00f );
+				colors[ImGuiCol_TitleBgCollapsed]       = ImVec4( 0.50f, 1.00f, 0.50f, 1.00f );
+				colors[ImGuiCol_ChildBg]                = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
+				colors[ImGuiCol_PopupBg]                = ImVec4( 0.00f, 0.00f, 0.00f, 1.00f );
+				colors[ImGuiCol_ModalWindowDimBg]       = ImVec4( 0.00f, 0.00f, 0.00f, 0.00f );
+			}
+			break;
+			default:
+			{
+			}
+		}
+	}
+
+	std::array<WindowData, 3> windows { {
+			{
+				WindowContent::Top,
+				false,
+				0, 0, 10,
+			},
+			{
+				WindowContent::Show,
+				false,
+				0, 0, 10,
+			},
+			{
+				WindowContent::New,
+				false,
+				0, 0, 10,
+			},
+		} };
+};
+
+}
+
+// UI state
+UI::State stateUI;
+
+void ShowExampleAppConsole( bool* p_open );
+
+void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
+{
+	bool demo = true;
+	bool conOpen = true;
+
+	ImTui_ImplNcurses_NewFrame();
+	ImTui_ImplText_NewFrame();
+
+	ImGui::NewFrame();
+
+	{
+		auto wSize = ImGui::GetIO().DisplaySize;
+		wSize.x /= stateUI.nWindows;
+		if( stateUI.showStatusWindow )
+		{
+			wSize.y -= stateUI.statusWindowHeight;
+		}
+		wSize.x = int( wSize.x );
+		ImGui::SetNextWindowPos( ImVec2( 0, 0 ), ImGuiCond_Always );
+
+		if( 0 < stateUI.nWindows - 1 )
+		{
+			wSize.x -= 1.1;
+		}
+		ImGui::SetNextWindowSize( wSize, ImGuiCond_Always );
+	}
+
+	idStr title = va( "RBDMAP version %s %s", ENGINE_VERSION, BUILD_STRING );
+	//std::string title = "RBDMAP " + UI::kContentStr[window.content] + ")##" + std::to_string( windowId );
+	ImGui::Begin( title.c_str(), nullptr,
+				  ImGuiWindowFlags_NoCollapse |
+				  ImGuiWindowFlags_NoResize |
+				  ImGuiWindowFlags_NoMove |
+				  ImGuiWindowFlags_NoScrollbar );
+
+	ImGui::BeginChild( "Current Log:", ImVec2( 0, 0 ), false, ImGuiWindowFlags_None );
+
+
+	// For the demo: add a debug button _BEFORE_ the normal log window contents
+	// We take advantage of a rarely used feature: multiple calls to Begin()/End() are appending to the _same_ window.
+	// Most of the contents of the window will be added by the log.Draw() call.
+	ImGui::SetNextWindowPos( ImVec2( 20, 14 ), ImGuiCond_FirstUseEver );
+	ImGui::SetNextWindowSize( ImVec2( 100, 30 ), ImGuiCond_FirstUseEver );
+	//ImGui::Begin( "Example: Log", &conOpen );
+	//ImGui::End();
+
+	// Actually call in the regular Log helper (which will Begin() into the same window as we just did)
+	tuiLog.Draw( "Current Log:", &conOpen );
+
+	ImGui::EndChild();
+
+
+	//ShowExampleAppConsole( &conOpen );
+
+	//ImTui::ShowDemoWindow( &demo );
+
+	ImGui::End();
+
+	{
+		auto wSize = ImGui::GetIO().DisplaySize;
+		ImGui::SetNextWindowPos( ImVec2( 0, wSize.y - stateUI.statusWindowHeight ), ImGuiCond_Always );
+		ImGui::SetNextWindowSize( ImVec2( wSize.x, stateUI.statusWindowHeight ), ImGuiCond_Always );
+	}
+	snprintf( stateUI.statusWindowHeader, 512, "Status %s |", stateUI.statusActiveTool.c_str() );
+	ImGui::Begin( stateUI.statusWindowHeader, nullptr,
+				  ImGuiWindowFlags_NoCollapse |
+				  ImGuiWindowFlags_NoResize |
+				  ImGuiWindowFlags_NoMove );
+	//ImGui::Text( " API requests     : %d / %d B (next update in %d s)", stateHN.nFetches, ( int ) stateHN.totalBytesDownloaded, stateHN.nextUpdate );
+	ImGui::Text( " Last API request : " );
+	ImGui::Text( " Source code      : https://github.com/RobertBeckebans/RBDOOM-3-BFG" );
+	ImGui::End();
+
+	ImGui::Render();
+
+	ImTui_ImplText_RenderDrawData( ImGui::GetDrawData(), screen );
+	ImTui_ImplNcurses_DrawScreen();
+}
+
+int main( int argc, char** argv )
+{
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+
+	commonLocal.screen = ImTui_ImplNcurses_Init( true );
+	ImTui_ImplText_Init();
+
+	stateUI.ChangeColorScheme( false );
+
+	common->Printf( "Test log print\n" );
+
+	idLib::common = common;
+	idLib::cvarSystem = cvarSystem;
+	idLib::fileSystem = fileSystem;
+	idLib::sys = sys;
+
+	idLib::Init();
+	cmdSystem->Init();
+	cvarSystem->Init();
+	idCVar::RegisterStaticVars();
+
+	// set cvars before filesystem init to use mod paths
+	idCmdArgs args;
+	for( int i = 0; i < argc; i++ )
+	{
+		if( idStr::Icmp( argv[ i ], "+set" ) == 0 )
+		{
+			if( ( i + 2 ) < argc )
+			{
+				cvarSystem->SetCVarString( argv[ i + 1 ], argv[ i + 2 ] );
+			}
+
+			i += 2;
+		}
+		else
+		{
+			args.AppendArg( argv[i] );
+		}
+	}
+
+	fileSystem->Init();
+	declManager->InitTool();
+
+	Dmap_f( args );
+
+#if 0
+	while( true )
+	{
+		bool captureToImage = false;
+		common->UpdateScreen( captureToImage );
+	}
+#endif
+
+	ImTui_ImplText_Shutdown();
+	ImTui_ImplNcurses_Shutdown();
+
+	return 0;
+}
 #else
 
 #include "imtui/imtui.h"

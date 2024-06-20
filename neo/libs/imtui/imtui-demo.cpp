@@ -5655,7 +5655,7 @@ static void ShowDemoWindowMisc()
 			ImGui::Text( "Mouse wheel: %.1f", io.MouseWheel );
 
 // RB: outdated
-#if 0
+#if 1
 			ImGui::Text( "Keys down:" );
 			for( int i = 0; i < IM_ARRAYSIZE( io.KeysDown ); i++ ) if( io.KeysDownDuration[i] >= 0.0f )
 				{
@@ -5687,7 +5687,7 @@ static void ShowDemoWindowMisc()
 			}
 
 			// RB: outdated
-#if 0
+#if 1
 			ImGui::Text( "NavInputs down:" );
 			for( int i = 0; i < IM_ARRAYSIZE( io.NavInputs ); i++ ) if( io.NavInputs[i] > 0.0f )
 				{
@@ -6904,7 +6904,7 @@ struct ExampleAppConsole
 	}
 };
 
-static void ShowExampleAppConsole( bool* p_open )
+void ShowExampleAppConsole( bool* p_open )
 {
 	static ExampleAppConsole console;
 	console.Draw( "Example: Console", p_open );
