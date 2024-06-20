@@ -107,6 +107,43 @@ set(MC_GAME_SOURCES
 file(GLOB MC_MIKKTSPACE_INCLUDES ../../libs/mikktspace/*.h)
 file(GLOB MC_MIKKTSPACE_SOURCES ../../libs/mikktspace/*.c)
 
+file(GLOB MC_IMTUI_INCLUDES ../../libs/imtui/*.h)
+file(GLOB MC_IMTUI_SOURCES ../../libs/imtui/*.cpp)
+
+# We can't use our well integrated Imgui docking branch because Imtui was developed against an older version
+#file(GLOB MC_IMGUI_INCLUDES ../../libs/imgui/*.h)
+#file(GLOB MC_IMGUI_SOURCES ../../libs/imgui/*.cpp)
+
+file(GLOB MC_IMGUI_INCLUDES ../../libs/imtui/imgui/*.h)
+file(GLOB MC_IMGUI_SOURCES ../../libs/imtui/imgui/*.cpp)
+
+if(MSVC)
+	file(GLOB CURSES_INCLUDES ../../libs/imtui/pdcurses/*.h)
+
+	file(GLOB PDCURSES_INCLUDES ../../libs/imtui/pdcurses/pdcurses/*.h)
+    file(GLOB PDCURSES_SOURCES ../../libs/imtui/pdcurses/pdcurses/*.c)
+
+    file(GLOB WINCON_INCLUDES ../../libs/imtui/pdcurses/wincon/*.h)
+    file(GLOB WINCON_SOURCES ../../libs/imtui/pdcurses/wincon/*.c)
+
+    add_library(imtui-pdcurses STATIC
+        ${CURSES_INCLUDES}
+		${PDCURSES_INCLUDES}
+        ${PDCURSES_SOURCES}
+        ${WINCON_INCLUDES}
+        ${WINCON_SOURCES}
+        )
+
+	target_include_directories(imtui-pdcurses PRIVATE
+       ../../libs/imtui/pdcurses
+       )
+
+	set_target_properties(imtui-pdcurses PROPERTIES LINKER_LANGUAGE C)
+    target_link_libraries(imtui-pdcurses PUBLIC
+        winmm
+        )
+endif()
+
 set(MC_INCLUDES_ALL
 			${MC_INCLUDES}
 			${MC_FRAMEWORK_INCLUDES}
@@ -117,6 +154,8 @@ set(MC_INCLUDES_ALL
 			${MC_CM_INCLUDES}
 			${MC_MIKKTSPACE_INCLUDES}
 			${MC_GAME_INCLUDES}
+			${MC_IMGUI_INCLUDES}
+			${MC_IMTUI_INCLUDES}
 			)
 			
 set(MC_SOURCES_ALL
@@ -129,6 +168,8 @@ set(MC_SOURCES_ALL
 			${MC_CM_SOURCES}
 			${MC_MIKKTSPACE_SOURCES}
 			${MC_GAME_SOURCES}
+			${MC_IMGUI_SOURCES}
+			${MC_IMTUI_SOURCES}
 			)
 
 source_group("main" FILES ${MC_INCLUDES})
@@ -152,11 +193,12 @@ source_group("anim" FILES ${MC_GAME_INCLUDES})
 source_group("anim" FILES ${MC_GAME_SOURCES})
 
 set(MC_PRECOMPILED_SOURCES ${MC_SOURCES_ALL})
-list(REMOVE_ITEM MC_PRECOMPILED_SOURCES ${MC_MIKKTSPACE_SOURCES})
+list(REMOVE_ITEM MC_PRECOMPILED_SOURCES ${MC_MIKKTSPACE_SOURCES} ${MC_IMGUI_SOURCES} ${MC_IMTUI_SOURCES})
 
 include_directories(
 	.
 	../../idlib
+	../../libs/
 	)
 
 if(MSVC)
@@ -183,7 +225,7 @@ if(MSVC)
 
     add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
 	add_dependencies(rbdmap idlib)
-	target_link_libraries(rbdmap idlib winmm)
+	target_link_libraries(rbdmap idlib winmm imtui-pdcurses)
 
 	# set MSVC default debug directory on executable	
 	if(CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 8)
