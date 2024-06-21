@@ -535,7 +535,8 @@ void MakeTreePortals_r( node_t* node )
 
 	if( node->bounds[0][0] >= node->bounds[1][0] )
 	{
-		common->Warning( "node without a volume" );
+		common->VerbosePrintf( "Warning: node without a volume" );
+		//common->Warning( "node without a volume" );
 	}
 
 	for( i = 0; i < 3; i++ )
@@ -565,7 +566,7 @@ MakeTreePortals
 */
 void MakeTreePortals( tree_t* tree )
 {
-	common->Printf( "----- MakeTreePortals -----\n" );
+	common->VerbosePrintf( "----- MakeTreePortals -----\n" );
 	MakeHeadnodePortals( tree );
 	MakeTreePortals_r( tree->headnode );
 }
@@ -968,7 +969,7 @@ void FindAreas_r( node_t* node )
 
 	c_areaFloods = 0;
 	FloodAreas_r( node );
-	common->Printf( "area %i has %i leafs\n", c_areas, c_areaFloods );
+	common->VerbosePrintf( "area %i has %i leafs\n", c_areas, c_areaFloods );
 	c_areas++;
 }
 
@@ -1195,7 +1196,10 @@ Sets e->areas.numAreas
 */
 void FloodAreas( uEntity_t* e )
 {
-	common->Printf( "--- FloodAreas ---\n" );
+	if( e == &dmapGlobals.uEntities[0] )
+	{
+		common->Printf( "--- FloodAreas ---\n" );
+	}
 
 	// set all areas to -1
 	ClearAreas_r( e->tree->headnode );
@@ -1204,7 +1208,10 @@ void FloodAreas( uEntity_t* e )
 	c_areas = 0;
 	FindAreas_r( e->tree->headnode );
 
-	common->Printf( "%5i areas\n", c_areas );
+	if( e == &dmapGlobals.uEntities[0] )
+	{
+		common->Printf( "%5i areas\n", c_areas );
+	}
 	e->numAreas = c_areas;
 
 	// make sure we got all of them

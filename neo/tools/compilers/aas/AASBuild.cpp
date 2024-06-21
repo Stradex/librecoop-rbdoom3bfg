@@ -839,6 +839,8 @@ bool idAASBuild::Build( const idStr& fileName, const idAASSettings* settings )
 		return false;
 	}
 
+	common->DmapPacifierFilename( name, "Compiling AAS files" );
+
 	// check if this map has any entities that use this AAS file
 	if( !CheckForEntities( mapFile, entityClassNames ) )
 	{
@@ -968,6 +970,7 @@ bool idAASBuild::Build( const idStr& fileName, const idAASSettings* settings )
 	delete mapFile;
 
 	common->Printf( "%6d seconds to create AAS\n", ( Sys_Milliseconds() - startTime ) / 1000 );
+	common->DmapPacifierInfo( "%6d seconds to create AAS\n", ( Sys_Milliseconds() - startTime ) / 1000 );
 
 	return true;
 }

@@ -668,10 +668,12 @@ void idImage::FinalizeImage( bool fromBackEnd, nvrhi::ICommandList* commandList 
 		binaryFileTime = im.WriteGeneratedFile( sourceFileTime );
 	}
 
+#if !defined( DMAP )
 	if( !commandList )
 	{
 		return;
 	}
+#endif
 
 	AllocImage();
 

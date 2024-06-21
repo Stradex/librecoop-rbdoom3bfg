@@ -1000,13 +1000,14 @@ idAASReach::Build
 */
 bool idAASReach::Build( const idMapFile* mapFile, idAASFileLocal* file )
 {
-	int i, j, lastPercent, percent;
+	int i, j, lastPercent;
 
 	this->mapFile = mapFile;
 	this->file = file;
 	numReachabilities = 0;
 
 	common->Printf( "[Reachability]\n" );
+	common->DmapPacifierInfo( "[Reachability]\n" );
 
 	// delete all existing reachabilities
 	file->DeleteReachabilities();
@@ -1026,8 +1027,10 @@ bool idAASReach::Build( const idMapFile* mapFile, idAASFileLocal* file )
 		Reachability_EqualFloorHeight( i );
 	}
 
+	common->DmapPacifierCompileProgressTotal( file->areas.Num() - 1 );
+
 	lastPercent = -1;
-	for( i = 1; i < file->areas.Num(); i++ )
+	for( i = 1; i < file->areas.Num(); i++, common->DmapPacifierCompileProgressIncrement( 1 ) )
 	{
 
 		if( !( file->areas[i].flags & AREA_REACHABLE_WALK ) )
@@ -1059,12 +1062,14 @@ bool idAASReach::Build( const idMapFile* mapFile, idAASFileLocal* file )
 
 		//Reachability_WalkOffLedge( i );
 
-		percent = 100 * i / file->areas.Num();
+#if !defined( DMAP )
+		int percent = 100 * i / file->areas.Num();
 		if( percent > lastPercent )
 		{
 			common->Printf( "\r%6d%%", percent );
 			lastPercent = percent;
 		}
+#endif
 	}
 
 	if( file->GetSettings().allowFlyReachabilities )

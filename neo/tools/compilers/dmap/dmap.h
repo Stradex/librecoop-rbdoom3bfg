@@ -278,8 +278,6 @@ typedef struct
 
 	idList<mapLight_t*>	mapLights;
 
-	bool	verbose;
-
 	bool	glview;
 	bool	asciiTree;			// BSP tree visualization in the .proc file
 	bool	noOptimize;

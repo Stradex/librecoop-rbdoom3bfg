@@ -3,6 +3,7 @@
 
 Doom 3 GPL Source Code
 Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2024 Robert Beckebans
 
 This file is part of the Doom 3 GPL Source Code (?Doom 3 Source Code?).
 
@@ -39,7 +40,6 @@ If you have questions concerning this license or the applicable additional terms
 #include "imtui/imtui-impl-ncurses.h"
 #include "imtui/imtui-demo.h"
 
-
 idEventLoop* eventLoop;
 
 
@@ -52,16 +52,14 @@ idEventLoop* eventLoop;
 //  static ExampleAppLog my_log;
 //  my_log.AddLog("Hello %d world\n", 123);
 //  my_log.Draw("title");
-struct ExampleAppLog
+struct MyAppLog
 {
 	ImGuiTextBuffer     Buf;
 	ImGuiTextFilter     Filter;
 	ImVector<int>       LineOffsets;        // Index to lines offset. We maintain this with AddLog() calls, allowing us to have a random access on lines
-	bool                AutoScroll;     // Keep scrolling if already at the bottom
 
-	ExampleAppLog()
+	MyAppLog()
 	{
-		AutoScroll = true;
 		Clear();
 	}
 
@@ -88,38 +86,25 @@ struct ExampleAppLog
 
 	void    Draw( const char* title, bool* p_open = NULL )
 	{
-		if( !ImGui::Begin( title, p_open ) )
+
+		{
+			auto wSize = ImGui::GetIO().DisplaySize;
+			ImGui::SetNextWindowPos( ImVec2( 0, 1 ), ImGuiCond_Always );
+			ImGui::SetNextWindowSize( ImVec2( wSize.x, wSize.y - 5 ), ImGuiCond_Always );
+		}
+		if( !ImGui::Begin( title, p_open, ImGuiWindowFlags_NoDecoration ) )
 		{
 			ImGui::End();
 			return;
 		}
 
-		// Options menu
-		if( ImGui::BeginPopup( "Options" ) )
-		{
-			ImGui::Checkbox( "Auto-scroll", &AutoScroll );
-			ImGui::EndPopup();
-		}
 
-		// Main window
-		if( ImGui::Button( "Options" ) )
-		{
-			ImGui::OpenPopup( "Options" );
-		}
+		bool copy = ImGui::Button( "Copy to Clipboard" );
 		ImGui::SameLine();
-		bool clear = ImGui::Button( "Clear" );
-		ImGui::SameLine();
-		bool copy = ImGui::Button( "Copy" );
-		ImGui::SameLine();
-		Filter.Draw( "Filter", -100.0f );
 
 		ImGui::Separator();
 		ImGui::BeginChild( "scrolling", ImVec2( 0, 0 ), false, ImGuiWindowFlags_HorizontalScrollbar );
 
-		if( clear )
-		{
-			Clear();
-		}
 		if( copy )
 		{
 			ImGui::LogToClipboard();
@@ -128,6 +113,7 @@ struct ExampleAppLog
 		ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
 		const char* buf = Buf.begin();
 		const char* buf_end = Buf.end();
+#if 0
 		if( Filter.IsActive() )
 		{
 			// In this example we don't use the clipper when Filter is enabled.
@@ -145,6 +131,7 @@ struct ExampleAppLog
 			}
 		}
 		else
+#endif
 		{
 			// The simplest and easy way to display the entire buffer:
 			//   ImGui::TextUnformatted(buf_begin, buf_end);
@@ -170,7 +157,7 @@ struct ExampleAppLog
 		}
 		ImGui::PopStyleVar();
 
-		if( AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() )
+		//if( ImGui::GetScrollY() >= ImGui::GetScrollMaxY() )
 		{
 			ImGui::SetScrollHereY( 1.0f );
 		}
@@ -180,7 +167,7 @@ struct ExampleAppLog
 	}
 };
 
-static ExampleAppLog tuiLog;
+static MyAppLog tuiLog;
 
 #define MAXPRINTMSG 4096
 
@@ -194,7 +181,7 @@ static ExampleAppLog tuiLog;
 	Sys_DebugPrintf( "%s%s%s", pre, msg, post );			\
 
 
-//idCVar com_developer( "developer", "0", CVAR_BOOL|CVAR_SYSTEM, "developer mode" );
+idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode" );
 idCVar com_productionMode( "com_productionMode", "0", CVAR_SYSTEM | CVAR_BOOL, "0 - no special behavior, 1 - building a production build, 2 - running a production build" );
 
 /*
@@ -579,10 +566,174 @@ idSys* 				sys = &idSysLocal;
 ==============================================================
 */
 
+/*
+#include <array>
+#include <map>
+#include <vector>
+#include <string>
+#include <functional>
+*/
+
+namespace UI
+{
+
+enum class ColorScheme : int
+{
+	Default,
+	Dark,
+	Green,
+	Jungle,
+	COUNT,
+};
+
+struct State
+{
+	int hoveredWindowId = 0;
+	int statusWindowHeight = 4;
+
+	ColorScheme colorScheme = ColorScheme::Dark;
+
+	bool showHelpWelcome = false;
+	bool showHelpModal = false;
+	bool showStatusWindow = true;
+
+#define STATUS_TEXT_SIZE 512
+	idStrStatic<STATUS_TEXT_SIZE> statusWindowHeader =  "Initializing Doom Framework";
+	idStrStatic<STATUS_TEXT_SIZE> statusActiveTool = "-";
+
+	float progress = 1.0f;
+
+	void ChangeColorScheme( bool inc = true )
+	{
+		if( inc )
+		{
+			colorScheme = ( ColorScheme )( ( ( int ) colorScheme + 1 ) % ( ( int )ColorScheme::COUNT ) );
+		}
+
+		ImVec4* colors = ImGui::GetStyle().Colors;
+		switch( colorScheme )
+		{
+			case ColorScheme::Default:
+			{
+				colors[ImGuiCol_Text]                   = ImVec4( 0.00f, 0.00f, 0.00f, 1.00f );
+				colors[ImGuiCol_TextDisabled]           = ImVec4( 0.60f, 0.60f, 0.60f, 1.00f );
+				colors[ImGuiCol_WindowBg]               = ImVec4( 0.96f, 0.96f, 0.94f, 1.00f );
+				colors[ImGuiCol_TitleBg]                = ImVec4( 1.00f, 0.40f, 0.00f, 1.00f );
+				colors[ImGuiCol_TitleBgActive]          = ImVec4( 1.00f, 0.40f, 0.00f, 1.00f );
+				colors[ImGuiCol_TitleBgCollapsed]       = ImVec4( 0.69f, 0.25f, 0.00f, 1.00f );
+				colors[ImGuiCol_ChildBg]                = ImVec4( 0.96f, 0.96f, 0.94f, 1.00f );
+				colors[ImGuiCol_PopupBg]                = ImVec4( 0.96f, 0.96f, 0.94f, 1.00f );
+				colors[ImGuiCol_ModalWindowDimBg]       = ImVec4( 0.00f, 0.00f, 0.00f, 0.00f );
+				break;
+			}
+
+			case ColorScheme::Dark:
+			{
+				colors[ImGuiCol_Text]                   = ImVec4( 1.00f, 1.00f, 1.00f, 1.00f );
+				colors[ImGuiCol_TextDisabled]           = ImVec4( 0.60f, 0.60f, 0.60f, 1.00f );
+				colors[ImGuiCol_WindowBg]               = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
+				colors[ImGuiCol_TitleBg]                = ImVec4( 1.00f, 0.40f, 0.00f, 0.50f );
+				colors[ImGuiCol_TitleBgActive]          = ImVec4( 1.00f, 0.40f, 0.00f, 0.50f );
+				colors[ImGuiCol_TitleBgCollapsed]       = ImVec4( 0.69f, 0.25f, 0.00f, 0.50f );
+				colors[ImGuiCol_ChildBg]                = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
+				colors[ImGuiCol_PopupBg]                = ImVec4( 0.20f, 0.20f, 0.20f, 1.00f );
+				colors[ImGuiCol_ModalWindowDimBg]       = ImVec4( 0.00f, 0.00f, 0.00f, 0.00f );
+				break;
+			}
+
+			case ColorScheme::Green:
+			{
+				colors[ImGuiCol_Text]                   = ImVec4( 0.00f, 1.00f, 0.00f, 1.00f );
+				colors[ImGuiCol_TextDisabled]           = ImVec4( 0.60f, 0.60f, 0.60f, 1.00f );
+				colors[ImGuiCol_WindowBg]               = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
+				colors[ImGuiCol_TitleBg]                = ImVec4( 0.25f, 0.25f, 0.25f, 1.00f );
+				colors[ImGuiCol_TitleBgActive]          = ImVec4( 0.25f, 0.25f, 0.25f, 1.00f );
+				colors[ImGuiCol_TitleBgCollapsed]       = ImVec4( 0.50f, 1.00f, 0.50f, 1.00f );
+				colors[ImGuiCol_ChildBg]                = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
+				colors[ImGuiCol_PopupBg]                = ImVec4( 0.00f, 0.00f, 0.00f, 1.00f );
+				colors[ImGuiCol_ModalWindowDimBg]       = ImVec4( 0.00f, 0.00f, 0.00f, 0.00f );
+				break;
+			}
+
+			case ColorScheme::Jungle:
+			{
+				// based on BlackDevil style by Naeemullah1 from ImThemes
+				colors[ImGuiCol_Text]                   = ImVec4( 0.78f, 0.78f, 0.78f, 1.00f );
+				colors[ImGuiCol_TextDisabled]           = ImVec4( 0.44f, 0.41f, 0.31f, 1.00f );
+				colors[ImGuiCol_WindowBg]               = ImVec4( 0.12f, 0.14f, 0.16f, 0.87f );
+				colors[ImGuiCol_ChildBg]                = ImVec4( 0.06f, 0.12f, 0.16f, 0.78f );
+				colors[ImGuiCol_PopupBg]                = ImVec4( 0.08f, 0.08f, 0.08f, 0.78f );
+				//colors[ImGuiCol_Border]                 = ImVec4(0.39f, 0.00f, 0.00f, 0.78f); the red is a bit too aggressive
+				colors[ImGuiCol_Border]                 = ImVec4( 0.24f, 0.27f, 0.32f, 0.78f );
+				colors[ImGuiCol_BorderShadow]           = ImVec4( 0.00f, 0.00f, 0.00f, 0.00f );
+				colors[ImGuiCol_FrameBg]                = ImVec4( 0.06f, 0.12f, 0.16f, 0.78f );
+				colors[ImGuiCol_FrameBgHovered]         = ImVec4( 0.12f, 0.24f, 0.35f, 0.78f );
+				colors[ImGuiCol_FrameBgActive]          = ImVec4( 0.35f, 0.35f, 0.12f, 0.78f );
+				colors[ImGuiCol_TitleBg]                = ImVec4( 0.06f, 0.12f, 0.16f, 0.78f );
+				colors[ImGuiCol_TitleBgActive]          = ImVec4( 0.06f, 0.12f, 0.16f, 0.78f );
+				colors[ImGuiCol_TitleBgCollapsed]       = ImVec4( 0.06f, 0.12f, 0.16f, 0.20f );
+				colors[ImGuiCol_MenuBarBg]              = ImVec4( 0.08f, 0.08f, 0.08f, 0.78f );
+				colors[ImGuiCol_ScrollbarBg]            = ImVec4( 0.06f, 0.12f, 0.16f, 0.78f );
+				colors[ImGuiCol_ScrollbarGrab]          = ImVec4( 0.12f, 0.35f, 0.24f, 0.78f );
+				colors[ImGuiCol_ScrollbarGrabHovered]   = ImVec4( 0.12f, 0.35f, 0.35f, 0.78f );
+				colors[ImGuiCol_ScrollbarGrabActive]    = ImVec4( 0.12f, 0.59f, 0.24f, 0.78f );
+				colors[ImGuiCol_CheckMark]              = ImVec4( 0.12f, 0.59f, 0.24f, 0.78f );
+				colors[ImGuiCol_SliderGrab]             = ImVec4( 0.12f, 0.35f, 0.24f, 0.78f );
+				colors[ImGuiCol_SliderGrabActive]       = ImVec4( 0.12f, 0.59f, 0.24f, 0.78f );
+				colors[ImGuiCol_Button]                 = ImVec4( 0.35f, 0.35f, 0.12f, 0.78f );
+				colors[ImGuiCol_ButtonHovered]          = ImVec4( 0.35f, 0.47f, 0.24f, 0.78f );
+				colors[ImGuiCol_ButtonActive]           = ImVec4( 0.59f, 0.35f, 0.24f, 0.78f );
+				colors[ImGuiCol_Header]                 = ImVec4( 0.06f, 0.12f, 0.16f, 0.78f );
+				colors[ImGuiCol_HeaderHovered]          = ImVec4( 0.12f, 0.35f, 0.35f, 0.78f );
+				colors[ImGuiCol_HeaderActive]           = ImVec4( 0.12f, 0.59f, 0.24f, 0.78f );
+				colors[ImGuiCol_Separator]              = ImVec4( 0.35f, 0.35f, 0.24f, 0.78f );
+				colors[ImGuiCol_SeparatorHovered]       = ImVec4( 0.12f, 0.35f, 0.35f, 0.78f );
+				colors[ImGuiCol_SeparatorActive]        = ImVec4( 0.59f, 0.35f, 0.24f, 0.78f );
+				colors[ImGuiCol_ResizeGrip]             = ImVec4( 0.06f, 0.12f, 0.16f, 0.78f );
+				colors[ImGuiCol_ResizeGripHovered]      = ImVec4( 0.59f, 0.35f, 0.35f, 0.78f );
+				colors[ImGuiCol_ResizeGripActive]       = ImVec4( 0.59f, 0.24f, 0.24f, 0.78f );
+				colors[ImGuiCol_Tab]                    = ImVec4( 0.35f, 0.35f, 0.12f, 0.78f );
+				colors[ImGuiCol_TabHovered]             = ImVec4( 0.35f, 0.47f, 0.24f, 0.78f );
+				colors[ImGuiCol_TabActive]              = ImVec4( 0.59f, 0.35f, 0.24f, 0.78f );
+				colors[ImGuiCol_TabUnfocused]           = ImVec4( 0.06f, 0.12f, 0.16f, 0.78f );
+				colors[ImGuiCol_TabUnfocusedActive]     = ImVec4( 0.59f, 0.35f, 0.35f, 0.78f );
+				//	colors[ImGuiCol_DockingPreview]         = ImVec4( 0.26f, 0.59f, 0.98f, 0.70f );
+				//	colors[ImGuiCol_DockingEmptyBg]         = ImVec4( 0.20f, 0.20f, 0.20f, 1.00f );
+				colors[ImGuiCol_PlotLines]              = ImVec4( 0.39f, 0.78f, 0.39f, 0.78f );
+				colors[ImGuiCol_PlotLinesHovered]       = ImVec4( 1.00f, 0.43f, 0.35f, 0.78f );
+				colors[ImGuiCol_PlotHistogram]          = ImVec4( 0.00f, 0.35f, 0.39f, 0.78f );
+				colors[ImGuiCol_PlotHistogramHovered]   = ImVec4( 0.20f, 0.59f, 0.59f, 0.78f );
+				colors[ImGuiCol_TableHeaderBg]          = ImVec4( 0.19f, 0.19f, 0.20f, 0.78f );
+				colors[ImGuiCol_TableBorderStrong]      = ImVec4( 0.31f, 0.31f, 0.35f, 0.78f );
+				colors[ImGuiCol_TableBorderLight]       = ImVec4( 0.23f, 0.23f, 0.25f, 0.78f );
+				colors[ImGuiCol_TableRowBg]             = ImVec4( 0.00f, 0.00f, 0.00f, 0.78f );
+				colors[ImGuiCol_TableRowBgAlt]          = ImVec4( 1.00f, 1.00f, 1.00f, 0.06f );
+				colors[ImGuiCol_TextSelectedBg]         = ImVec4( 0.39f, 0.35f, 0.39f, 0.39f );
+				colors[ImGuiCol_DragDropTarget]         = ImVec4( 1.00f, 1.00f, 0.00f, 0.90f );
+				colors[ImGuiCol_NavHighlight]           = ImVec4( 0.26f, 0.59f, 0.98f, 1.00f );
+				colors[ImGuiCol_NavWindowingHighlight]  = ImVec4( 1.00f, 1.00f, 1.00f, 0.70f );
+				colors[ImGuiCol_NavWindowingDimBg]      = ImVec4( 0.80f, 0.80f, 0.80f, 0.20f );
+				colors[ImGuiCol_ModalWindowDimBg]       = ImVec4( 0.80f, 0.80f, 0.80f, 0.35f );
+				break;
+			}
+
+			default:
+			{
+			}
+		}
+	}
+};
+
+}
+
+// UI state
+UI::State stateUI;
+
 class idCommonLocal : public idCommon
 {
 private:
-
+	int							count = 0;
+	int							expectedCount = 0;
 
 public:
 	bool						com_refreshOnPrint = true;		// update the screen every print for dmap
@@ -636,7 +787,7 @@ public:
 	// Update the screen with every message printed.
 	virtual void				SetRefreshOnPrint( bool set )
 	{
-		com_refreshOnPrint = set;
+		//com_refreshOnPrint = set;
 	}
 
 	virtual void			Printf( const char* fmt, ... )
@@ -645,48 +796,66 @@ public:
 
 		if( com_refreshOnPrint )
 		{
-			bool captureToImage = false;
-			common->UpdateScreen( captureToImage );
+			common->UpdateScreen( false );
 		}
 	}
+
 	virtual void			VPrintf( const char* fmt, va_list arg )
 	{
 		Sys_DebugVPrintf( fmt, arg );
 
 		if( com_refreshOnPrint )
 		{
-			bool captureToImage = false;
-			common->UpdateScreen( captureToImage );
+			common->UpdateScreen( false );
 		}
 	}
+
 	virtual void			DPrintf( const char* fmt, ... )
 	{
-		STDIO_PRINT( "", "" );
-
-		if( com_refreshOnPrint )
+		if( com_developer.GetBool() )
 		{
-			bool captureToImage = false;
-			common->UpdateScreen( captureToImage );
+			STDIO_PRINT( "", "" );
+
+			if( com_refreshOnPrint )
+			{
+				common->UpdateScreen( false );
+			}
 		}
 	}
+
+	virtual void			VerbosePrintf( const char* fmt, ... )
+	{
+		if( dmap_verbose.GetBool() )
+		{
+			STDIO_PRINT( "", "" );
+
+			if( com_refreshOnPrint )
+			{
+				common->UpdateScreen( false );
+			}
+		}
+	}
+
 	virtual void			Warning( const char* fmt, ... )
 	{
 		STDIO_PRINT( "WARNING: ", "\n" );
 
 		if( com_refreshOnPrint )
 		{
-			bool captureToImage = false;
-			common->UpdateScreen( captureToImage );
+			common->UpdateScreen( false );
 		}
 	}
+
 	virtual void			DWarning( const char* fmt, ... )
 	{
-		STDIO_PRINT( "WARNING: ", "\n" );
-
-		if( com_refreshOnPrint )
+		if( com_developer.GetBool() )
 		{
-			bool captureToImage = false;
-			common->UpdateScreen( captureToImage );
+			STDIO_PRINT( "WARNING: ", "\n" );
+
+			if( com_refreshOnPrint )
+			{
+				common->UpdateScreen( false );
+			}
 		}
 	}
 
@@ -702,8 +871,7 @@ public:
 
 		if( com_refreshOnPrint )
 		{
-			bool captureToImage = false;
-			common->UpdateScreen( captureToImage );
+			common->UpdateScreen( false );
 		}
 		exit( 0 );
 	}
@@ -713,8 +881,7 @@ public:
 
 		if( com_refreshOnPrint )
 		{
-			bool captureToImage = false;
-			common->UpdateScreen( captureToImage );
+			common->UpdateScreen( false );
 		}
 		exit( 0 );
 	}
@@ -858,19 +1025,51 @@ public:
 	virtual void				QueueShowShell() { };		// Will activate the shell on the next frame.
 	void						InitTool( const toolFlag_t, const idDict*, idEntity* ) {}
 
-	//virtual currentGame_t		GetCurrentGame() const {
-	//	return DOOM_CLASSIC;
-	//};
-	//virtual void				SwitchToGame(currentGame_t newGame) {}
+	void						LoadPacifierBinarizeFilename( const char* filename, const char* reason ) {}
+	void						LoadPacifierBinarizeInfo( const char* info ) {}
+	void						LoadPacifierBinarizeMiplevel( int level, int maxLevel ) {}
+	void						LoadPacifierBinarizeProgress( float progress ) {}
+	void						LoadPacifierBinarizeEnd() { };
+	void						LoadPacifierBinarizeProgressTotal( int total ) {}
+	void						LoadPacifierBinarizeProgressIncrement( int step ) {}
 
-	void LoadPacifierBinarizeFilename( const char* filename, const char* reason ) {}
-	void LoadPacifierBinarizeInfo( const char* info ) {}
-	void LoadPacifierBinarizeMiplevel( int level, int maxLevel ) {}
-	void LoadPacifierBinarizeProgress( float progress ) {}
-	void LoadPacifierBinarizeEnd() { };
-	// for images in particular we can measure more accurately this way (to deal with mipmaps)
-	void LoadPacifierBinarizeProgressTotal( int total ) {}
-	void LoadPacifierBinarizeProgressIncrement( int step ) {}
+	virtual void				DmapPacifierFilename( const char* filename, const char* reason )
+	{
+		stateUI.statusWindowHeader.Format( "%s | %s", filename, reason );
+	}
+
+	virtual void				DmapPacifierInfo( VERIFY_FORMAT_STRING const char* fmt, ... )
+	{
+		char msg[STATUS_TEXT_SIZE];
+
+		va_list argptr;
+		va_start( argptr, fmt );
+		idStr::vsnPrintf( msg, STATUS_TEXT_SIZE - 1, fmt, argptr );
+		msg[ sizeof( msg ) - 1 ] = '\0';
+		va_end( argptr );
+
+		stateUI.statusActiveTool = msg;
+
+		if( com_refreshOnPrint )
+		{
+			UpdateScreen( false );
+		}
+	}
+
+	virtual void				DmapPacifierCompileProgressTotal( int total )
+	{
+		count = 0;
+		expectedCount = total;
+
+		stateUI.progress = 0;
+	}
+
+	virtual void				DmapPacifierCompileProgressIncrement( int step )
+	{
+		count += step;
+
+		stateUI.progress = float( count ) / expectedCount;
+	}
 };
 
 idCommonLocal		commonLocal;
@@ -887,6 +1086,10 @@ int com_editors = 0;
 */
 
 #if 0
+
+void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
+{
+}
 
 int main( int argc, char** argv )
 {
@@ -930,152 +1133,6 @@ int main( int argc, char** argv )
 #elif 1
 
 
-#include <array>
-#include <map>
-#include <vector>
-#include <string>
-#include <functional>
-
-namespace UI
-{
-
-enum class WindowContent : int
-{
-	Top,
-	//Best,
-	Show,
-	Ask,
-	New,
-	Count,
-};
-
-enum class ColorScheme : int
-{
-	Default,
-	Dark,
-	Green,
-	COUNT,
-};
-
-
-std::map<WindowContent, std::string> kContentStr =
-{
-	{ WindowContent::Top, "Top" },
-	//{ WindowContent::Best, "Best" },
-	{ WindowContent::Show, "Show" },
-	{ WindowContent::Ask, "Ask" },
-	{ WindowContent::New, "New" },
-};
-
-struct WindowData
-{
-	WindowContent content;
-	bool showComments = false;
-	//HN::ItemId selectedStoryId = 0;
-	int hoveredStoryId = 0;
-	int hoveredCommentId = 0;
-	int maxStories = 10;
-};
-
-struct State
-{
-	int hoveredWindowId = 0;
-	int statusWindowHeight = 4;
-
-	ColorScheme colorScheme = ColorScheme::Dark;
-
-	bool showHelpWelcome = false;
-	bool showHelpModal = false;
-	bool showStatusWindow = true;
-
-	int nWindows = 1;
-
-	char statusWindowHeader[512];
-	idStrStatic<512> statusActiveTool;
-
-	std::map<int, bool> collapsed;
-
-	void ChangeColorScheme( bool inc = true )
-	{
-		if( inc )
-		{
-			colorScheme = ( ColorScheme )( ( ( int ) colorScheme + 1 ) % ( ( int )ColorScheme::COUNT ) );
-		}
-
-		ImVec4* colors = ImGui::GetStyle().Colors;
-		switch( colorScheme )
-		{
-			case ColorScheme::Default:
-			{
-				colors[ImGuiCol_Text]                   = ImVec4( 0.00f, 0.00f, 0.00f, 1.00f );
-				colors[ImGuiCol_TextDisabled]           = ImVec4( 0.60f, 0.60f, 0.60f, 1.00f );
-				colors[ImGuiCol_WindowBg]               = ImVec4( 0.96f, 0.96f, 0.94f, 1.00f );
-				colors[ImGuiCol_TitleBg]                = ImVec4( 1.00f, 0.40f, 0.00f, 1.00f );
-				colors[ImGuiCol_TitleBgActive]          = ImVec4( 1.00f, 0.40f, 0.00f, 1.00f );
-				colors[ImGuiCol_TitleBgCollapsed]       = ImVec4( 0.69f, 0.25f, 0.00f, 1.00f );
-				colors[ImGuiCol_ChildBg]                = ImVec4( 0.96f, 0.96f, 0.94f, 1.00f );
-				colors[ImGuiCol_PopupBg]                = ImVec4( 0.96f, 0.96f, 0.94f, 1.00f );
-				colors[ImGuiCol_ModalWindowDimBg]       = ImVec4( 0.00f, 0.00f, 0.00f, 0.00f );
-			}
-			break;
-			case ColorScheme::Dark:
-			{
-				colors[ImGuiCol_Text]                   = ImVec4( 1.00f, 1.00f, 1.00f, 1.00f );
-				colors[ImGuiCol_TextDisabled]           = ImVec4( 0.60f, 0.60f, 0.60f, 1.00f );
-				colors[ImGuiCol_WindowBg]               = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
-				colors[ImGuiCol_TitleBg]                = ImVec4( 1.00f, 0.40f, 0.00f, 0.50f );
-				colors[ImGuiCol_TitleBgActive]          = ImVec4( 1.00f, 0.40f, 0.00f, 0.50f );
-				colors[ImGuiCol_TitleBgCollapsed]       = ImVec4( 0.69f, 0.25f, 0.00f, 0.50f );
-				colors[ImGuiCol_ChildBg]                = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
-				colors[ImGuiCol_PopupBg]                = ImVec4( 0.20f, 0.20f, 0.20f, 1.00f );
-				colors[ImGuiCol_ModalWindowDimBg]       = ImVec4( 0.00f, 0.00f, 0.00f, 0.00f );
-			}
-			break;
-			case ColorScheme::Green:
-			{
-				colors[ImGuiCol_Text]                   = ImVec4( 0.00f, 1.00f, 0.00f, 1.00f );
-				colors[ImGuiCol_TextDisabled]           = ImVec4( 0.60f, 0.60f, 0.60f, 1.00f );
-				colors[ImGuiCol_WindowBg]               = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
-				colors[ImGuiCol_TitleBg]                = ImVec4( 0.25f, 0.25f, 0.25f, 1.00f );
-				colors[ImGuiCol_TitleBgActive]          = ImVec4( 0.25f, 0.25f, 0.25f, 1.00f );
-				colors[ImGuiCol_TitleBgCollapsed]       = ImVec4( 0.50f, 1.00f, 0.50f, 1.00f );
-				colors[ImGuiCol_ChildBg]                = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
-				colors[ImGuiCol_PopupBg]                = ImVec4( 0.00f, 0.00f, 0.00f, 1.00f );
-				colors[ImGuiCol_ModalWindowDimBg]       = ImVec4( 0.00f, 0.00f, 0.00f, 0.00f );
-			}
-			break;
-			default:
-			{
-			}
-		}
-	}
-
-	std::array<WindowData, 3> windows { {
-			{
-				WindowContent::Top,
-				false,
-				0, 0, 10,
-			},
-			{
-				WindowContent::Show,
-				false,
-				0, 0, 10,
-			},
-			{
-				WindowContent::New,
-				false,
-				0, 0, 10,
-			},
-		} };
-};
-
-}
-
-// UI state
-UI::State stateUI;
-
-void ShowExampleAppConsole( bool* p_open );
-
 void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 {
 	bool demo = true;
@@ -1088,7 +1145,6 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 
 	{
 		auto wSize = ImGui::GetIO().DisplaySize;
-		wSize.x /= stateUI.nWindows;
 		if( stateUI.showStatusWindow )
 		{
 			wSize.y -= stateUI.statusWindowHeight;
@@ -1096,14 +1152,11 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 		wSize.x = int( wSize.x );
 		ImGui::SetNextWindowPos( ImVec2( 0, 0 ), ImGuiCond_Always );
 
-		if( 0 < stateUI.nWindows - 1 )
-		{
-			wSize.x -= 1.1;
-		}
 		ImGui::SetNextWindowSize( wSize, ImGuiCond_Always );
 	}
 
-	idStr title = va( "RBDMAP version %s %s", ENGINE_VERSION, BUILD_STRING );
+	//idStr title = va( "RBDMAP version %s %s", ENGINE_VERSION, BUILD_STRING );
+	idStr title = va( "RBDMAP version %s %s %s %s", ENGINE_VERSION, BUILD_STRING, __DATE__, __TIME__ );
 	//std::string title = "RBDMAP " + UI::kContentStr[window.content] + ")##" + std::to_string( windowId );
 	ImGui::Begin( title.c_str(), nullptr,
 				  ImGuiWindowFlags_NoCollapse |
@@ -1111,21 +1164,13 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 				  ImGuiWindowFlags_NoMove |
 				  ImGuiWindowFlags_NoScrollbar );
 
-	ImGui::BeginChild( "Current Log:", ImVec2( 0, 0 ), false, ImGuiWindowFlags_None );
 
-
-	// For the demo: add a debug button _BEFORE_ the normal log window contents
-	// We take advantage of a rarely used feature: multiple calls to Begin()/End() are appending to the _same_ window.
-	// Most of the contents of the window will be added by the log.Draw() call.
-	ImGui::SetNextWindowPos( ImVec2( 20, 14 ), ImGuiCond_FirstUseEver );
-	ImGui::SetNextWindowSize( ImVec2( 100, 30 ), ImGuiCond_FirstUseEver );
-	//ImGui::Begin( "Example: Log", &conOpen );
-	//ImGui::End();
+	//ImGui::BeginChild( "Current Log:", ImVec2( 0, 0 ), false, ImGuiWindowFlags_NoDecoration );
 
 	// Actually call in the regular Log helper (which will Begin() into the same window as we just did)
 	tuiLog.Draw( "Current Log:", &conOpen );
 
-	ImGui::EndChild();
+	//ImGui::EndChild();
 
 
 	//ShowExampleAppConsole( &conOpen );
@@ -1139,13 +1184,23 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 		ImGui::SetNextWindowPos( ImVec2( 0, wSize.y - stateUI.statusWindowHeight ), ImGuiCond_Always );
 		ImGui::SetNextWindowSize( ImVec2( wSize.x, stateUI.statusWindowHeight ), ImGuiCond_Always );
 	}
-	snprintf( stateUI.statusWindowHeader, 512, "Status %s |", stateUI.statusActiveTool.c_str() );
+
 	ImGui::Begin( stateUI.statusWindowHeader, nullptr,
 				  ImGuiWindowFlags_NoCollapse |
 				  ImGuiWindowFlags_NoResize |
 				  ImGuiWindowFlags_NoMove );
+
 	//ImGui::Text( " API requests     : %d / %d B (next update in %d s)", stateHN.nFetches, ( int ) stateHN.totalBytesDownloaded, stateHN.nextUpdate );
-	ImGui::Text( " Last API request : " );
+
+	if( stateUI.progress < 1.0f )
+	{
+		ImGui::ProgressBar( stateUI.progress, ImVec2( 0.0f, 0.0f ) );
+	}
+	else
+	{
+		ImGui::Text( " " );
+	}
+	ImGui::Text( " %s", stateUI.statusActiveTool.c_str() );
 	ImGui::Text( " Source code      : https://github.com/RobertBeckebans/RBDOOM-3-BFG" );
 	ImGui::End();
 
@@ -1201,7 +1256,7 @@ int main( int argc, char** argv )
 
 	Dmap_f( args );
 
-#if 0
+#if 1
 	while( true )
 	{
 		bool captureToImage = false;
@@ -1220,6 +1275,10 @@ int main( int argc, char** argv )
 #include "imtui/imtui-impl-ncurses.h"
 #include "imtui/imtui-demo.h"
 
+void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
+{
+}
+
 int main()
 {
 	IMGUI_CHECKVERSION();
@@ -1227,6 +1286,8 @@ int main()
 
 	auto screen = ImTui_ImplNcurses_Init( true );
 	ImTui_ImplText_Init();
+
+	stateUI.ChangeColorScheme( false );
 
 	bool demo = true;
 	int nframes = 0;

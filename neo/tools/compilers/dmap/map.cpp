@@ -349,7 +349,9 @@ static void ParseBrush( const idMapBrush* mapBrush, int primitiveNum )
 		// RB: Valve 220 projection support
 		s->texValve220 = ( ms->GetProjectionType() == idMapBrushSide::PROJECTION_VALVE220 );
 
-		// RB: TODO
+		// RB: we don't need this info if we are actually compiling maps in the original format
+		// we only load this for the engine in the case we want to convert it to the Valve 220 format
+#if !defined( DMAP )
 		s->texSize = ms->GetTextureSize();
 
 		idImage* image = s->material->GetEditorImage();
@@ -358,6 +360,7 @@ static void ParseBrush( const idMapBrush* mapBrush, int primitiveNum )
 			s->texSize.x = image->GetUploadWidth();
 			s->texSize.y = image->GetUploadHeight();
 		}
+#endif
 		// RB end
 
 		// remove any integral shift, which will help with grouping

@@ -434,7 +434,7 @@ tree_t* FaceBSP( bspface_t* list )
 
 	start = Sys_Milliseconds();
 
-	common->Printf( "--- FaceBSP ---\n" );
+	common->VerbosePrintf( "--- FaceBSP ---\n" );
 
 	tree = AllocTree();
 
@@ -448,7 +448,7 @@ tree_t* FaceBSP( bspface_t* list )
 			tree->bounds.AddPoint( ( *face->w )[i].ToVec3() );
 		}
 	}
-	common->Printf( "%5i faces\n", count );
+	common->VerbosePrintf( "%5i faces\n", count );
 
 	tree->headnode = AllocNode();
 	tree->headnode->bounds = tree->bounds;
@@ -456,11 +456,11 @@ tree_t* FaceBSP( bspface_t* list )
 
 	BuildFaceTree_r( tree->headnode, list );
 
-	common->Printf( "%5i leafs\n", c_faceLeafs );
+	common->VerbosePrintf( "%5i leafs\n", c_faceLeafs );
 
 	end = Sys_Milliseconds();
 
-	common->Printf( "%5.1f seconds faceBsp\n", ( end - start ) / 1000.0 );
+	common->VerbosePrintf( "%5.1f seconds faceBsp\n", ( end - start ) / 1000.0 );
 
 	return tree;
 }

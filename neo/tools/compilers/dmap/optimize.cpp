@@ -670,11 +670,8 @@ static	void AddInteriorEdges( optIsland_t* island )
 		}
 	}
 
-	if( dmapGlobals.verbose )
-	{
-		common->Printf( "%6i tested segments\n", numLengths );
-		common->Printf( "%6i added interior edges\n", c_addedEdges );
-	}
+	common->VerbosePrintf( "%6i tested segments\n", numLengths );
+	common->VerbosePrintf( "%6i added interior edges\n", c_addedEdges );
 
 	Mem_Free( lengths );
 }
@@ -743,7 +740,7 @@ static	void RemoveIfColinear( optVertex_t* ov, optIsland_t* island )
 	{
 		// this may still happen legally when a tiny triangle is
 		// the only thing in a group
-		common->Printf( "WARNING: vertex with only one edge\n" );
+		common->VerbosePrintf( "WARNING: vertex with only one edge\n" );
 		return;
 	}
 
@@ -879,10 +876,7 @@ static	void CombineColinearEdges( optIsland_t* island )
 	{
 		c_edges++;
 	}
-	if( dmapGlobals.verbose )
-	{
-		common->Printf( "%6i original exterior edges\n", c_edges );
-	}
+	common->VerbosePrintf( "%6i original exterior edges\n", c_edges );
 
 	for( ov = island->verts ; ov ; ov = ov->islandLink )
 	{
@@ -894,10 +888,7 @@ static	void CombineColinearEdges( optIsland_t* island )
 	{
 		c_edges++;
 	}
-	if( dmapGlobals.verbose )
-	{
-		common->Printf( "%6i optimized exterior edges\n", c_edges );
-	}
+	common->VerbosePrintf( "%6i optimized exterior edges\n", c_edges );
 }
 
 
@@ -1047,7 +1038,7 @@ static void LinkTriToEdge( optTri_t* optTri, optEdge_t* edge )
 	{
 		if( edge->backTri )
 		{
-			common->Printf( "Warning: LinkTriToEdge: already in use\n" );
+			common->VerbosePrintf( "Warning: LinkTriToEdge: already in use\n" );
 			return;
 		}
 		edge->backTri = optTri;
@@ -1059,7 +1050,7 @@ static void LinkTriToEdge( optTri_t* optTri, optEdge_t* edge )
 	{
 		if( edge->frontTri )
 		{
-			common->Printf( "Warning: LinkTriToEdge: already in use\n" );
+			common->VerbosePrintf( "Warning: LinkTriToEdge: already in use\n" );
 			return;
 		}
 		edge->frontTri = optTri;
@@ -1154,7 +1145,7 @@ static void CreateOptTri( optVertex_t* first, optEdge_t* e1, optEdge_t* e2, optI
 
 	if( !opposite )
 	{
-		common->Printf( "Warning: BuildOptTriangles: couldn't locate opposite\n" );
+		common->VerbosePrintf( "Warning: BuildOptTriangles: couldn't locate opposite\n" );
 		return;
 	}
 
@@ -1441,7 +1432,7 @@ static	void	RegenerateTriangles( optIsland_t* island )
 		{
 			// this can happen reasonably when a triangle is nearly degenerate in
 			// optimization planar space, and winds up being degenerate in 3D space
-			common->Printf( "WARNING: backwards triangle generated!\n" );
+			common->VerbosePrintf( "WARNING: backwards triangle generated!\n" );
 			// discard it
 			FreeTri( tri );
 			continue;
@@ -1454,10 +1445,7 @@ static	void	RegenerateTriangles( optIsland_t* island )
 
 	FreeOptTriangles( island );
 
-	if( dmapGlobals.verbose )
-	{
-		common->Printf( "%6i tris out\n", c_out );
-	}
+	common->VerbosePrintf( "%6i tris out\n", c_out );
 }
 
 //===========================================================================
@@ -1512,11 +1500,8 @@ static	void RemoveInteriorEdges( optIsland_t* island )
 		c_exteriorEdges++;
 	}
 
-	if( dmapGlobals.verbose )
-	{
-		common->Printf( "%6i original interior edges\n", c_interiorEdges );
-		common->Printf( "%6i original exterior edges\n", c_exteriorEdges );
-	}
+	common->VerbosePrintf( "%6i original interior edges\n", c_interiorEdges );
+	common->VerbosePrintf( "%6i original exterior edges\n", c_exteriorEdges );
 }
 
 //==================================================================================
@@ -1622,7 +1607,7 @@ static void AddOriginalTriangle( optVertex_t* v[3] )
 	// ignore it completely
 	if( !IsTriangleValid( v[0], v[1], v[2] ) )
 	{
-		common->Printf( "WARNING: backwards triangle in input!\n" );
+		common->VerbosePrintf( "WARNING: backwards triangle in input!\n" );
 		return;
 	}
 
@@ -1672,11 +1657,8 @@ static	void AddOriginalEdges( optimizeGroup_t* opt )
 	optVertex_t*		v[3];
 	int				numTris;
 
-	if( dmapGlobals.verbose )
-	{
-		common->Printf( "----\n" );
-		common->Printf( "%6i original tris\n", CountTriList( opt->triList ) );
-	}
+	common->VerbosePrintf( "----\n" );
+	common->VerbosePrintf( "%6i original tris\n", CountTriList( opt->triList ) );
 
 	optBounds.Clear();
 
@@ -1907,13 +1889,10 @@ void SplitOriginalEdgesAtCrossings( optimizeGroup_t* opt )
 		}
 	}
 
-	if( dmapGlobals.verbose )
-	{
-		common->Printf( "%6i original edges\n", numOriginalEdges );
-		common->Printf( "%6i edges after splits\n", numOptEdges );
-		common->Printf( "%6i original vertexes\n", numOriginalVerts );
-		common->Printf( "%6i vertexes after splits\n", numOptVerts );
-	}
+	common->VerbosePrintf( "%6i original edges\n", numOriginalEdges );
+	common->VerbosePrintf( "%6i edges after splits\n", numOptEdges );
+	common->VerbosePrintf( "%6i original vertexes\n", numOriginalVerts );
+	common->VerbosePrintf( "%6i vertexes after splits\n", numOptVerts );
 }
 
 //=================================================================
@@ -1968,11 +1947,8 @@ static void CullUnusedVerts( optIsland_t* island )
 		}
 	}
 
-	if( dmapGlobals.verbose )
-	{
-		common->Printf( "%6i verts kept\n", c_keep );
-		common->Printf( "%6i verts freed\n", c_free );
-	}
+	common->VerbosePrintf( "%6i verts kept\n", c_keep );
+	common->VerbosePrintf( "%6i verts freed\n", c_free );
 }
 
 
@@ -2195,10 +2171,10 @@ void	OptimizeGroupList( optimizeGroup_t* groupList )
 
 	SetGroupTriPlaneNums( groupList );
 
-	common->Printf( "----- OptimizeAreaGroups Results -----\n" );
-	common->Printf( "%6i tris in\n", c_in );
-	common->Printf( "%6i tris after edge removal optimization\n", c_edge );
-	common->Printf( "%6i tris after final t junction fixing\n", c_tjunc2 );
+	common->VerbosePrintf( "----- OptimizeAreaGroups Results -----\n" );
+	common->VerbosePrintf( "%6i tris in\n", c_in );
+	common->VerbosePrintf( "%6i tris after edge removal optimization\n", c_edge );
+	common->VerbosePrintf( "%6i tris after final t junction fixing\n", c_tjunc2 );
 }
 
 
@@ -2211,7 +2187,7 @@ void	OptimizeEntity( uEntity_t* e )
 {
 	int		i;
 
-	common->Printf( "----- OptimizeEntity -----\n" );
+	common->VerbosePrintf( "----- OptimizeEntity -----\n" );
 	for( i = 0 ; i < e->numAreas ; i++ )
 	{
 		OptimizeGroupList( e->areas[i].groups );

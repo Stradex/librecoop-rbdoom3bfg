@@ -1215,7 +1215,10 @@ idMapEntity* idMapEntity::Parse( idLexer& src, bool worldSpawn, int version )
 	}
 	while( 1 );
 
-	mapEnt->CalculateBrushOrigin();
+	if( version == 220 )
+	{
+		mapEnt->CalculateBrushOrigin();
+	}
 
 	return mapEnt;
 }

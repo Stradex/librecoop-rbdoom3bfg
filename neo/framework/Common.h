@@ -260,6 +260,9 @@ public:
 	// and NEVER forces a screen update, which could cause reentrancy problems.
 	virtual void				DPrintf( VERIFY_FORMAT_STRING const char* fmt, ... ) = 0;
 
+	// Same as Printf but tool specific to discard most of dmap's output
+	virtual void				VerbosePrintf( VERIFY_FORMAT_STRING const char* fmt, ... ) = 0;
+
 	// Prints WARNING %s message and adds the warning message to a queue for printing later on.
 	virtual void				Warning( VERIFY_FORMAT_STRING const char* fmt, ... ) = 0;
 
@@ -357,6 +360,11 @@ public:
 	virtual void				LoadPacifierBinarizeEnd() = 0;
 	virtual void				LoadPacifierBinarizeProgressTotal( int total ) = 0;
 	virtual void				LoadPacifierBinarizeProgressIncrement( int step ) = 0;
+
+	virtual void				DmapPacifierFilename( const char* filename, const char* reason ) = 0;
+	virtual void				DmapPacifierInfo( VERIFY_FORMAT_STRING const char* fmt, ... ) = 0;
+	virtual void				DmapPacifierCompileProgressTotal( int total ) = 0;
+	virtual void				DmapPacifierCompileProgressIncrement( int step ) = 0;
 };
 
 extern idCommon* 		common;

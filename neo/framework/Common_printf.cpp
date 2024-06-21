@@ -284,6 +284,26 @@ void idCommonLocal::Printf( const char* fmt, ... )
 
 /*
 ==================
+idCommonLocal::Printf
+
+RB: only for dmap and AAS builder
+==================
+*/
+void idCommonLocal::VerbosePrintf( const char* fmt, ... )
+{
+	if( !dmap_verbose.GetBool() )
+	{
+		return;
+	}
+
+	va_list argptr;
+	va_start( argptr, fmt );
+	VPrintf( fmt, argptr );
+	va_end( argptr );
+}
+
+/*
+==================
 idCommonLocal::DPrintf
 
 prints message that only shows up if the "developer" cvar is set
