@@ -159,7 +159,7 @@ bool ProcessModels()
 			common->DmapPacifierInfo( "Current entity   : %s", entity->mapEntity->epairs.GetString( "name" ) );
 		}
 
-		//common->Printf( "############### entity %i ###############\n", dmapGlobals.entityNum );
+		common->VerbosePrintf( "############### entity %i ###############\n", dmapGlobals.entityNum );
 
 		// if we leaked, stop without any more processing
 		if( !ProcessModel( entity, ( bool )( dmapGlobals.entityNum == 0 ) ) )

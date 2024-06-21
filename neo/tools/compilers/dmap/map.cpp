@@ -351,16 +351,17 @@ static void ParseBrush( const idMapBrush* mapBrush, int primitiveNum )
 
 		// RB: we don't need this info if we are actually compiling maps in the original format
 		// we only load this for the engine in the case we want to convert it to the Valve 220 format
-#if !defined( DMAP )
-		s->texSize = ms->GetTextureSize();
-
-		idImage* image = s->material->GetEditorImage();
-		if( image != NULL )
+		if( s->texValve220 )
 		{
-			s->texSize.x = image->GetUploadWidth();
-			s->texSize.y = image->GetUploadHeight();
+			s->texSize = ms->GetTextureSize();
+
+			idImage* image = s->material->GetEditorImage();
+			if( image != NULL )
+			{
+				s->texSize.x = image->GetUploadWidth();
+				s->texSize.y = image->GetUploadHeight();
+			}
 		}
-#endif
 		// RB end
 
 		// remove any integral shift, which will help with grouping

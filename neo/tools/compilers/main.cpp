@@ -1085,14 +1085,10 @@ int com_editors = 0;
 ==============================================================
 */
 
-#if 0
-
-void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
+int Dmap_NoGui( int argc, char** argv )
 {
-}
+	commonLocal.com_refreshOnPrint = false;
 
-int main( int argc, char** argv )
-{
 	idLib::common = common;
 	idLib::cvarSystem = cvarSystem;
 	idLib::fileSystem = fileSystem;
@@ -1116,6 +1112,9 @@ int main( int argc, char** argv )
 
 			i += 2;
 		}
+		else if( idStr::Icmp( argv[ i ], "-t" ) == 0 || idStr::Icmp( argv[ i ], "-nogui" ) == 0 )
+		{
+		}
 		else
 		{
 			args.AppendArg( argv[i] );
@@ -1128,6 +1127,17 @@ int main( int argc, char** argv )
 	Dmap_f( args );
 
 	return 0;
+}
+
+#if 0
+
+void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
+{
+}
+
+int main( int argc, char** argv )
+{
+	return Dmap_NoGui( argc, argv );
 }
 
 #elif 1
@@ -1157,21 +1167,13 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 
 	//idStr title = va( "RBDMAP version %s %s", ENGINE_VERSION, BUILD_STRING );
 	idStr title = va( "RBDMAP version %s %s %s %s", ENGINE_VERSION, BUILD_STRING, __DATE__, __TIME__ );
-	//std::string title = "RBDMAP " + UI::kContentStr[window.content] + ")##" + std::to_string( windowId );
 	ImGui::Begin( title.c_str(), nullptr,
 				  ImGuiWindowFlags_NoCollapse |
 				  ImGuiWindowFlags_NoResize |
 				  ImGuiWindowFlags_NoMove |
 				  ImGuiWindowFlags_NoScrollbar );
 
-
-	//ImGui::BeginChild( "Current Log:", ImVec2( 0, 0 ), false, ImGuiWindowFlags_NoDecoration );
-
-	// Actually call in the regular Log helper (which will Begin() into the same window as we just did)
 	tuiLog.Draw( "Current Log:", &conOpen );
-
-	//ImGui::EndChild();
-
 
 	//ShowExampleAppConsole( &conOpen );
 
@@ -1189,8 +1191,6 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 				  ImGuiWindowFlags_NoCollapse |
 				  ImGuiWindowFlags_NoResize |
 				  ImGuiWindowFlags_NoMove );
-
-	//ImGui::Text( " API requests     : %d / %d B (next update in %d s)", stateHN.nFetches, ( int ) stateHN.totalBytesDownloaded, stateHN.nextUpdate );
 
 	if( stateUI.progress < 1.0f )
 	{
@@ -1212,6 +1212,14 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 
 int main( int argc, char** argv )
 {
+	for( int i = 0; i < argc; i++ )
+	{
+		if( idStr::Icmp( argv[ i ], "-t" ) == 0 || idStr::Icmp( argv[ i ], "-nogui" ) == 0 )
+		{
+			return Dmap_NoGui( argc, argv );
+		}
+	}
+
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
@@ -1219,8 +1227,6 @@ int main( int argc, char** argv )
 	ImTui_ImplText_Init();
 
 	stateUI.ChangeColorScheme( false );
-
-	common->Printf( "Test log print\n" );
 
 	idLib::common = common;
 	idLib::cvarSystem = cvarSystem;
@@ -1245,6 +1251,9 @@ int main( int argc, char** argv )
 
 			i += 2;
 		}
+		else if( idStr::Icmp( argv[ i ], "-t" ) == 0 || idStr::Icmp( argv[ i ], "-nogui" ) == 0 )
+		{
+		}
 		else
 		{
 			args.AppendArg( argv[i] );
@@ -1256,7 +1265,7 @@ int main( int argc, char** argv )
 
 	Dmap_f( args );
 
-#if 1
+#if 0
 	while( true )
 	{
 		bool captureToImage = false;

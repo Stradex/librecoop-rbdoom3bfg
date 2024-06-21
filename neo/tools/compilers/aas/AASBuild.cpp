@@ -839,8 +839,6 @@ bool idAASBuild::Build( const idStr& fileName, const idAASSettings* settings )
 		return false;
 	}
 
-	common->DmapPacifierFilename( name, "Compiling AAS files" );
-
 	// check if this map has any entities that use this AAS file
 	if( !CheckForEntities( mapFile, entityClassNames ) )
 	{
@@ -848,6 +846,10 @@ bool idAASBuild::Build( const idStr& fileName, const idAASSettings* settings )
 		common->Printf( "no entities in map that use %s\n", settings->fileExtension.c_str() );
 		return true;
 	}
+
+	name.SetFileExtension( aasSettings->fileExtension );
+	common->DmapPacifierFilename( name, "Compiling AAS" );
+	name.SetFileExtension( "map" );
 
 	// load map file brushes
 	brushList = AddBrushesForMapFile( mapFile, brushList );
