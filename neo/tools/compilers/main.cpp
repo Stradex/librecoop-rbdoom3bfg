@@ -734,6 +734,8 @@ class idCommonLocal : public idCommon
 private:
 	int							count = 0;
 	int							expectedCount = 0;
+	size_t						tics = 0;
+	size_t						nextTicCount = 0;
 
 public:
 	bool						com_refreshOnPrint = true;		// update the screen every print for dmap
@@ -1060,6 +1062,8 @@ public:
 	{
 		count = 0;
 		expectedCount = total;
+		tics = 0;
+		nextTicCount = 0;
 
 		stateUI.progress = 0;
 	}
@@ -1069,6 +1073,37 @@ public:
 		count += step;
 
 		stateUI.progress = float( count ) / expectedCount;
+
+		// don't refresh the UI with every step if there are e.g. 1300 steps
+		if( ( count + 1 ) >= nextTicCount )
+		{
+			size_t ticsNeeded = ( size_t )( ( ( double )( count + 1 ) / expectedCount ) * 50.0 );
+
+			do
+			{
+				//common->Printf( "*" );
+			}
+			while( ++tics < ticsNeeded );
+
+			nextTicCount = ( size_t )( ( tics / 50.0 ) * expectedCount );
+			/*
+			if( count == ( expectedCount - 1 ) )
+			{
+				//if( tics < 51 )
+				//{
+				//	common->Printf( "*" );
+				//}
+				//common->Printf( "\n" );
+
+				//stateUI.progress = 1;
+			}
+			*/
+
+			if( com_refreshOnPrint )
+			{
+				common->UpdateScreen( false );
+			}
+		}
 	}
 };
 

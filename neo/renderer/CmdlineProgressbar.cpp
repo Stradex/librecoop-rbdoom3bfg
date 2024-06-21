@@ -45,19 +45,6 @@ void CommandlineProgressBar::Increment( bool updateScreen )
 {
 	if( ( count + 1 ) >= nextTicCount )
 	{
-#if 1 //!defined( USE_NVRHI )
-		if( updateScreen )
-		{
-			// restore the original resolution, same as "vid_restart"
-			//glConfig.nativeScreenWidth = sysWidth;
-			//glConfig.nativeScreenHeight = sysHeight;
-			//R_SetNewMode( false );
-
-			// resize frame buffers (this triggers SwapBuffers)
-			//tr.SwapCommandBuffers( NULL, NULL, NULL, NULL, NULL, NULL );
-		}
-#endif
-
 		size_t ticsNeeded = ( size_t )( ( ( double )( count + 1 ) / expectedCount ) * 50.0 );
 
 		do
@@ -76,7 +63,6 @@ void CommandlineProgressBar::Increment( bool updateScreen )
 			common->Printf( "\n" );
 		}
 
-#if 1 //!defined( USE_NVRHI )
 		if( updateScreen )
 		{
 			common->UpdateScreen( false );
@@ -84,7 +70,6 @@ void CommandlineProgressBar::Increment( bool updateScreen )
 			// swap front / back buffers
 			tr.SwapCommandBuffers( NULL, NULL, NULL, NULL, NULL, NULL );
 		}
-#endif
 	}
 
 	count++;
