@@ -480,13 +480,6 @@ double Sys_ClockTicksPerSecond()
 }
 
 /*
-==============
-Sys_DefaultBasePath
-==============
-*/
-const char* Sys_DefaultBasePath()
-{
-	/*
 ================
 Sys_DefaultBasePath
 
@@ -499,6 +492,8 @@ Get the default base path
 Try to be intelligent: if there is no BASE_GAMEDIR, try the next path
 ================
 */
+static idStr basepath;
+
 const char* Sys_DefaultBasePath()
 {
 	struct stat st;
@@ -572,7 +567,6 @@ const char* Sys_DefaultBasePath()
 	}
 	common->Printf( "WARNING: using hardcoded default base path %s\n", DEFAULT_BASEPATH );
 	return DEFAULT_BASEPATH;
-}
 }
 
 int Sys_NumLangs()
