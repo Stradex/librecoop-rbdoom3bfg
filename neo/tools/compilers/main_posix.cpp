@@ -202,6 +202,13 @@ void Sys_Printf( const char* fmt, ... )
 	//tty_Show();
 }
 
+void Sys_VPrintf( const char* fmt, va_list arg )
+{
+	//tty_Hide();
+	vprintf( fmt, arg );
+	//tty_Show();
+}
+
 /*
 ==============
 Sys_Mkdir
@@ -415,6 +422,25 @@ double Sys_GetClockTicks()
 
 	return now.tv_sec * 1000000000LL + now.tv_nsec;
 #endif
+}
+
+void Sys_Sleep( int msec )
+{
+	if( usleep( msec * 1000 ) == -1 )
+	{
+		Sys_Printf( "usleep: %s\n", strerror( errno ) );
+	}
+}
+
+double MeasureClockTicks()
+{
+	double t0, t1;
+
+	t0 = Sys_GetClockTicks();
+	Sys_Sleep( 1000 );
+	t1 = Sys_GetClockTicks();
+
+	return t1 - t0;
 }
 
 /*
@@ -1121,7 +1147,7 @@ int Dmap_NoGui( int argc, char** argv )
 	return 0;
 }
 
-#if 0
+#if 1
 
 void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 {
@@ -1266,70 +1292,6 @@ int main( int argc, char** argv )
 		common->UpdateScreen( captureToImage );
 	}
 #endif
-
-	ImTui_ImplText_Shutdown();
-	ImTui_ImplNcurses_Shutdown();
-
-	return 0;
-}
-#else
-
-#include "imtui/imtui.h"
-#include "imtui/imtui-impl-ncurses.h"
-#include "imtui/imtui-demo.h"
-
-void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
-{
-}
-
-int main()
-{
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-
-	auto screen = ImTui_ImplNcurses_Init( true );
-	ImTui_ImplText_Init();
-
-	stateUI.ChangeColorScheme( false );
-
-	bool demo = true;
-	int nframes = 0;
-	float fval = 1.23f;
-
-	while( true )
-	{
-		ImTui_ImplNcurses_NewFrame();
-		ImTui_ImplText_NewFrame();
-
-		ImGui::NewFrame();
-
-		ImGui::SetNextWindowPos( ImVec2( 4, 27 ), ImGuiCond_Once );
-		ImGui::SetNextWindowSize( ImVec2( 50.0, 10.0 ), ImGuiCond_Once );
-		ImGui::Begin( "Hello, world!" );
-		ImGui::Text( "NFrames = %d", nframes++ );
-		ImGui::Text( "Mouse Pos : x = %g, y = %g", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y );
-		ImGui::Text( "Time per frame %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate );
-		ImGui::Text( "Float:" );
-		ImGui::SameLine();
-		ImGui::SliderFloat( "##float", &fval, 0.0f, 10.0f );
-
-#ifndef __EMSCRIPTEN__
-		ImGui::Text( "%s", "" );
-		if( ImGui::Button( "Exit program", { ImGui::GetContentRegionAvail().x, 2 } ) )
-		{
-			break;
-		}
-#endif
-
-		ImGui::End();
-
-		ImTui::ShowDemoWindow( &demo );
-
-		ImGui::Render();
-
-		ImTui_ImplText_RenderDrawData( ImGui::GetDrawData(), screen );
-		ImTui_ImplNcurses_DrawScreen();
-	}
 
 	ImTui_ImplText_Shutdown();
 	ImTui_ImplNcurses_Shutdown();

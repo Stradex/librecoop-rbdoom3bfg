@@ -286,11 +286,11 @@ else()
 	endif()
 	
 	add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
-	add_dependencies(rbdmap idlib ${CURSES_LIBRARIES})
+	add_dependencies(rbdmap idlib)
 	if (USE_PRECOMPILED_HEADERS)
 	add_dependencies(rbdmap precomp_header_rbdmap)
 	endif()
-	target_link_libraries(rbdmap idlib)
+	target_link_libraries(rbdmap idlib ${CURSES_NCURSES_LIBRARY})
 	
 endif()
 	

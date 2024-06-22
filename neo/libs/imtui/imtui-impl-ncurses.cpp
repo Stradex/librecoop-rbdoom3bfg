@@ -371,10 +371,12 @@ void ImTui_ImplNcurses_DrawScreen( bool active )
 	}
 
 	// RB: added resize fix - see https://github.com/ggerganov/imtui/discussions/19
+#ifdef _WIN32
 	if( is_termresized() )
 	{
 		resize_term( 0, 0 );
 	}
+#endif
 
 	wrefresh( stdscr );
 
