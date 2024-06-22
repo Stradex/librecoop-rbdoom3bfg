@@ -19,6 +19,29 @@ TBD - RBDOOM-3-BFG 1.6.0
 _______________________________
 
 
+## .plan - June 22, 2024
+
+Some people requested a separate oldschool map compiler so they don't have to open the engine every time they compile a map. Now you can just hit a button in TrenchBroomBFG. 
+The version also dumps a lot of legacy image loading code like the JPG and PNG libraries and replaces those with STB image header only libs like it is handled in the dhewm3 source port.
+
+rbdmap.exe is not only dmap but also provides the collision manager and AAS builder (runAAS cmd).
+So like in the embedded dmap cmd the .cm files and .aas files are also automatically built.
+
+rbdmap.exe uses Imtui with pdcurses on Windows to have features a like progress bar and just the old terminal output on Linux.
+
+Changelog:
+
+* Added rbdmap -nogui option because pdcurses does not work with TrenchBroom
+
+* Drastic dmap speed boost by reducing prints like in q3map
+
+* Added collision manager and AAS builder to dmap
+
+* Replaced JPG/PNG code with stb_image snippets from dhewm3
+
+* Allow static glTF2 models to be inlined in dmap and kicked unused Collada DAE support
+
+
 ## .plan - June 14, 2024
 
 This is a preview build that solves several issues with TrenchBroom and the required convertMapToValve220 command.
