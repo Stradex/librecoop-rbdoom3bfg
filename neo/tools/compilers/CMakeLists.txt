@@ -142,6 +142,18 @@ if(MSVC)
     target_link_libraries(imtui-pdcurses PUBLIC
         winmm
         )
+else()
+	find_package(Curses REQUIRED)
+        CHECK_LIBRARY_EXISTS("${CURSES_NCURSES_LIBRARY}"
+            nodelay "" CURSES_NCURSES_HAS_NODELAY)
+        if(NOT CURSES_NCURSES_HAS_NODELAY)
+            find_library(CURSES_EXTRA_LIBRARY tinfo)
+            CHECK_LIBRARY_EXISTS("${CURSES_EXTRA_LIBRARY}"
+                nodelay "" CURSES_TINFO_HAS_NODELAY)
+        endif()
+        if(CURSES_EXTRA_LIBRARY)
+            set(CURSES_LIBRARIES ${CURSES_LIBRARIES} ${CURSES_EXTRA_LIBRARY})
+        endif()
 endif()
 
 set(MC_INCLUDES_ALL
@@ -274,7 +286,7 @@ else()
 	endif()
 	
 	add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
-	add_dependencies(rbdmap idlib)
+	add_dependencies(rbdmap idlib ${CURSES_LIBRARIES})
 	if (USE_PRECOMPILED_HEADERS)
 	add_dependencies(rbdmap precomp_header_rbdmap)
 	endif()
