@@ -281,12 +281,11 @@ if(APPLE)
 	set(CMAKE_FIND_FRAMEWORK LAST)
 endif()
 
-# SRS - search for system zlib only if we have not already searched via system libpng
 if(USE_SYSTEM_ZLIB)
 	find_package(ZLIB)
 endif()
 
-if (USE_SYSTEM_ZLIB AND ZLIB_FOUND)
+if(ZLIB_FOUND)
 	include_directories(${ZLIB_INCLUDE_DIRS})
 	set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
 else()
