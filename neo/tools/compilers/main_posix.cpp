@@ -660,7 +660,7 @@ public:
 	}
 	virtual bool			FPU_StackIsEmpty()
 	{
-		return NULL;
+		return false;
 	}
 	virtual void			FPU_SetFTZ( bool enable ) {}
 	virtual void			FPU_SetDAZ( bool enable ) {}
