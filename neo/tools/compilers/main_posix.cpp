@@ -2,7 +2,8 @@
 ===========================================================================
 
 Doom 3 BFG Edition GPL Source Code
-Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -26,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "../sys/sys_local.h"
 #include "../framework/EventLoop.h"
@@ -37,10 +39,136 @@ If you have questions concerning this license or the applicable additional terms
 #include <dirent.h>
 #include <fnmatch.h>
 
+#include "imtui/imtui.h"
+#include "imtui/imtui-impl-ncurses.h"
+#include "imtui/imtui-demo.h"
+
 idEventLoop* eventLoop;
-idSys* sys = NULL;
 
 
+
+//-----------------------------------------------------------------------------
+// [SECTION] Example App: Debug Log / ShowExampleAppLog()
+//-----------------------------------------------------------------------------
+
+struct MyAppLog
+{
+	ImGuiTextBuffer     Buf;
+	ImGuiTextFilter     Filter;
+	ImVector<int>       LineOffsets;        // Index to lines offset. We maintain this with AddLog() calls, allowing us to have a random access on lines
+
+	MyAppLog()
+	{
+		Clear();
+	}
+
+	void    Clear()
+	{
+		Buf.clear();
+		LineOffsets.clear();
+		LineOffsets.push_back( 0 );
+	}
+
+	void    AddLog( const char* fmt, ... ) IM_FMTARGS( 2 )
+	{
+		int old_size = Buf.size();
+		va_list args;
+		va_start( args, fmt );
+		Buf.appendfv( fmt, args );
+		va_end( args );
+		for( int new_size = Buf.size(); old_size < new_size; old_size++ )
+			if( Buf[old_size] == '\n' )
+			{
+				LineOffsets.push_back( old_size + 1 );
+			}
+	}
+
+	void    Draw( const char* title, bool* p_open = NULL )
+	{
+
+		{
+			auto wSize = ImGui::GetIO().DisplaySize;
+			ImGui::SetNextWindowPos( ImVec2( 0, 1 ), ImGuiCond_Always );
+			ImGui::SetNextWindowSize( ImVec2( wSize.x, wSize.y - 5 ), ImGuiCond_Always );
+		}
+		if( !ImGui::Begin( title, p_open, ImGuiWindowFlags_NoDecoration ) )
+		{
+			ImGui::End();
+			return;
+		}
+
+
+		bool copy = ImGui::Button( "Copy to Clipboard" );
+		ImGui::SameLine();
+
+		ImGui::Separator();
+		ImGui::BeginChild( "scrolling", ImVec2( 0, 0 ), false, ImGuiWindowFlags_HorizontalScrollbar );
+
+		if( copy )
+		{
+			ImGui::LogToClipboard();
+		}
+
+		ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
+		const char* buf = Buf.begin();
+		const char* buf_end = Buf.end();
+#if 0
+		if( Filter.IsActive() )
+		{
+			// In this example we don't use the clipper when Filter is enabled.
+			// This is because we don't have a random access on the result on our filter.
+			// A real application processing logs with ten of thousands of entries may want to store the result of search/filter.
+			// especially if the filtering function is not trivial (e.g. reg-exp).
+			for( int line_no = 0; line_no < LineOffsets.Size; line_no++ )
+			{
+				const char* line_start = buf + LineOffsets[line_no];
+				const char* line_end = ( line_no + 1 < LineOffsets.Size ) ? ( buf + LineOffsets[line_no + 1] - 1 ) : buf_end;
+				if( Filter.PassFilter( line_start, line_end ) )
+				{
+					ImGui::TextUnformatted( line_start, line_end );
+				}
+			}
+		}
+		else
+#endif
+		{
+			// The simplest and easy way to display the entire buffer:
+			//   ImGui::TextUnformatted(buf_begin, buf_end);
+			// And it'll just work. TextUnformatted() has specialization for large blob of text and will fast-forward to skip non-visible lines.
+			// Here we instead demonstrate using the clipper to only process lines that are within the visible area.
+			// If you have tens of thousands of items and their processing cost is non-negligible, coarse clipping them on your side is recommended.
+			// Using ImGuiListClipper requires A) random access into your data, and B) items all being the  same height,
+			// both of which we can handle since we an array pointing to the beginning of each line of text.
+			// When using the filter (in the block of code above) we don't have random access into the data to display anymore, which is why we don't use the clipper.
+			// Storing or skimming through the search result would make it possible (and would be recommended if you want to search through tens of thousands of entries)
+			ImGuiListClipper clipper;
+			clipper.Begin( LineOffsets.Size );
+			while( clipper.Step() )
+			{
+				for( int line_no = clipper.DisplayStart; line_no < clipper.DisplayEnd; line_no++ )
+				{
+					const char* line_start = buf + LineOffsets[line_no];
+					const char* line_end = ( line_no + 1 < LineOffsets.Size ) ? ( buf + LineOffsets[line_no + 1] - 1 ) : buf_end;
+					ImGui::TextUnformatted( line_start, line_end );
+				}
+			}
+			clipper.End();
+		}
+		ImGui::PopStyleVar();
+
+		//if( ImGui::GetScrollY() >= ImGui::GetScrollMaxY() )
+		{
+			ImGui::SetScrollHereY( 1.0f );
+		}
+
+		ImGui::EndChild();
+		ImGui::End();
+	}
+};
+
+static MyAppLog tuiLog;
+
+#define MAXPRINTMSG 4096
 
 #define STDIO_PRINT( pre, post )	\
 	va_list argptr;					\
@@ -52,7 +180,7 @@ idSys* sys = NULL;
 	va_end( argptr )			\
 
 
-//idCVar com_developer( "developer", "0", CVAR_BOOL|CVAR_SYSTEM, "developer mode" );
+idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode" );
 idCVar com_productionMode( "com_productionMode", "0", CVAR_SYSTEM | CVAR_BOOL, "0 - no special behavior, 1 - building a production build, 2 - running a production build" );
 
 /*
@@ -269,6 +397,48 @@ ID_TIME_T Sys_FileTimeStamp( idFileHandle fp )
 }
 
 /*
+===============
+Sys_GetClockticks
+===============
+*/
+double Sys_GetClockTicks()
+{
+#if defined( __x86_64__ )
+	uint32_t lo, hi;
+	__asm__ __volatile__( "rdtsc" : "=a"( lo ), "=d"( hi ) );
+	return ( ( ( uint64_t )hi ) << 32 ) | lo;
+#else
+	//#error unsupported CPU
+	struct timespec now;
+
+	clock_gettime( CLOCK_MONOTONIC, &now );
+
+	return now.tv_sec * 1000000000LL + now.tv_nsec;
+#endif
+}
+
+/*
+================
+Sys_ClockTicksPerSecond
+================
+*/
+double Sys_ClockTicksPerSecond()
+{
+	static bool		init = false;
+	static double	ret;
+
+	if( init )
+	{
+		return ret;
+	}
+
+	ret = MeasureClockTicks();
+	init = true;
+	common->Printf( "measured CPU frequency: %g MHz\n", ret / 1000000.0 );
+	return ret;
+}
+
+/*
 ==============
 Sys_DefaultBasePath
 ==============
@@ -335,13 +505,13 @@ public:
 		va_list argptr;
 
 		va_start( argptr, fmt );
-		Sys_DebugVPrintf( fmt, argptr );
+		Sys_VPrintf( fmt, argptr );
 		va_end( argptr );
 	}
 
 	virtual void			DebugVPrintf( const char* fmt, va_list arg )
 	{
-		Sys_DebugVPrintf( fmt, arg );
+		Sys_VPrintf( fmt, arg );
 	}
 
 	virtual double			GetClockTicks()
@@ -424,9 +594,110 @@ idSys* 				sys = &idSysLocal;
 ==============================================================
 */
 
+namespace UI
+{
+
+enum class ColorScheme : int
+{
+	Default,
+	Dark,
+	Green,
+	COUNT,
+};
+
+struct State
+{
+	int hoveredWindowId = 0;
+	int statusWindowHeight = 4;
+
+	ColorScheme colorScheme = ColorScheme::Dark;
+
+	bool showHelpWelcome = false;
+	bool showHelpModal = false;
+	bool showStatusWindow = true;
+
+#define STATUS_TEXT_SIZE 512
+	idStrStatic<STATUS_TEXT_SIZE> statusWindowHeader =  "Initializing Doom Framework";
+	idStrStatic<STATUS_TEXT_SIZE> statusActiveTool = "-";
+
+	float progress = 1.0f;
+
+	void ChangeColorScheme( bool inc = true )
+	{
+		if( inc )
+		{
+			colorScheme = ( ColorScheme )( ( ( int ) colorScheme + 1 ) % ( ( int )ColorScheme::COUNT ) );
+		}
+
+		ImVec4* colors = ImGui::GetStyle().Colors;
+		switch( colorScheme )
+		{
+			case ColorScheme::Default:
+			{
+				colors[ImGuiCol_Text]                   = ImVec4( 0.00f, 0.00f, 0.00f, 1.00f );
+				colors[ImGuiCol_TextDisabled]           = ImVec4( 0.60f, 0.60f, 0.60f, 1.00f );
+				colors[ImGuiCol_WindowBg]               = ImVec4( 0.96f, 0.96f, 0.94f, 1.00f );
+				colors[ImGuiCol_TitleBg]                = ImVec4( 1.00f, 0.40f, 0.00f, 1.00f );
+				colors[ImGuiCol_TitleBgActive]          = ImVec4( 1.00f, 0.40f, 0.00f, 1.00f );
+				colors[ImGuiCol_TitleBgCollapsed]       = ImVec4( 0.69f, 0.25f, 0.00f, 1.00f );
+				colors[ImGuiCol_ChildBg]                = ImVec4( 0.96f, 0.96f, 0.94f, 1.00f );
+				colors[ImGuiCol_PopupBg]                = ImVec4( 0.96f, 0.96f, 0.94f, 1.00f );
+				colors[ImGuiCol_ModalWindowDimBg]       = ImVec4( 0.00f, 0.00f, 0.00f, 0.00f );
+				break;
+			}
+
+			case ColorScheme::Dark:
+			{
+				colors[ImGuiCol_Text]                   = ImVec4( 1.00f, 1.00f, 1.00f, 1.00f );
+				colors[ImGuiCol_TextDisabled]           = ImVec4( 0.60f, 0.60f, 0.60f, 1.00f );
+				colors[ImGuiCol_WindowBg]               = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
+				colors[ImGuiCol_TitleBg]                = ImVec4( 1.00f, 0.40f, 0.00f, 0.50f );
+				colors[ImGuiCol_TitleBgActive]          = ImVec4( 1.00f, 0.40f, 0.00f, 0.50f );
+				colors[ImGuiCol_TitleBgCollapsed]       = ImVec4( 0.69f, 0.25f, 0.00f, 0.50f );
+				colors[ImGuiCol_ChildBg]                = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
+				colors[ImGuiCol_PopupBg]                = ImVec4( 0.20f, 0.20f, 0.20f, 1.00f );
+				colors[ImGuiCol_ModalWindowDimBg]       = ImVec4( 0.00f, 0.00f, 0.00f, 0.00f );
+				break;
+			}
+
+			case ColorScheme::Green:
+			{
+				colors[ImGuiCol_Text]                   = ImVec4( 0.00f, 1.00f, 0.00f, 1.00f );
+				colors[ImGuiCol_TextDisabled]           = ImVec4( 0.60f, 0.60f, 0.60f, 1.00f );
+				colors[ImGuiCol_WindowBg]               = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
+				colors[ImGuiCol_TitleBg]                = ImVec4( 0.25f, 0.25f, 0.25f, 1.00f );
+				colors[ImGuiCol_TitleBgActive]          = ImVec4( 0.25f, 0.25f, 0.25f, 1.00f );
+				colors[ImGuiCol_TitleBgCollapsed]       = ImVec4( 0.50f, 1.00f, 0.50f, 1.00f );
+				colors[ImGuiCol_ChildBg]                = ImVec4( 0.10f, 0.10f, 0.10f, 1.00f );
+				colors[ImGuiCol_PopupBg]                = ImVec4( 0.00f, 0.00f, 0.00f, 1.00f );
+				colors[ImGuiCol_ModalWindowDimBg]       = ImVec4( 0.00f, 0.00f, 0.00f, 0.00f );
+				break;
+			}
+
+			default:
+			{
+			}
+		}
+	}
+};
+
+}
+
+// UI state
+UI::State stateUI;
+
 class idCommonLocal : public idCommon
 {
+private:
+	int							count = 0;
+	int							expectedCount = 0;
+	size_t						tics = 0;
+	size_t						nextTicCount = 0;
+
 public:
+	bool						com_refreshOnPrint = true;		// update the screen every print for dmap
+	ImTui::TScreen*				screen;
+
 
 	// Initialize everything.
 	// if the OS allows, pass argc/argv directly (without executable name)
@@ -456,7 +727,7 @@ public:
 
 	// Redraws the screen, handling games, guis, console, etc
 	// in a modal manner outside the normal frame loop
-	virtual void				UpdateScreen() {}
+	virtual void				UpdateScreen( bool captureToImage, bool releaseMouse = true );
 
 	virtual void				UpdateLevelLoadPacifier() {}
 
@@ -473,27 +744,78 @@ public:
 	virtual void				EndRedirect() {}
 
 	// Update the screen with every message printed.
-	virtual void				SetRefreshOnPrint( bool set ) {}
+	virtual void				SetRefreshOnPrint( bool set )
+	{
+		//com_refreshOnPrint = set;
+	}
 
 	virtual void			Printf( const char* fmt, ... )
 	{
 		STDIO_PRINT( "", "" );
+
+		if( com_refreshOnPrint )
+		{
+			common->UpdateScreen( false );
+		}
 	}
+
 	virtual void			VPrintf( const char* fmt, va_list arg )
 	{
-		vprintf( fmt, arg );
+		Sys_VPrintf( fmt, arg );
+
+		if( com_refreshOnPrint )
+		{
+			common->UpdateScreen( false );
+		}
 	}
+
 	virtual void			DPrintf( const char* fmt, ... )
 	{
-		STDIO_PRINT( "", "" );
+		if( com_developer.GetBool() )
+		{
+			STDIO_PRINT( "", "" );
+
+			if( com_refreshOnPrint )
+			{
+				common->UpdateScreen( false );
+			}
+		}
 	}
+
+	virtual void			VerbosePrintf( const char* fmt, ... )
+	{
+		if( dmap_verbose.GetBool() )
+		{
+			STDIO_PRINT( "", "" );
+
+			if( com_refreshOnPrint )
+			{
+				common->UpdateScreen( false );
+			}
+		}
+	}
+
 	virtual void			Warning( const char* fmt, ... )
 	{
 		STDIO_PRINT( "WARNING: ", "\n" );
+
+		if( com_refreshOnPrint )
+		{
+			common->UpdateScreen( false );
+		}
 	}
+
 	virtual void			DWarning( const char* fmt, ... )
 	{
-		STDIO_PRINT( "WARNING: ", "\n" );
+		if( com_developer.GetBool() )
+		{
+			STDIO_PRINT( "WARNING: ", "\n" );
+
+			if( com_refreshOnPrint )
+			{
+				common->UpdateScreen( false );
+			}
+		}
 	}
 
 	// Prints all queued warnings.
@@ -505,11 +827,21 @@ public:
 	virtual void			Error( const char* fmt, ... )
 	{
 		STDIO_PRINT( "ERROR: ", "\n" );
+
+		if( com_refreshOnPrint )
+		{
+			common->UpdateScreen( false );
+		}
 		exit( 0 );
 	}
 	virtual void			FatalError( const char* fmt, ... )
 	{
 		STDIO_PRINT( "FATAL ERROR: ", "\n" );
+
+		if( com_refreshOnPrint )
+		{
+			common->UpdateScreen( false );
+		}
 		exit( 0 );
 	}
 
@@ -650,22 +982,86 @@ public:
 	};
 
 	virtual void				QueueShowShell() { };		// Will activate the shell on the next frame.
-	virtual void				UpdateScreen( bool, bool ) { }
 	void						InitTool( const toolFlag_t, const idDict*, idEntity* ) {}
 
-	//virtual currentGame_t		GetCurrentGame() const {
-	//	return DOOM_CLASSIC;
-	//};
-	//virtual void				SwitchToGame(currentGame_t newGame) {}
+	void						LoadPacifierBinarizeFilename( const char* filename, const char* reason ) {}
+	void						LoadPacifierBinarizeInfo( const char* info ) {}
+	void						LoadPacifierBinarizeMiplevel( int level, int maxLevel ) {}
+	void						LoadPacifierBinarizeProgress( float progress ) {}
+	void						LoadPacifierBinarizeEnd() { };
+	void						LoadPacifierBinarizeProgressTotal( int total ) {}
+	void						LoadPacifierBinarizeProgressIncrement( int step ) {}
 
-	void LoadPacifierBinarizeFilename( const char* filename, const char* reason ) {}
-	void LoadPacifierBinarizeInfo( const char* info ) {}
-	void LoadPacifierBinarizeMiplevel( int level, int maxLevel ) {}
-	void LoadPacifierBinarizeProgress( float progress ) {}
-	void LoadPacifierBinarizeEnd() { };
-	// for images in particular we can measure more accurately this way (to deal with mipmaps)
-	void LoadPacifierBinarizeProgressTotal( int total ) {}
-	void LoadPacifierBinarizeProgressIncrement( int step ) {}
+	virtual void				DmapPacifierFilename( const char* filename, const char* reason )
+	{
+		stateUI.statusWindowHeader.Format( "%s | %s", filename, reason );
+	}
+
+	virtual void				DmapPacifierInfo( VERIFY_FORMAT_STRING const char* fmt, ... )
+	{
+		char msg[STATUS_TEXT_SIZE];
+
+		va_list argptr;
+		va_start( argptr, fmt );
+		idStr::vsnPrintf( msg, STATUS_TEXT_SIZE - 1, fmt, argptr );
+		msg[ sizeof( msg ) - 1 ] = '\0';
+		va_end( argptr );
+
+		stateUI.statusActiveTool = msg;
+
+		if( com_refreshOnPrint )
+		{
+			UpdateScreen( false );
+		}
+	}
+
+	virtual void				DmapPacifierCompileProgressTotal( int total )
+	{
+		count = 0;
+		expectedCount = total;
+		tics = 0;
+		nextTicCount = 0;
+
+		stateUI.progress = 0;
+	}
+
+	virtual void				DmapPacifierCompileProgressIncrement( int step )
+	{
+		count += step;
+
+		stateUI.progress = float( count ) / expectedCount;
+
+		// don't refresh the UI with every step if there are e.g. 1300 steps
+		if( ( count + 1 ) >= nextTicCount )
+		{
+			size_t ticsNeeded = ( size_t )( ( ( double )( count + 1 ) / expectedCount ) * 50.0 );
+
+			do
+			{
+				//common->Printf( "*" );
+			}
+			while( ++tics < ticsNeeded );
+
+			nextTicCount = ( size_t )( ( tics / 50.0 ) * expectedCount );
+			/*
+			if( count == ( expectedCount - 1 ) )
+			{
+				//if( tics < 51 )
+				//{
+				//	common->Printf( "*" );
+				//}
+				//common->Printf( "\n" );
+
+				//stateUI.progress = 1;
+			}
+			*/
+
+			if( com_refreshOnPrint )
+			{
+				common->UpdateScreen( false );
+			}
+		}
+	}
 };
 
 idCommonLocal		commonLocal;
@@ -681,8 +1077,10 @@ int com_editors = 0;
 ==============================================================
 */
 
-int main( int argc, char** argv )
+int Dmap_NoGui( int argc, char** argv )
 {
+	commonLocal.com_refreshOnPrint = false;
+
 	idLib::common = common;
 	idLib::cvarSystem = cvarSystem;
 	idLib::fileSystem = fileSystem;
@@ -692,16 +1090,251 @@ int main( int argc, char** argv )
 	cmdSystem->Init();
 	cvarSystem->Init();
 	idCVar::RegisterStaticVars();
-	fileSystem->Init();
-	declManager->InitTool();
 
+	// set cvars before filesystem init to use mod paths
 	idCmdArgs args;
 	for( int i = 0; i < argc; i++ )
 	{
-		args.AppendArg( argv[i] );
+		if( idStr::Icmp( argv[ i ], "+set" ) == 0 )
+		{
+			if( ( i + 2 ) < argc )
+			{
+				cvarSystem->SetCVarString( argv[ i + 1 ], argv[ i + 2 ] );
+			}
+
+			i += 2;
+		}
+		else if( idStr::Icmp( argv[ i ], "-t" ) == 0 || idStr::Icmp( argv[ i ], "-nogui" ) == 0 )
+		{
+		}
+		else
+		{
+			args.AppendArg( argv[i] );
+		}
 	}
+
+	fileSystem->Init();
+	declManager->InitTool();
 
 	Dmap_f( args );
 
 	return 0;
 }
+
+#if 0
+
+void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
+{
+}
+
+int main( int argc, char** argv )
+{
+	return Dmap_NoGui( argc, argv );
+}
+
+#elif 1
+
+
+void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
+{
+	bool demo = true;
+	bool conOpen = true;
+
+	ImTui_ImplNcurses_NewFrame();
+	ImTui_ImplText_NewFrame();
+
+	ImGui::NewFrame();
+
+	{
+		auto wSize = ImGui::GetIO().DisplaySize;
+		if( stateUI.showStatusWindow )
+		{
+			wSize.y -= stateUI.statusWindowHeight;
+		}
+		wSize.x = int( wSize.x );
+		ImGui::SetNextWindowPos( ImVec2( 0, 0 ), ImGuiCond_Always );
+
+		ImGui::SetNextWindowSize( wSize, ImGuiCond_Always );
+	}
+
+	//idStr title = va( "RBDMAP version %s %s", ENGINE_VERSION, BUILD_STRING );
+	idStr title = va( "RBDMAP version %s %s %s %s", ENGINE_VERSION, BUILD_STRING, __DATE__, __TIME__ );
+	ImGui::Begin( title.c_str(), nullptr,
+				  ImGuiWindowFlags_NoCollapse |
+				  ImGuiWindowFlags_NoResize |
+				  ImGuiWindowFlags_NoMove |
+				  ImGuiWindowFlags_NoScrollbar );
+
+	tuiLog.Draw( "Current Log:", &conOpen );
+
+	//ShowExampleAppConsole( &conOpen );
+
+	//ImTui::ShowDemoWindow( &demo );
+
+	ImGui::End();
+
+	{
+		auto wSize = ImGui::GetIO().DisplaySize;
+		ImGui::SetNextWindowPos( ImVec2( 0, wSize.y - stateUI.statusWindowHeight ), ImGuiCond_Always );
+		ImGui::SetNextWindowSize( ImVec2( wSize.x, stateUI.statusWindowHeight ), ImGuiCond_Always );
+	}
+
+	ImGui::Begin( stateUI.statusWindowHeader, nullptr,
+				  ImGuiWindowFlags_NoCollapse |
+				  ImGuiWindowFlags_NoResize |
+				  ImGuiWindowFlags_NoMove );
+
+	auto wSize = ImGui::GetIO().DisplaySize;
+	if( stateUI.progress < 1.0f )
+	{
+		ImGui::ProgressBar( stateUI.progress, ImVec2( wSize.x, 0.0f ) );
+	}
+	else
+	{
+		ImGui::Text( " " );
+	}
+
+	ImGui::Text( " %s", stateUI.statusActiveTool.c_str() );
+	ImGui::Text( " Source code      : https://github.com/RobertBeckebans/RBDOOM-3-BFG" );
+	ImGui::End();
+
+	ImGui::Render();
+
+	ImTui_ImplText_RenderDrawData( ImGui::GetDrawData(), screen );
+	ImTui_ImplNcurses_DrawScreen();
+}
+
+int main( int argc, char** argv )
+{
+	for( int i = 0; i < argc; i++ )
+	{
+		if( idStr::Icmp( argv[ i ], "-t" ) == 0 || idStr::Icmp( argv[ i ], "-nogui" ) == 0 )
+		{
+			return Dmap_NoGui( argc, argv );
+		}
+	}
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+
+	commonLocal.screen = ImTui_ImplNcurses_Init( true );
+	ImTui_ImplText_Init();
+
+	stateUI.ChangeColorScheme( false );
+
+	idLib::common = common;
+	idLib::cvarSystem = cvarSystem;
+	idLib::fileSystem = fileSystem;
+	idLib::sys = sys;
+
+	idLib::Init();
+	cmdSystem->Init();
+	cvarSystem->Init();
+	idCVar::RegisterStaticVars();
+
+	// set cvars before filesystem init to use mod paths
+	idCmdArgs args;
+	for( int i = 0; i < argc; i++ )
+	{
+		if( idStr::Icmp( argv[ i ], "+set" ) == 0 )
+		{
+			if( ( i + 2 ) < argc )
+			{
+				cvarSystem->SetCVarString( argv[ i + 1 ], argv[ i + 2 ] );
+			}
+
+			i += 2;
+		}
+		else if( idStr::Icmp( argv[ i ], "-t" ) == 0 || idStr::Icmp( argv[ i ], "-nogui" ) == 0 )
+		{
+		}
+		else
+		{
+			args.AppendArg( argv[i] );
+		}
+	}
+
+	fileSystem->Init();
+	declManager->InitTool();
+
+	Dmap_f( args );
+
+#if 0
+	while( true )
+	{
+		bool captureToImage = false;
+		common->UpdateScreen( captureToImage );
+	}
+#endif
+
+	ImTui_ImplText_Shutdown();
+	ImTui_ImplNcurses_Shutdown();
+
+	return 0;
+}
+#else
+
+#include "imtui/imtui.h"
+#include "imtui/imtui-impl-ncurses.h"
+#include "imtui/imtui-demo.h"
+
+void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
+{
+}
+
+int main()
+{
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+
+	auto screen = ImTui_ImplNcurses_Init( true );
+	ImTui_ImplText_Init();
+
+	stateUI.ChangeColorScheme( false );
+
+	bool demo = true;
+	int nframes = 0;
+	float fval = 1.23f;
+
+	while( true )
+	{
+		ImTui_ImplNcurses_NewFrame();
+		ImTui_ImplText_NewFrame();
+
+		ImGui::NewFrame();
+
+		ImGui::SetNextWindowPos( ImVec2( 4, 27 ), ImGuiCond_Once );
+		ImGui::SetNextWindowSize( ImVec2( 50.0, 10.0 ), ImGuiCond_Once );
+		ImGui::Begin( "Hello, world!" );
+		ImGui::Text( "NFrames = %d", nframes++ );
+		ImGui::Text( "Mouse Pos : x = %g, y = %g", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y );
+		ImGui::Text( "Time per frame %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate );
+		ImGui::Text( "Float:" );
+		ImGui::SameLine();
+		ImGui::SliderFloat( "##float", &fval, 0.0f, 10.0f );
+
+#ifndef __EMSCRIPTEN__
+		ImGui::Text( "%s", "" );
+		if( ImGui::Button( "Exit program", { ImGui::GetContentRegionAvail().x, 2 } ) )
+		{
+			break;
+		}
+#endif
+
+		ImGui::End();
+
+		ImTui::ShowDemoWindow( &demo );
+
+		ImGui::Render();
+
+		ImTui_ImplText_RenderDrawData( ImGui::GetDrawData(), screen );
+		ImTui_ImplNcurses_DrawScreen();
+	}
+
+	ImTui_ImplText_Shutdown();
+	ImTui_ImplNcurses_Shutdown();
+
+	return 0;
+}
+
+#endif
