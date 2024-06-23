@@ -2698,9 +2698,11 @@ void idFileSystemLocal::Path_f( const idCmdArgs& args )
 		common->Printf( "%s/%s\n", fileSystemLocal.searchPaths[sp].path.c_str(), fileSystemLocal.searchPaths[sp].gamedir.c_str() );
 	}
 
-	for( int i = 0; i < fileSystemLocal.resourceFiles.Num(); i++ )
+	int idx = fileSystemLocal.resourceFiles.Num() - 1;
+	while( idx >= 0 )
 	{
-		common->Printf( "%s\n", fileSystemLocal.resourceFiles[i]->GetFileName() );
+		common->Printf( "%s\n", fileSystemLocal.resourceFiles[idx]->GetFileName() );
+		idx--;
 	}
 }
 
