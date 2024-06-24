@@ -2898,7 +2898,9 @@ idFileSystemLocal::AddResourceFile
 idVec2i idFileSystemLocal::AddResourceFile( const char* resourceFileName )
 {
 	// RB: check if it was already added
-	idVec2i idx = FindResourceFile( resourceFileName );
+	idStrStatic< MAX_OSPATH > resourceFile = va( "maps/%s", resourceFileName );
+
+	idVec2i idx = FindResourceFile( resourceFile );
 	if( idx[0] != -1 && idx[1] != -1 )
 	{
 		return idx;
@@ -2909,7 +2911,6 @@ idVec2i idFileSystemLocal::AddResourceFile( const char* resourceFileName )
 	{
 		searchpath_t& search = fileSystemLocal.searchPaths[sp];
 
-		idStrStatic< MAX_OSPATH > resourceFile = va( "maps/%s", resourceFileName );
 		idResourceContainer* rc = new idResourceContainer();
 		if( rc->Init( resourceFile ) )
 		{
@@ -2930,27 +2931,6 @@ idFileSystemLocal::FindResourceFile
 */
 idVec2i idFileSystemLocal::FindResourceFile( const char* resourceFileName )
 {
-#if 0
-	// MadDeCoDeR: prevent vanilla .resource maps to be reloaded #447
-	const char* mapFileName = va( "maps/%s", resourceFileName );
-
-	for( int sp = fileSystemLocal.searchPaths.Num() - 1; sp >= 0; sp-- )
-	{
-		const searchpath_t& search = fileSystemLocal.searchPaths[sp];
-
-		for( int i = 0; i < search.resourceFiles.Num(); i++ )
-		{
-			if( idStr::Icmp( resourceFileName, search.resourceFiles[ i ]->GetFileName() ) == 0 ||
-					idStr::Icmp( mapFileName, search.resourceFiles[i]->GetFileName() ) == 0 )
-			{
-				return idVec2i( sp, i );
-			}
-		}
-	}
-	// MadDeCoDeR:end
-
-#else
-	// original behaviour
 	for( int sp = searchPaths.Num() - 1; sp >= 0; sp-- )
 	{
 		const searchpath_t& search = searchPaths[sp];
@@ -2963,7 +2943,7 @@ idVec2i idFileSystemLocal::FindResourceFile( const char* resourceFileName )
 			}
 		}
 	}
-#endif
+
 	return idVec2i( -1, -1 );
 }
 /*
