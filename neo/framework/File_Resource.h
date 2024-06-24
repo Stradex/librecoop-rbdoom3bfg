@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -36,6 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 
 ==============================================================
 */
+class idResourceContainer;
 
 class idResourceCacheEntry
 {
@@ -47,10 +49,9 @@ public:
 	void Clear()
 	{
 		filename.Empty();
-		//filename = NULL;
 		offset = 0;
 		length = 0;
-		containerIndex = 0;
+		owner = NULL;
 	}
 	size_t Read( idFile* f )
 	{
@@ -66,10 +67,14 @@ public:
 		sz += f->WriteBig( length );
 		return sz;
 	}
+
+	// part of .resources file format
 	idStrStatic< 256 >	filename;
 	int					offset;							// into the resource file
 	int 				length;
-	uint8				containerIndex;
+
+	// helpers only in memory
+	idResourceContainer* owner;
 };
 
 static const uint32 RESOURCE_FILE_MAGIC = 0xD000000D;
@@ -91,7 +96,7 @@ public:
 		delete resourceFile;
 		cacheTable.Clear();
 	}
-	bool Init( const char* fileName, uint8 containerIndex );
+	bool Init( const char* fileName );
 	static void WriteResourceFile( const char* fileName, const idStrList& manifest, const bool& _writeManifest );
 	static void WriteManifestFile( const char* name, const idStrList& list );
 	static int ReadManifestFile( const char* filename, idStrList& list );
@@ -102,8 +107,12 @@ public:
 	{
 		return fileName.c_str();
 	}
-	void SetContainerIndex( const int& _idx );
 	void ReOpen();
+
+	int GetNumFileResources() const
+	{
+		return numFileResources;
+	}
 private:
 	idStrStatic< 256 > fileName;
 	idFile* 	resourceFile;			// open file handle

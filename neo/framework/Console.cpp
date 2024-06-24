@@ -840,6 +840,19 @@ void idConsoleLocal::Resize()
 	LOCALSAFE_BOTTOM	= renderSystem->GetVirtualHeight() - LOCALSAFE_TOP;
 	LOCALSAFE_WIDTH		= LOCALSAFE_RIGHT - LOCALSAFE_LEFT;
 	LOCALSAFE_HEIGHT	= LOCALSAFE_BOTTOM - LOCALSAFE_TOP;
+
+#if 0
+	LINE_WIDTH = ( ( LOCALSAFE_WIDTH / SMALLCHAR_WIDTH ) - 2 );
+
+	consoleField.Clear();
+	consoleField.SetWidthInChars( LINE_WIDTH );
+
+	for( int i = 0 ; i < COMMAND_HISTORY ; i++ )
+	{
+		historyEditLines[i].Clear();
+		historyEditLines[i].SetWidthInChars( LINE_WIDTH );
+	}
+#endif
 }
 
 /*
