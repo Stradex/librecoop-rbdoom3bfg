@@ -2812,17 +2812,17 @@ void idFileSystemLocal::Path_f( const idCmdArgs& args )
 
 		common->Printf( "%s/%s\n", search.path.c_str(), search.gamedir.c_str() );
 
-		int idx = search.resourceFiles.Num() - 1;
-		while( idx >= 0 )
-		{
-			common->Printf( "%s/%s/%s (%i files)\n", search.path.c_str(), search.gamedir.c_str(), search.resourceFiles[idx]->GetFileName(), search.resourceFiles[idx]->GetNumFileResources() );
-			idx--;
-		}
-
-		idx = search.zipFiles.Num() - 1;
+		int idx = search.zipFiles.Num() - 1;
 		while( idx >= 0 )
 		{
 			common->Printf( "%s (%i files)\n", search.zipFiles[idx]->GetFileName(), search.zipFiles[idx]->GetNumFileResources() );
+			idx--;
+		}
+
+		idx = search.resourceFiles.Num() - 1;
+		while( idx >= 0 )
+		{
+			common->Printf( "%s/%s/%s (%i files)\n", search.path.c_str(), search.gamedir.c_str(), search.resourceFiles[idx]->GetFileName(), search.resourceFiles[idx]->GetNumFileResources() );
 			idx--;
 		}
 	}
