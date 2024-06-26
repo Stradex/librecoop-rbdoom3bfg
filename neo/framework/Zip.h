@@ -53,20 +53,25 @@ public:
 public:
 	// adds a list of file extensions ( e.g. "bcm|bmodel|" ) to be compressed in the zip file
 	void				AddFileFilters( const char* filters );
+
 	// adds a list of file extensions ( e.g. "genmodel|" ) to be added to the zip file, in an uncompressed form
 	void				AddUncompressedFileFilters( const char* filters );
+
 	// builds a zip file of all the files in the specified folder, overwriting if necessary
 	bool				Build( const char* zipPath, const char* folder, bool cleanFolder );
+
 	// updates a zip file with the files in the specified folder
 	bool				Update( const char* zipPath, const char* folder, bool cleanFolder );
 
 	// helper function to zip up all the files and put in a new zip file
 	static bool			BuildMapFolderZip( const char* mapFileName );
+
 	// helper function to update a map folder zip for newer files
 	static bool			UpdateMapFolderZip( const char* mapFileName );
 
 	// combines multiple in-memory files into a single memory file
 	static idFile_Memory* CombineFiles( const idList< idFile_Memory* >& srcFiles );
+
 	// extracts multiple in-memory files from a single memory file
 	static bool			ExtractFiles( idFile_Memory*& srcFile, idList< idFile_Memory* >& destFiles );
 

@@ -1712,7 +1712,7 @@ idFile_InZip
 =================================================================================
 */
 
-#if !defined( TYPEINFOPROJECT ) && !defined( DMAP )
+#if !defined( TYPEINFOPROJECT )
 
 /*
 =================

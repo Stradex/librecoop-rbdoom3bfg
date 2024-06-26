@@ -228,6 +228,7 @@ public:
 	virtual void			EndLevelLoad() = 0;
 	virtual bool			InProductionMode() = 0;
 	virtual bool			UsingResourceFiles() = 0;
+	virtual bool			UsingZipFiles() = 0; // RB
 	virtual void			UnloadMapResources( const char* name ) = 0;
 	virtual void			UnloadResourceContainer( const char* name ) = 0;
 	virtual void			StartPreload( const idStrList& _preload ) = 0;

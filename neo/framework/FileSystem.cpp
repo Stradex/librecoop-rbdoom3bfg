@@ -30,9 +30,15 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
-#if !defined( TYPEINFOPROJECT ) && !defined( DMAP )
+#if !defined( TYPEINFOPROJECT ) && !defined( DMAP  )
 	#include "Unzip.h"
 	#include "Zip.h"
+#else
+	#include "Unzip.h"
+
+	#if !defined( DMAP  )
+		#include "Zip.h"
+	#endif
 #endif
 
 #ifdef WIN32
@@ -125,6 +131,7 @@ struct searchpath_t
 
 	// RB: moved global resourcesFiles here
 	idList< idResourceContainer* > resourceFiles;
+	idList< idZipContainer* > zipFiles;
 };
 
 // search flags when opening a file
@@ -181,17 +188,11 @@ public:
 	virtual bool			UsingResourceFiles()
 	{
 		// was return resourceFiles.Num() > 0;
-		/*
-		for( int sp = searchPaths.Num() - 1; sp >= 0; sp-- )
-		{
-			if( searchPaths[sp].resourceFiles.Num() > 0 )
-			{
-				return true;
-			}
-		}
-		*/
-
 		return resourceFilesFound;
+	}
+	virtual bool			UsingZipFiles()
+	{
+		return zipFilesFound;
 	}
 	virtual void			UnloadMapResources( const char* name );
 	virtual void			UnloadResourceContainer( const char* name );
@@ -265,11 +266,14 @@ private:
 	idStrList				fileManifest;
 	idPreloadManifest		preloadList;
 
-	bool	resourceFilesFound = false;
 	byte* 	resourceBufferPtr;
 	int		resourceBufferSize;
 	int		resourceBufferAvailable;
 	int		numFilesOpenedAsCached;
+
+	// RB: shortcut
+	bool	resourceFilesFound = false;
+	bool	zipFilesFound = false;
 
 private:
 
@@ -303,6 +307,10 @@ private:
 	void					Startup();
 	void					InitPrecache();
 	void					ReOpenCacheFiles();
+
+	// RB: PK4 support
+	idFile* 				GetZipFile( const char* fileName, bool memFile );
+	bool					GetZipCacheEntry( const char* fileName, idZipCacheEntry& rc );
 };
 
 idCVar	idFileSystemLocal::fs_debug( "fs_debug", "0", CVAR_SYSTEM | CVAR_INTEGER, "", 0, 2, idCmdSystem::ArgCompletion_Integer<0, 2> );
@@ -433,6 +441,19 @@ int idFileSystemLocal::GetFileLength( const char* relativePath )
 		idLib::Warning( "idFileSystemLocal::GetFileLength with empty name" );
 		return -1;
 	}
+
+	// RB: TODO this should probably be guarded by fs_resourceLoadPriority
+
+	// RB: .pk4 files have a higher priority than .resources because they are aimed for modding
+	if( UsingZipFiles() )
+	{
+		idZipCacheEntry rc;
+		if( GetZipCacheEntry( relativePath, rc ) )
+		{
+			return rc.length;
+		}
+	}
+	// RB end
 
 	if( UsingResourceFiles() )
 	{
@@ -1193,7 +1214,6 @@ idFileSystemLocal::WriteResourcePacks
 */
 void idFileSystemLocal::WriteResourcePacks()
 {
-
 	idStrList filesNotCommonToAllMaps( 16384 );		// files that are not shared by all maps, used to trim the common list
 	idStrList filesCommonToAllMaps( 16384 );		// files that are shared by all maps, will include startup files, renderprogs etc..
 	idPreloadManifest commonPreloads;				// preload entries that exist in all map preload files
@@ -1534,7 +1554,6 @@ Copy a fully specified file from one place to another`
 */
 void idFileSystemLocal::CopyFile( const char* fromOSPath, const char* toOSPath )
 {
-
 	idFile* src = OpenExplicitFileRead( fromOSPath );
 	if( src == NULL )
 	{
@@ -2340,6 +2359,92 @@ int idFileSystemLocal::GetFileList( const char* relativePath, const idStrList& e
 		}
 	}
 
+	// RB: .pk4 file support
+	if( UsingZipFiles() )
+	{
+		for( int sp = fileSystemLocal.searchPaths.Num() - 1; sp >= 0; sp-- )
+		{
+			const searchpath_t& searchpath = fileSystemLocal.searchPaths[sp];
+			int idx = searchpath.zipFiles.Num() - 1;
+			while( idx >= 0 )
+			{
+				for( int i = 0; i < searchpath.zipFiles[ idx ]->cacheTable.Num(); i++ )
+				{
+					idZipCacheEntry& rt = searchpath.zipFiles[ idx ]->cacheTable[ i ];
+					// if the name is not long anough to at least contain the path
+
+					if( rt.filename.Length() <= pathLength )
+					{
+						continue;
+					}
+
+					// check for a path match without the trailing '/'
+					if( pathLength && idStr::Icmpn( rt.filename, relativePath, pathLength - 1 ) != 0 )
+					{
+						continue;
+					}
+
+					// ensure we have a path, and not just a filename containing the path
+					if( rt.filename[ pathLength ] == '\0' || ( pathLength && rt.filename[pathLength - 1] != '/' ) )
+					{
+						continue;
+					}
+
+					// make sure the file is not in a subdirectory
+					int j = pathLength;
+
+					// RB: expose this to an option for exportModelsToTrenchBroom
+					// so it doesn't break loading of sounds
+					if( !allowSubdirsForResourcePaks )
+					{
+						for( ; rt.filename[j + 1] != '\0'; j++ )
+						{
+							if( rt.filename[ j ] == '/' )
+							{
+								break;
+							}
+						}
+						if( rt.filename[ j + 1 ] )
+						{
+							continue;
+						}
+					}
+
+					// check for extension match
+					for( j = 0; j < extensions.Num(); j++ )
+					{
+						if( rt.filename.Length() >= extensions[j].Length() && extensions[j].Icmp( rt.filename.c_str() +   rt.filename.Length() - extensions[j].Length() ) == 0 )
+						{
+							break;
+						}
+					}
+					if( j >= extensions.Num() )
+					{
+						continue;
+					}
+
+					// unique the match
+					if( fullRelativePath )
+					{
+						idStr work = relativePath;
+						work += "/";
+						work += rt.filename.c_str() + pathLength;
+						work.StripTrailing( '/' );
+						AddUnique( work, list, hashIndex );
+					}
+					else
+					{
+						idStr work = rt.filename.c_str() + pathLength;
+						work.StripTrailing( '/' );
+						AddUnique( work, list, hashIndex );
+					}
+				}
+				idx--;
+			}
+		}
+	}
+	// RB end
+
 	// search through the path, one element at a time, adding to list
 	for( int sp = searchPaths.Num() - 1; sp >= 0; sp-- )
 	{
@@ -2711,7 +2816,13 @@ void idFileSystemLocal::Path_f( const idCmdArgs& args )
 		while( idx >= 0 )
 		{
 			common->Printf( "%s/%s/%s (%i files)\n", search.path.c_str(), search.gamedir.c_str(), search.resourceFiles[idx]->GetFileName(), search.resourceFiles[idx]->GetNumFileResources() );
-			//common->Printf( "%s (%i files)\n", search.resourceFiles[idx]->GetFileName(), search.resourceFiles[idx]->GetNumFileResources() );
+			idx--;
+		}
+
+		idx = search.zipFiles.Num() - 1;
+		while( idx >= 0 )
+		{
+			common->Printf( "%s (%i files)\n", search.zipFiles[idx]->GetFileName(), search.zipFiles[idx]->GetNumFileResources() );
 			idx--;
 		}
 	}
@@ -3046,7 +3157,7 @@ void idFileSystemLocal::AddGameDirectory( const char* path, const char* dir )
 			// resource files present, ignore pak files
 			for( int j = 0; j < pakfiles.Num(); j++ )
 			{
-				pakfile = pakfiles[j]; //BuildOSPath( path, dir, pakfiles[i] );
+				pakfile = pakfiles[j];
 
 				if( i == 1 )
 				{
@@ -3064,6 +3175,37 @@ void idFileSystemLocal::AddGameDirectory( const char* path, const char* dir )
 				}
 			}
 		}
+
+		// RB: Zip support
+		if( i == 0 )
+		{
+			pakfile = BuildOSPath( path, dir, "" );
+			pakfile[ pakfile.Length() - 1 ] = 0;	// strip the trailing slash
+
+			idStrList pakfiles;
+			ListOSFiles( pakfile, ".pk4", pakfiles );
+			pakfiles.SortWithTemplate( idSort_PathStr() );
+			if( pakfiles.Num() > 0 )
+			{
+				for( int j = 0; j < pakfiles.Num(); j++ )
+				{
+					pakfile = pakfiles[j];
+
+					pakfile = BuildOSPath( path, dir, pakfiles[j] );
+					idZipContainer* zip = new idZipContainer();
+					if( zip->Init( pakfile ) )
+					{
+						search.zipFiles.Append( zip );
+						common->Printf( "Loaded zip file %s\n", pakfile.c_str() );
+						common->Printf( "Loaded pk4 %s with checksum 0x%x\n", pakfile.c_str(), zip->GetChecksum() );
+						//com_productionMode.SetInteger( 2 );
+
+						zipFilesFound = true;
+					}
+				}
+			}
+		}
+		// RB end
 #endif
 	}
 	// RB end
@@ -3246,6 +3388,7 @@ void idFileSystemLocal::Shutdown( bool reloading )
 	{
 		searchpath_t& search = fileSystemLocal.searchPaths[sp];
 		search.resourceFiles.DeleteContents();
+		search.zipFiles.DeleteContents();
 	}
 
 	cmdSystem->RemoveCommand( "path" );
@@ -3327,6 +3470,129 @@ bool idFileSystemLocal::GetResourceCacheEntry( const char* fileName, idResourceC
 	return false;
 }
 
+
+/*
+========================
+idFileSystemLocal::GetZipCacheEntry
+
+Returns false if the entry isn't found
+========================
+*/
+// RB begin
+bool idFileSystemLocal::GetZipCacheEntry( const char* fileName, idZipCacheEntry& rc )
+{
+	idStrStatic< MAX_OSPATH > canonical;
+	if( strstr( fileName, ":" ) != NULL )
+	{
+		// os path, convert to relative? scripts can pass in an OS path
+		//idLib::Printf( "RESOURCE: os path passed %s\n", fileName );
+		return false;
+	}
+	else
+	{
+		canonical = fileName;
+	}
+
+	canonical.BackSlashesToSlashes();
+	canonical.ToLower();
+
+	for( int sp = fileSystemLocal.searchPaths.Num() - 1; sp >= 0; sp-- )
+	{
+		const searchpath_t& search = fileSystemLocal.searchPaths[sp];
+
+		int idx = search.zipFiles.Num() - 1;
+		while( idx >= 0 )
+		{
+			const int key = search.zipFiles[ idx ]->cacheHash.GenerateKey( canonical, false );
+			for( int index = search.zipFiles[ idx ]->cacheHash.GetFirst( key ); index != idHashIndex::NULL_INDEX; index = search.zipFiles[ idx ]->cacheHash.GetNext( index ) )
+			{
+				idZipCacheEntry& rt = search.zipFiles[ idx ]->cacheTable[ index ];
+				if( idStr::Icmp( rt.filename, canonical ) == 0 )
+				{
+					rc.filename = rt.filename;
+					rc.length = rt.length;
+					rc.offset = rt.offset;
+					rc.owner = search.zipFiles[idx];
+
+					return true;
+				}
+			}
+			idx--;
+		}
+	}
+
+	return false;
+}
+
+/*
+========================
+idFileSystemLocal::GetZipFile
+
+Returns NULL
+========================
+*/
+idFile* idFileSystemLocal::GetZipFile( const char* fileName, bool memFile )
+{
+	if( !UsingZipFiles() )
+	{
+		return NULL;
+	}
+
+	static idZipCacheEntry rc;
+	if( GetZipCacheEntry( fileName, rc ) )
+	{
+		if( fs_debugResources.GetBool() )
+		{
+			idLib::Printf( "RES: loading file %s\n", rc.filename.c_str() );
+		}
+
+		idFile_InZip* file = rc.owner->OpenFile( rc, fileName );
+
+		// RB: TODO I don't like that we always create a new idFile_Memory buffer instead of reusing
+		// the temporary resourceBufferPtr. This needs some profiling
+
+		if( file != NULL && ( ( memFile /*|| rc.length <= resourceBufferAvailable*/ ) || rc.length < 8 * 1024 * 1024 ) )
+		{
+			byte* buf = NULL;
+			//if( rc.length < resourceBufferAvailable )
+			//{
+			//	buf = resourceBufferPtr;
+			//	resourceBufferAvailable = 0;
+			//}
+			//else
+			{
+				if( fs_debugResources.GetBool() )
+				{
+					idLib::Printf( "MEM: Allocating %05d bytes for a resource load\n", rc.length );
+				}
+				buf = ( byte* )Mem_Alloc( rc.length, TAG_TEMP );
+			}
+			file->Read( ( void* )buf, rc.length );
+
+			//if( buf == resourceBufferPtr )
+			//{
+			//	file->SetResourceBuffer( buf );
+			//	return file;
+			//}
+			//else
+			{
+				idFile_Memory* mfile = new idFile_Memory( rc.filename, ( const char* )buf, rc.length );
+				if( mfile != NULL )
+				{
+					mfile->TakeDataOwnership();
+					delete file;
+					return mfile;
+				}
+			}
+		}
+		return file;
+	}
+
+	return NULL;
+}
+
+// RB en
+
 /*
 ========================
 idFileSystemLocal::GetResourceFile
@@ -3334,7 +3600,6 @@ idFileSystemLocal::GetResourceFile
 Returns NULL
 ========================
 */
-
 idFile* idFileSystemLocal::GetResourceFile( const char* fileName, bool memFile )
 {
 	if( !UsingResourceFiles() )
@@ -3444,7 +3709,18 @@ idFile* idFileSystemLocal::OpenFileReadFlags( const char* relativePath, int sear
 		idLib::Printf( "FILE DEBUG: opening %s\n", relativePath );
 	}
 
-	if( UsingResourceFiles() && fs_resourceLoadPriority.GetInteger() ==  1 )
+	// RB: .pk4 files have a higher priority than .resources because they are aimed for modding
+	if( UsingZipFiles() && fs_resourceLoadPriority.GetInteger() == 1 )
+	{
+		idFile* rf = GetZipFile( relativePath, ( searchFlags & FSFLAG_RETURN_FILE_MEM ) != 0 );
+		if( rf != NULL )
+		{
+			return rf;
+		}
+	}
+	// RB end
+
+	if( UsingResourceFiles() && fs_resourceLoadPriority.GetInteger() == 1 )
 	{
 		idFile* rf = GetResourceFile( relativePath, ( searchFlags & FSFLAG_RETURN_FILE_MEM ) != 0 );
 		if( rf != NULL )
@@ -3582,7 +3858,18 @@ idFile* idFileSystemLocal::OpenFileReadFlags( const char* relativePath, int sear
 		}
 	}
 
-	if( UsingResourceFiles() && fs_resourceLoadPriority.GetInteger() ==  0 )
+	// RB: .pk4 files have a higher priority than .resources because they are aimed for modding
+	if( UsingZipFiles() && fs_resourceLoadPriority.GetInteger() == 0 )
+	{
+		idFile* rf = GetZipFile( relativePath, ( searchFlags & FSFLAG_RETURN_FILE_MEM ) != 0 );
+		if( rf != NULL )
+		{
+			return rf;
+		}
+	}
+	// RB end
+
+	if( UsingResourceFiles() && fs_resourceLoadPriority.GetInteger() == 0 )
 	{
 		idFile* rf = GetResourceFile( relativePath, ( searchFlags & FSFLAG_RETURN_FILE_MEM ) != 0 );
 		if( rf != NULL )

@@ -65,6 +65,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../framework/File_Manifest.h"
 #include "../framework/File_SaveGame.h"
 #include "../framework/File_Resource.h"
+#include "../framework/File_Zip.h"
 #include "../framework/FileSystem.h"
 #include "../framework/UsercmdGen.h"
 #include "../framework/Serializer.h"
