@@ -271,4 +271,8 @@ extern idCVar g_CTFArrows;
 
 extern idCVar	net_clientSelfSmoothing;
 
+// RB: classic mode vars
+extern idCVar gc_classicFlashlight;
+// RB end
+
 #endif /* !__SYS_CVAR_H__ */

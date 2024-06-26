@@ -113,6 +113,7 @@ const idEventDef AI_TestAnimMoveTowardEnemy( "testAnimMoveTowardEnemy", "s", 'd'
 const idEventDef AI_TestAnimMove( "testAnimMove", "s", 'd' );
 const idEventDef AI_TestMeleeAttack( "testMeleeAttack", NULL, 'd' );
 const idEventDef AI_TestAnimAttack( "testAnimAttack", "s", 'd' );
+const idEventDef AI_Shrivel( "shrivel", "f" );
 const idEventDef AI_Burn( "burn" );
 const idEventDef AI_ClearBurn( "clearBurn" );
 const idEventDef AI_PreBurn( "preBurn" );
@@ -253,6 +254,7 @@ EVENT( AI_TestAnimMove,						idAI::Event_TestAnimMove )
 EVENT( AI_TestMoveToPosition,				idAI::Event_TestMoveToPosition )
 EVENT( AI_TestMeleeAttack,					idAI::Event_TestMeleeAttack )
 EVENT( AI_TestAnimAttack,					idAI::Event_TestAnimAttack )
+EVENT( AI_Shrivel,							idAI::Event_Shrivel )
 EVENT( AI_Burn,								idAI::Event_Burn )
 EVENT( AI_PreBurn,							idAI::Event_PreBurn )
 EVENT( AI_SetSmokeVisibility,				idAI::Event_SetSmokeVisibility )
@@ -2170,6 +2172,45 @@ void idAI::Event_TestAnimAttack( const char* animname )
 	idAI::PredictPath( this, aas, physicsObj.GetOrigin(), animator.TotalMovementDelta( anim ), 1000, 1000, ( move.moveType == MOVETYPE_FLY ) ? SE_BLOCKED : ( SE_ENTER_OBSTACLE | SE_BLOCKED | SE_ENTER_LEDGE_AREA ), path );
 
 	idThread::ReturnInt( path.blockingEntity && ( path.blockingEntity == enemy.GetEntity() ) );
+}
+
+/*
+=====================
+idAI::Event_Shrivel
+=====================
+*/
+void idAI::Event_Shrivel( float shrivel_time )
+{
+	// RB: this code was killed in the BFG edition because it was probably unused and for Prey
+#if 0
+	float t;
+
+	if( idThread::BeginMultiFrameEvent( this, &AI_Shrivel ) )
+	{
+		if( shrivel_time <= 0.0f )
+		{
+			idThread::EndMultiFrameEvent( this, &AI_Shrivel );
+			return;
+		}
+
+		shrivel_rate = 0.001f / shrivel_time;
+		shrivel_start = gameLocal.time;
+	}
+
+	t = ( gameLocal.time - shrivel_start ) * shrivel_rate;
+	if( t > 0.25f )
+	{
+		renderEntity.noShadow = true;
+	}
+	if( t > 1.0f )
+	{
+		t = 1.0f;
+		idThread::EndMultiFrameEvent( this, &AI_Shrivel );
+	}
+
+	renderEntity.shaderParms[ SHADERPARM_MD5_SKINSCALE ] = 1.0f - t * 0.5f;
+	UpdateVisuals();
+#endif
 }
 
 /*

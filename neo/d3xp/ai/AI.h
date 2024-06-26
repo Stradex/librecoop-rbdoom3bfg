@@ -653,6 +653,7 @@ protected:
 	void					Event_TestMoveToPosition( const idVec3& position );
 	void					Event_TestMeleeAttack();
 	void					Event_TestAnimAttack( const char* animname );
+	void					Event_Shrivel( float shirvel_time );
 	void					Event_Burn();
 	void					Event_PreBurn();
 	void					Event_ClearBurn();
