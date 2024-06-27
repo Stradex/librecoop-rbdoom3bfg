@@ -4123,7 +4123,8 @@ bool idPlayer::GiveItem( idItem* item, unsigned int giveFlags )
 		return false;
 	}
 
-	if( idStr::FindText( item->GetName(), "weapon_flashlight" ) > -1 )
+	//GK: Classic mode
+	if( idStr::FindText( item->GetName(), "weapon_flashlight" ) > -1 && !UsesClassicFlashlight() )
 	{
 		// don't allow flashlight weapon unless classic mode is enabled
 		return false;
@@ -5096,7 +5097,7 @@ void idPlayer::NextBestWeapon()
 	while( w > 0 )
 	{
 		w--;
-		if( w == weapon_flashlight && !gc_classicFlashlight.GetBool() )
+		if( w == weapon_flashlight && !UsesClassicFlashlight() )
 		{
 			continue;
 		}
@@ -5129,7 +5130,7 @@ void idPlayer::NextBestWeapon()
 
 	//GK: A small logic HACK for the orginal Doom 3 Flashlight
 	weap = spawnArgs.GetString( va( "def_weapon%d", w ) );
-	if( gc_classicFlashlight.GetBool() )
+	if( UsesClassicFlashlight() )
 	{
 		if( !idStr::Icmp( "weapon_flashlight", weap ) )
 		{
@@ -5180,12 +5181,12 @@ void idPlayer::NextWeapon()
 		}
 
 		const char* weap = spawnArgs.GetString( va( "def_weapon%d", w ) );
-		if( !spawnArgs.GetBool( va( "weapon%d_cycle", w ) ) && !( !idStr::Icmp( "weapon_flashlight", weap ) && gc_classicFlashlight.GetBool() ) )
+		if( !spawnArgs.GetBool( va( "weapon%d_cycle", w ) ) && !( !idStr::Icmp( "weapon_flashlight", weap ) && UsesClassicFlashlight() ) )
 		{
 			continue;
 		}
 
-		if( ( !idStr::Icmp( "weapon_flashlight", weap ) && gc_classicFlashlight.GetBool() ) && flashlightBattery < flashlight_batteryDrainTimeMS.GetInteger() && !flashlight.GetEntity()->lightOn )
+		if( ( !idStr::Icmp( "weapon_flashlight", weap ) && UsesClassicFlashlight() ) && flashlightBattery < flashlight_batteryDrainTimeMS.GetInteger() && !flashlight.GetEntity()->lightOn )
 		{
 			continue;
 		}
@@ -5209,7 +5210,7 @@ void idPlayer::NextWeapon()
 
 		//GK: A small logic HACK for the orginal Doom 3 Flashlight
 		const char* weap = spawnArgs.GetString( va( "def_weapon%d", w ) );
-		if( gc_classicFlashlight.GetBool() )
+		if( UsesClassicFlashlight() )
 		{
 			if( !idStr::Icmp( "weapon_flashlight", weap ) )
 			{
@@ -5246,6 +5247,10 @@ void idPlayer::PrevWeapon()
 	while( 1 )
 	{
 		w--;
+		if( w == 0 )
+		{
+			break;
+		}
 		if( w < 0 )
 		{
 			w = MAX_WEAPONS - 1;
@@ -5260,7 +5265,15 @@ void idPlayer::PrevWeapon()
 			continue;
 		}
 		const char* weap = spawnArgs.GetString( va( "def_weapon%d", w ) );
-		if( !spawnArgs.GetBool( va( "weapon%d_cycle", w ) ) )
+
+		//GK: And another def HACK for the original flashlight
+		if( !spawnArgs.GetBool( va( "weapon%d_cycle", w ) ) && !( !idStr::Icmp( "weapon_flashlight", weap ) && UsesClassicFlashlight() ) )
+		{
+			continue;
+		}
+
+		//GK: Make sure the player to be unable to change to the flashlight if it is charging
+		if( ( !idStr::Icmp( "weapon_flashlight", weap ) && UsesClassicFlashlight() ) && flashlightBattery < flashlight_batteryDrainTimeMS.GetInteger() && !flashlight.GetEntity()->lightOn )
 		{
 			continue;
 		}
@@ -5279,6 +5292,20 @@ void idPlayer::PrevWeapon()
 		idealWeapon = w;
 		weaponSwitchTime = gameLocal.time + WEAPON_SWITCH_DELAY;
 		UpdateHudWeapon();
+
+		//GK: A small logic HACK for the orginal Doom 3 Flashlight
+		const char* weap = spawnArgs.GetString( va( "def_weapon%d", w ) );
+		if( UsesClassicFlashlight() )
+		{
+			if( !idStr::Icmp( "weapon_flashlight", weap ) )
+			{
+				flashlight.GetEntity()->lightOn = true;
+			}
+			else
+			{
+				flashlight.GetEntity()->lightOn = false;
+			}
+		}
 	}
 }
 
@@ -5301,7 +5328,8 @@ void idPlayer::SelectWeapon( int num, bool force )
 		return;
 	}
 
-	if( num == weapon_flashlight )
+	// GK: classic flash light
+	if( num == weapon_flashlight && !UsesClassicFlashlight() )
 	{
 		return;
 	}
@@ -5408,6 +5436,21 @@ void idPlayer::SelectWeapon( int num, bool force )
 			idealWeapon = num;
 		}
 		UpdateHudWeapon();
+
+		//GK: A small logic HACK for the orginal Doom 3 Flashlight
+		const char* weap_ = spawnArgs.GetString( va( "def_weapon%d", num ) );
+		if( UsesClassicFlashlight() )
+		{
+			if( !idStr::Icmp( "weapon_flashlight", weap_ ) )
+			{
+				flashlight.GetEntity()->lightOn = true;
+			}
+			else
+			{
+				flashlight.GetEntity()->lightOn = false;
+			}
+		}
+
 	}
 }
 
@@ -5914,6 +5957,12 @@ void idPlayer::UpdateWeapon()
 	weapon.GetEntity()->PresentWeapon( CanShowWeaponViewmodel() );
 }
 
+// RB
+bool idPlayer::UsesClassicFlashlight()
+{
+	return ( ng_classicFlashlight.GetBool() || fileSystem->IsDoom2004() );
+}
+
 /*
 ===============
 idPlayer::UpdateFlashLight
@@ -5922,7 +5971,7 @@ idPlayer::UpdateFlashLight
 void idPlayer::UpdateFlashlight()
 {
 	//GK: Classic mode
-	if( idealWeapon == weapon_flashlight && !gc_classicFlashlight.GetBool() )
+	if( idealWeapon == weapon_flashlight && !UsesClassicFlashlight() )
 	{
 		// force classic flashlight to go away
 		NextWeapon();
@@ -5967,13 +6016,13 @@ void idPlayer::UpdateFlashlight()
 					}
 				}
 				//GK: don't waste the battery without flashlight
-				if( gc_classicFlashlight.GetBool() && idealWeapon != weapon_flashlight && flashlightBattery > 0 )
+				if( UsesClassicFlashlight() && idealWeapon != weapon_flashlight && flashlightBattery > 0 )
 				{
 					flashlightBattery = flashlight_batteryDrainTimeMS.GetInteger();
 				}
 
 				//GK: Well aparently the original flashlight had no battery
-				if( gc_classicFlashlight.GetBool() == 1 && flashlightBattery != flashlight_batteryDrainTimeMS.GetInteger() )
+				if( UsesClassicFlashlight() == 1 && flashlightBattery != flashlight_batteryDrainTimeMS.GetInteger() )
 				{
 					flashlightBattery = flashlight_batteryDrainTimeMS.GetInteger();
 				}
@@ -6011,7 +6060,7 @@ void idPlayer::UpdateFlashlight()
 	if( !flashlight.GetEntity()->IsLinked() )
 	{
 		//GK: hiding the BFG flashlight when the original is active
-		if( gc_classicFlashlight.GetBool() )
+		if( UsesClassicFlashlight() )
 		{
 			flashlight.GetEntity()->GetWeaponDef( "weapon_flashlight", 0 );
 		}
@@ -6023,7 +6072,7 @@ void idPlayer::UpdateFlashlight()
 
 		// adjust position / orientation of flashlight
 		idAnimatedEntity* worldModel = flashlight.GetEntity()->GetWorldModel();
-		if( !gc_classicFlashlight.GetBool() )
+		if( !UsesClassicFlashlight() )
 		{
 			worldModel->BindToJoint( this, "Chest", true );
 
@@ -6037,7 +6086,7 @@ void idPlayer::UpdateFlashlight()
 	// this positions the third person flashlight model! (as seen in the mirror)
 	idAnimatedEntity* worldModel = flashlight.GetEntity()->GetWorldModel();
 
-	if( !gc_classicFlashlight.GetBool() )
+	if( !UsesClassicFlashlight() )
 	{
 		static const idVec3 fl_pos = idVec3( 3.0f, 9.0f, 2.0f );
 		worldModel->GetPhysics()->SetOrigin( fl_pos );
@@ -6067,7 +6116,7 @@ void idPlayer::UpdateFlashlight()
 
 	flashlight.GetEntity()->PresentWeapon( true );
 
-	if( !gc_classicFlashlight.GetBool() )  //GK: Not legacy no care
+	if( !UsesClassicFlashlight() )  //GK: Not legacy no care
 	{
 		if( gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) || gameLocal.inCinematic || spectating || fl.hidden )
 		{
@@ -7683,14 +7732,30 @@ void idPlayer::PerformImpulse( int impulse )
 		{
 			if( flashlight.IsValid() )
 			{
+				// GK: support old flash light
+				if( flashlight.GetEntity()->lightOn && UsesClassicFlashlight() && currentWeapon != weapon_flashlight )
+				{
+					flashlight.GetEntity()->lightOn = false;
+				}
+
 				if( flashlight.GetEntity()->lightOn )
 				{
+					// select previous weapon when the flashlight is switched off
+					if( UsesClassicFlashlight() )
+					{
+						SelectWeapon( previousWeapon, false );
+					}
 					FlashlightOff();
 				}
 				else if( !spectating && weaponEnabled && !hiddenWeapon && !gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) )
 				{
+					if( UsesClassicFlashlight() )
+					{
+						SelectWeapon( weapon_flashlight, false );
+					}
 					FlashlightOn();
 				}
+				// GK end
 			}
 			break;
 		}

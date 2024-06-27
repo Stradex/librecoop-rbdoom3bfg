@@ -124,6 +124,8 @@ for instance to base a mod of D3 + D3XP assets, fs_game mymod, fs_game_base d3xp
 #define MAX_ZIPPED_FILE_NAME	2048
 #define FILE_HASH_SIZE			1024
 
+#define	DOOM3_PAK0_CHECKSUM		0x28d208f1
+
 struct searchpath_t
 {
 	idStr	path;		// c:\doom
@@ -184,15 +186,29 @@ public:
 
 	// RB begin
 	virtual bool			InProductionMode();
+
+	// Returns true if Doom 2004 is detected
+	virtual bool			IsDoom2004() const
+	{
+		return doom2004Found;
+	}
+
+	// Returns true if Doom 2019 is detected
+	// that one is BFG without Doom 1 & 2 and without multiplayer
+	virtual bool			IsDoom2019() const
+	{
+		return doom2019Found;
+	}
+
+	virtual bool			UsingZipFiles()
+	{
+		return zipFilesFound;
+	}
 	// RB end
 	virtual bool			UsingResourceFiles()
 	{
 		// was return resourceFiles.Num() > 0;
 		return resourceFilesFound;
-	}
-	virtual bool			UsingZipFiles()
-	{
-		return zipFilesFound;
 	}
 	virtual void			UnloadMapResources( const char* name );
 	virtual void			UnloadResourceContainer( const char* name );
@@ -274,6 +290,8 @@ private:
 	// RB: shortcut
 	bool	resourceFilesFound = false;
 	bool	zipFilesFound = false;
+	bool	doom2004Found = false;
+	bool	doom2019Found = false;
 
 private:
 
@@ -3201,6 +3219,12 @@ void idFileSystemLocal::AddGameDirectory( const char* path, const char* dir )
 						//com_productionMode.SetInteger( 2 );
 
 						zipFilesFound = true;
+
+						if( zip->GetChecksum() == DOOM3_PAK0_CHECKSUM )
+						{
+							doom2004Found = true;
+							common->Warning( "Doom 3 2004 Edition detected\n" );
+						}
 					}
 				}
 			}
@@ -3341,6 +3365,15 @@ void idFileSystemLocal::Init()
 
 	// try to start up normally
 	Startup();
+
+	// RB: check for Doom 3 2019 Edition
+	// This edition does not come with .crc files but the game content is almost the same except for some updated magics in the binary file headers.
+	// We also don't have the luxury of .pk4 files where we can calculate quickly a checksum from the files inside
+	// so we just test for a file that isn't in the BFG edition
+	if( ReadFile( "generated/images/ui/assets/guicursor_hand_xbone_a#__0200.bimage", NULL, NULL ) > 0 )
+	{
+		doom2019Found = true;
+	}
 
 	// if we can't find default.cfg, assume that the paths are
 	// busted and error out now, rather than getting an unreadable

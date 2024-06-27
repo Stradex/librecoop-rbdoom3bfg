@@ -589,10 +589,18 @@ float idSoundSample_XAudio2::GetAmplitude( int timeMS ) const
 	{
 		return 0.0f;
 	}
+
 	if( IsDefault() )
 	{
 		return 1.0f;
 	}
+
+	// RB: don't have amplitudes for the original Doom 3 so return 1.0 to avoid many missing lights
+	if( fileSystem->IsDoom2004() )
+	{
+		return 1.0f;
+	}
+
 	int index = timeMS * 60 / 1000;
 	if( index < 0 || index >= amplitude.Num() )
 	{

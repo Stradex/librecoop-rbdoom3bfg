@@ -925,6 +925,7 @@ private:
 	void					Weapon_NPC();
 	void					Weapon_GUI();
 	void					UpdateWeapon();
+	bool					UsesClassicFlashlight();
 	void					UpdateFlashlight();
 	void					FlashlightOn();
 	void					FlashlightOff();

@@ -68,7 +68,6 @@ EVENT( EV_Activate,				idLight::Event_ToggleOnOff )
 EVENT( EV_PostSpawn,			idLight::Event_SetSoundHandles )
 EVENT( EV_Light_FadeOut,		idLight::Event_FadeOut )
 EVENT( EV_Light_FadeIn,			idLight::Event_FadeIn )
-EVENT( EV_Light_FadeIn,			idLight::Event_FadeIn )
 EVENT( EV_Light_UpdateModelTarget, idLight::Event_UpdateModelTarget )
 END_CLASS
 

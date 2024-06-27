@@ -324,6 +324,6 @@ idCVar g_grabberDamping(			"g_grabberDamping",			"0.5",			CVAR_GAME | CVAR_FLOAT
 
 idCVar g_xp_bind_run_once(          "g_xp_bind_run_once",		"0",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "Rebind all controls once for D3XP." );
 
-// RB begin
-idCVar gc_classicFlashlight(		"gc_classicFlashlight",		"0",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "Classic flash light weapon" );
+// RB: new game mode vars
+idCVar ng_classicFlashlight(		"ng_classicFlashlight",		"0",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "Classic flash light weapon" );
 // RB end
