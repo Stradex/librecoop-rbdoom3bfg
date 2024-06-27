@@ -3596,7 +3596,7 @@ idFile* idFileSystemLocal::GetZipFile( const char* fileName, bool memFile )
 			{
 				if( fs_debugResources.GetBool() )
 				{
-					idLib::Printf( "MEM: Allocating %05d bytes for a resource load\n", rc.length );
+					idLib::Printf( "MEM: Allocating %05llu bytes for a resource load\n", rc.length );
 				}
 				buf = ( byte* )Mem_Alloc( rc.length, TAG_TEMP );
 			}
