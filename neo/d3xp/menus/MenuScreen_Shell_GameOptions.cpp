@@ -120,8 +120,8 @@ void idMenuScreen_Shell_GameOptions::Initialize( idMenuHandler* data )
 
 	control = new( TAG_SWF ) idMenuWidget_ControlButton();
 	control->SetOptionType( OPTION_SLIDER_TOGGLE );
-	control->SetLabel( "#str_swf_flashlight_shadows" );
-	control->SetDataSource( &systemData, idMenuDataSource_GameSettings::GAME_FIELD_FLASHLIGHT_SHADOWS );
+	control->SetLabel( "Classic Flashlight" );
+	control->SetDataSource( &systemData, idMenuDataSource_GameSettings::GAME_FIELD_CLASSIC_FLASHLIGHT );
 	control->SetupEvents( DEFAULT_REPEAT_TIME, options->GetChildren().Num() );
 	control->AddEventAction( WIDGET_EVENT_PRESS ).Set( WIDGET_ACTION_PRESS_FOCUSED, options->GetChildren().Num() );
 	options->AddChild( control );
@@ -301,7 +301,7 @@ extern idCVar ui_autoReload;
 extern idCVar aa_targetAimAssistEnable;
 extern idCVar in_alwaysRun;
 extern idCVar g_checkpoints;
-extern idCVar g_weaponShadows;
+extern idCVar ng_classicFlashlight;
 extern idCVar g_muzzleFlash;
 
 /*
@@ -328,7 +328,7 @@ void idMenuScreen_Shell_GameOptions::idMenuDataSource_GameSettings::LoadData()
 	fields[ GAME_FIELD_AUTO_RELOAD ].SetBool( ui_autoReload.GetBool() );
 	fields[ GAME_FIELD_AIM_ASSIST ].SetBool( aa_targetAimAssistEnable.GetBool() );
 	fields[ GAME_FIELD_ALWAYS_SPRINT ].SetBool( in_alwaysRun.GetBool() );
-	fields[ GAME_FIELD_FLASHLIGHT_SHADOWS ].SetBool( g_weaponShadows.GetBool() );
+	fields[ GAME_FIELD_CLASSIC_FLASHLIGHT ].SetBool( ng_classicFlashlight.GetBool() );
 	fields[ GAME_FIELD_MUZZLE_FLASHES ].SetBool( g_muzzleFlash.GetBool() );
 	originalFields = fields;
 }
@@ -349,7 +349,7 @@ void idMenuScreen_Shell_GameOptions::idMenuDataSource_GameSettings::CommitData()
 	ui_autoReload.SetBool( fields[ GAME_FIELD_AUTO_RELOAD ].ToBool() );
 	aa_targetAimAssistEnable.SetBool( fields[ GAME_FIELD_AIM_ASSIST ].ToBool() );
 	in_alwaysRun.SetBool( fields[ GAME_FIELD_ALWAYS_SPRINT ].ToBool() );
-	g_weaponShadows.SetBool( fields[ GAME_FIELD_FLASHLIGHT_SHADOWS ].ToBool() );
+	ng_classicFlashlight.SetBool( fields[ GAME_FIELD_CLASSIC_FLASHLIGHT ].ToBool() );
 	g_muzzleFlash.SetBool( fields[ GAME_FIELD_MUZZLE_FLASHES ].ToBool() );
 
 	cvarSystem->SetModifiedFlags( CVAR_ARCHIVE );
@@ -413,7 +413,7 @@ bool idMenuScreen_Shell_GameOptions::idMenuDataSource_GameSettings::IsDataChange
 		return true;
 	}
 
-	if( fields[ GAME_FIELD_FLASHLIGHT_SHADOWS ].ToBool() != originalFields[ GAME_FIELD_FLASHLIGHT_SHADOWS ].ToBool() )
+	if( fields[ GAME_FIELD_CLASSIC_FLASHLIGHT ].ToBool() != originalFields[ GAME_FIELD_CLASSIC_FLASHLIGHT ].ToBool() )
 	{
 		return true;
 	}

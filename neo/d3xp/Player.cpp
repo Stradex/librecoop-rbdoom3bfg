@@ -1990,6 +1990,7 @@ void idPlayer::Init()
 	achievementManager.Init( this );
 
 	flashlightBattery = flashlight_batteryDrainTimeMS.GetInteger();		// fully charged
+	flashlightReset = false;
 
 	aimAssist.Init( this );
 
@@ -5987,6 +5988,33 @@ void idPlayer::UpdateFlashlight()
 		return;
 	}
 
+	if( !flashlightReset )
+	{
+		flashlight->Clear();
+
+		if( UsesClassicFlashlight() && !gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) )
+		{
+			GiveItem( "weapon_flashlight" );
+		}
+
+		flashlightReset = true;
+	}
+
+	if( ng_classicFlashlight.IsModified() && !fileSystem->IsDoom2004() && !gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) )
+	{
+		flashlight->Clear();
+
+		if( UsesClassicFlashlight() )
+		{
+			// we might have missed the opportunity at level load
+			GiveItem( "weapon_flashlight" );
+		}
+
+		ng_classicFlashlight.ClearModified();
+	}
+
+
+
 	// Don't update the flashlight if dead in MP.
 	// Otherwise you can see a floating flashlight worldmodel near player's skeletons.
 	if( common->IsMultiplayer() )
@@ -6072,6 +6100,7 @@ void idPlayer::UpdateFlashlight()
 
 		// adjust position / orientation of flashlight
 		idAnimatedEntity* worldModel = flashlight.GetEntity()->GetWorldModel();
+
 		if( !UsesClassicFlashlight() )
 		{
 			worldModel->BindToJoint( this, "Chest", true );
@@ -6102,6 +6131,7 @@ void idPlayer::UpdateFlashlight()
 		//GK: This time make sure there is NO second flashlight model rendered
 		worldModel->Hide();
 	}
+
 	if( flashlight.GetEntity()->lightOn )
 	{
 		if( ( flashlightBattery < flashlight_batteryChargeTimeMS.GetInteger() / 2 ) && ( gameLocal.random.RandomFloat() < flashlight_batteryFlickerPercent.GetFloat() ) )
@@ -6116,7 +6146,7 @@ void idPlayer::UpdateFlashlight()
 
 	flashlight.GetEntity()->PresentWeapon( true );
 
-	if( !UsesClassicFlashlight() )  //GK: Not legacy no care
+	if( !UsesClassicFlashlight() )
 	{
 		if( gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) || gameLocal.inCinematic || spectating || fl.hidden )
 		{
@@ -7733,7 +7763,7 @@ void idPlayer::PerformImpulse( int impulse )
 			if( flashlight.IsValid() )
 			{
 				// GK: support old flash light
-				if( flashlight.GetEntity()->lightOn && UsesClassicFlashlight() && currentWeapon != weapon_flashlight )
+				if( UsesClassicFlashlight() && currentWeapon != weapon_flashlight && flashlight.GetEntity()->lightOn )
 				{
 					flashlight.GetEntity()->lightOn = false;
 				}
@@ -7751,7 +7781,8 @@ void idPlayer::PerformImpulse( int impulse )
 				{
 					if( UsesClassicFlashlight() )
 					{
-						SelectWeapon( weapon_flashlight, false );
+						// RB: force flash light selection even if it is not in the inventory
+						SelectWeapon( weapon_flashlight, true );
 					}
 					FlashlightOn();
 				}

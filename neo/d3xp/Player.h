@@ -337,6 +337,8 @@ public:
 	idInventory				inventory;
 	idTarget_SetPrimaryObjective* primaryObjective;
 
+	// RB: hack to reinit flash light when switching between classic mode
+	bool					flashlightReset;
 	int						flashlightBattery;
 	idEntityPtr<idWeapon>	flashlight;
 
