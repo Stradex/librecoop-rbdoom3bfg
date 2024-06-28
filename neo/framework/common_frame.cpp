@@ -285,40 +285,44 @@ void idCommonLocal::Draw()
 		// draw general progress bar
 		DrawLoadPacifierProgressbar();
 
-		// update our progress estimates
-		int time = Sys_Milliseconds();
-		if( loadPacifierBinarizeProgress > 0.0f )
+		if( loadPacifierBinarizeActive )
 		{
-			loadPacifierBinarizeTimeLeft = ( 1.0 - loadPacifierBinarizeProgress ) * ( time - loadPacifierBinarizeStartTime ) * 0.001f / loadPacifierBinarizeProgress;
-		}
-		else
-		{
-			loadPacifierBinarizeTimeLeft = -1.0f;
-		}
+			// update our progress estimates
+			int time = Sys_Milliseconds();
+			if( loadPacifierBinarizeProgress > 0.0f )
+			{
+				loadPacifierBinarizeTimeLeft = ( 1.0 - loadPacifierBinarizeProgress ) * ( time - loadPacifierBinarizeStartTime ) * 0.001f / loadPacifierBinarizeProgress;
+			}
+			else
+			{
+				loadPacifierBinarizeTimeLeft = -1.0f;
+			}
 
-		// prepare our strings
-		const char* text;
-		if( loadPacifierBinarizeTimeLeft >= 99.5f )
-		{
-			text = va( "Binarizing %3.0f%% ETA %2.0f minutes", loadPacifierBinarizeProgress * 100.0f, loadPacifierBinarizeTimeLeft / 60.0f );
-		}
-		else if( loadPacifierBinarizeTimeLeft )
-		{
-			text = va( "Binarizing %3.0f%% ETA %2.0f seconds", loadPacifierBinarizeProgress * 100.0f, loadPacifierBinarizeTimeLeft );
-		}
-		else
-		{
-			text = va( "Binarizing %3.0f%%", loadPacifierBinarizeProgress * 100.0f );
-		}
+			// prepare our strings
+			const char* text;
+			if( loadPacifierBinarizeTimeLeft >= 99.5f )
+			{
+				text = va( "Binarizing %3.0f%% ETA %2.0f minutes", loadPacifierBinarizeProgress * 100.0f, loadPacifierBinarizeTimeLeft / 60.0f );
+			}
+			else if( loadPacifierBinarizeTimeLeft )
+			{
+				text = va( "Binarizing %3.0f%% ETA %2.0f seconds", loadPacifierBinarizeProgress * 100.0f, loadPacifierBinarizeTimeLeft );
+			}
+			else
+			{
+				text = va( "Binarizing %3.0f%%", loadPacifierBinarizeProgress * 100.0f );
+			}
 
-		// draw our basic overlay
-		renderSystem->SetColor( idVec4( 0.0f, 0.0f, 0.5f, 1.0f ) );
-		renderSystem->DrawStretchPic( 0, renderSystem->GetVirtualHeight() - 48, renderSystem->GetVirtualWidth(), 48, 0, 0, 1, 1, whiteMaterial );
-		renderSystem->SetColor( idVec4( 0.0f, 0.5f, 0.8f, 1.0f ) );
-		renderSystem->DrawStretchPic( 0, renderSystem->GetVirtualHeight() - 48, loadPacifierBinarizeProgress * renderSystem->GetVirtualWidth(), 32, 0, 0, 1, 1, whiteMaterial );
-		renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 48, loadPacifierBinarizeFilename.c_str(), idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
-		renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 32, va( "%s %d/%d lvls", loadPacifierBinarizeInfo.c_str(), loadPacifierBinarizeMiplevel, loadPacifierBinarizeMiplevelTotal ), idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
-		renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 16, text, idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
+			// draw our basic overlay
+			renderSystem->SetColor( idVec4( 0.0f, 0.0f, 0.0f, 0.75f ) );
+			renderSystem->DrawStretchPic( 0, renderSystem->GetVirtualHeight() - 48, renderSystem->GetVirtualWidth(), 48, 0, 0, 1, 1, whiteMaterial );
+			//renderSystem->SetColor( idVec4( 0.0f, 0.5f, 0.8f, 1.0f ) );
+			renderSystem->SetColor( colorBrown );
+			renderSystem->DrawStretchPic( 0, renderSystem->GetVirtualHeight() - 48, loadPacifierBinarizeProgress * renderSystem->GetVirtualWidth(), 16, 0, 0, 1, 1, whiteMaterial );
+			renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 48, loadPacifierBinarizeFilename.c_str(), idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
+			renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 32, va( "%s %d/%d lvls", loadPacifierBinarizeInfo.c_str(), loadPacifierBinarizeMiplevel, loadPacifierBinarizeMiplevelTotal ), idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
+			renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 16, text, idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
+		}
 	}
 	else if( loadGUI != NULL )
 	{

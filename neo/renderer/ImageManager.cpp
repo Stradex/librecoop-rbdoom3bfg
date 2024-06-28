@@ -149,6 +149,7 @@ void R_ListImages_f( const idCmdArgs& args )
 	bool	duplicated = false;
 	bool	overSized = false;
 	bool	sortByName = false;
+	bool	deferred = false;
 
 	if( args.Argc() == 1 )
 	{
@@ -181,6 +182,10 @@ void R_ListImages_f( const idCmdArgs& args )
 			sorted = true;
 			overSized = true;
 		}
+		else if( idStr::Icmp( args.Argv( 1 ), "deferred" ) == 0 )
+		{
+			deferred = true;
+		}
 		else
 		{
 			failed = true;
@@ -202,14 +207,23 @@ void R_ListImages_f( const idCmdArgs& args )
 
 	totalSize = 0;
 
-	idList< idImage* >& images = globalImages->images;
-	const int numImages = images.Num();
+	const idList< idImage*, TAG_IDLIB_LIST_IMAGE >* images;
+	if( deferred )
+	{
+		images = &globalImages->imagesToLoad;
+	}
+	else
+	{
+		images = &globalImages->images;
+	}
+
+	const int numImages = images->Num();
 
 	sortedImage_t* sortedArray = ( sortedImage_t* )alloca( sizeof( sortedImage_t ) * numImages );
 
 	for( i = 0 ; i < numImages; i++ )
 	{
-		image = images[ i ];
+		image = ( *images )[ i ];
 
 		if( uncompressedOnly )
 		{
@@ -229,7 +243,7 @@ void R_ListImages_f( const idCmdArgs& args )
 			int j;
 			for( j = i + 1 ; j < numImages ; j++ )
 			{
-				if( idStr::Icmp( image->GetName(), images[ j ]->GetName() ) == 0 )
+				if( idStr::Icmp( image->GetName(), ( *images )[ j ]->GetName() ) == 0 )
 				{
 					break;
 				}

@@ -413,6 +413,8 @@ void idBinaryImage::Load2DAtlasMipchainFromMemory( int width, int height, const 
 #endif
 			}
 		}
+
+		common->LoadPacifierBinarizeProgressIncrement( rect.x * rect.y );
 		// RB end
 
 		common->LoadPacifierBinarizeMiplevel( level + 1, numLevels );
