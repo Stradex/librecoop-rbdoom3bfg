@@ -5961,7 +5961,7 @@ void idPlayer::UpdateWeapon()
 // RB
 bool idPlayer::UsesClassicFlashlight()
 {
-	return ( ng_classicFlashlight.GetBool() || fileSystem->IsDoom2004() );
+	return ( ( ng_classicFlashlight.GetBool() || fileSystem->IsDoom2004() ) && !common->IsMultiplayer() );
 }
 
 /*

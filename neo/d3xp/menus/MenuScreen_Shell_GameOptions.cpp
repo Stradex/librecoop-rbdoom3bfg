@@ -120,7 +120,7 @@ void idMenuScreen_Shell_GameOptions::Initialize( idMenuHandler* data )
 
 	control = new( TAG_SWF ) idMenuWidget_ControlButton();
 	control->SetOptionType( OPTION_SLIDER_TOGGLE );
-	control->SetLabel( "Classic Flashlight" );
+	control->SetLabel( "Classic Flashlight (SP)" );
 	control->SetDataSource( &systemData, idMenuDataSource_GameSettings::GAME_FIELD_CLASSIC_FLASHLIGHT );
 	control->SetupEvents( DEFAULT_REPEAT_TIME, options->GetChildren().Num() );
 	control->AddEventAction( WIDGET_EVENT_PRESS ).Set( WIDGET_ACTION_PRESS_FOCUSED, options->GetChildren().Num() );
