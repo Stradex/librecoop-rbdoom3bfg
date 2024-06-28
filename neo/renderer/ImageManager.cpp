@@ -333,7 +333,6 @@ idImage* idImageManager::AllocStandaloneImage( const char* name )
 AllocDeferredImage
 
 Allocates an idDeferredImage to load images from memory, adds it to the hash chain
-
 ==============
 */
 idDeferredImage* idImageManager::AllocDeferredImage( const char* name )
@@ -861,6 +860,21 @@ void idImageManager::Preload( const idPreloadManifest& manifest, const bool& map
 		int numLoaded = 0;
 
 		//fileSystem->StartPreload( preloadImageFiles );
+
+		// count
+		int numPreload = 0;
+		for( int i = 0; i < manifest.NumResources(); i++ )
+		{
+			const preloadEntry_s& p = manifest.GetPreloadByIndex( i );
+			if( p.resType == PRELOAD_IMAGE && !ExcludePreloadImage( p.resourceName ) )
+			{
+				numPreload++;
+			}
+		}
+
+		common->LoadPacifierInfo( "Preloading images" );
+		common->LoadPacifierProgressTotal( numPreload );
+
 		for( int i = 0; i < manifest.NumResources(); i++ )
 		{
 			const preloadEntry_s& p = manifest.GetPreloadByIndex( i );
@@ -868,6 +882,8 @@ void idImageManager::Preload( const idPreloadManifest& manifest, const bool& map
 			{
 				globalImages->ImageFromFile( p.resourceName, ( textureFilter_t )p.imgData.filter, ( textureRepeat_t )p.imgData.repeat, ( textureUsage_t )p.imgData.usage, ( cubeFiles_t )p.imgData.cubeMap );
 				numLoaded++;
+
+				common->LoadPacifierProgressIncrement( 1 );
 			}
 		}
 		//fileSystem->StopPreload();
@@ -899,14 +915,25 @@ int idImageManager::LoadLevelImages( bool pacifier )
 		commandList = deviceManager->GetDevice()->createCommandList( params );
 	}
 
-	common->UpdateLevelLoadPacifier();
+	//common->UpdateLevelLoadPacifier();
 
 	commandList->open();
+
+	if( pacifier )
+	{
+		common->LoadPacifierInfo( "Loading level images" );
+		common->LoadPacifierProgressTotal( images.Num() );
+	}
 
 	int	loadCount = 0;
 	for( int i = 0 ; i < images.Num() ; i++ )
 	{
 		idImage* image = images[ i ];
+
+		if( pacifier )
+		{
+			common->LoadPacifierProgressIncrement( 1 );
+		}
 
 		if( image->generatorFunction )
 		{
@@ -1012,6 +1039,11 @@ void idImageManager::PrintMemInfo( MemInfo_t* mi )
 
 void idImageManager::LoadDeferredImages( nvrhi::ICommandList* _commandList )
 {
+	if( insideLevelLoad )
+	{
+		return;
+	}
+
 #if !defined( DMAP )
 	if( !commandList )
 	{
@@ -1033,10 +1065,22 @@ void idImageManager::LoadDeferredImages( nvrhi::ICommandList* _commandList )
 		thisCmdList->open();
 	}
 
+	bool preloadPacifier = common->LoadPacifierRunning();
+	if( !preloadPacifier )
+	{
+		common->LoadPacifierInfo( "Loading deferred images" );
+		common->LoadPacifierProgressTotal( imagesToLoad.Num() );
+	}
+
 	for( int i = 0; i < globalImages->imagesToLoad.Num(); i++ )
 	{
 		// This is a "deferred" load of textures to the gpu.
 		globalImages->imagesToLoad[i]->FinalizeImage( false, thisCmdList );
+
+		if( !preloadPacifier )
+		{
+			common->LoadPacifierProgressIncrement( 1 );
+		}
 	}
 #else
 	for( int i = 0; i < globalImages->imagesToLoad.Num(); i++ )

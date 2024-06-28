@@ -229,9 +229,12 @@ public:
 	// DG end
 
 	virtual void				UpdateLevelLoadPacifier() = 0;
-	//virtual void				UpdateLevelLoadPacifier( int mProgress ) = 0;
-	//virtual void				UpdateLevelLoadPacifier( bool updateSecondary ) = 0;
-	//virtual void				UpdateLevelLoadPacifier( bool updateSecondary, int Progress ) = 0;
+	// RB begin
+	virtual void				LoadPacifierInfo( VERIFY_FORMAT_STRING const char* fmt, ... ) = 0;
+	virtual void				LoadPacifierProgressTotal( int total ) = 0;
+	virtual void				LoadPacifierProgressIncrement( int step ) = 0;
+	virtual bool				LoadPacifierRunning() = 0;
+	// RB end
 
 	// Checks for and removes command line "+set var arg" constructs.
 	// If match is NULL, all set commands will be executed, otherwise

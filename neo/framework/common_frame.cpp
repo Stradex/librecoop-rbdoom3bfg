@@ -234,6 +234,27 @@ void idCommonLocal::DrawWipeModel()
 	renderSystem->DrawStretchPic( 0, 0, renderSystem->GetVirtualWidth(), renderSystem->GetVirtualHeight(), 0, 0, 1, 1, wipeMaterial );
 }
 
+// RB begin
+void idCommonLocal::DrawLoadPacifierProgressbar()
+{
+	if( loadPacifierExpectedCount <= 0 )
+	{
+		return;
+	}
+
+	float loadPacifierProgress = float( loadPacifierCount ) / loadPacifierExpectedCount;
+
+	// draw our basic overlay
+	renderSystem->SetColor( idVec4( 0.55f, 0.0f, 0.0f, 1.0f ) );
+	renderSystem->DrawStretchPic( 0, renderSystem->GetVirtualHeight() - 64, renderSystem->GetVirtualWidth(), 16, 0, 0, 1, 1, whiteMaterial );
+	//renderSystem->SetColor( idVec4( 0.0f, 0.5f, 0.8f, 1.0f ) );
+	renderSystem->SetColor( colorGold );
+	renderSystem->DrawStretchPic( 0, renderSystem->GetVirtualHeight() - 64, loadPacifierProgress * renderSystem->GetVirtualWidth(), 16, 0, 0, 1, 1, whiteMaterial );
+
+	renderSystem->DrawSmallStringExt( 0, renderSystem->GetVirtualHeight() - 64, loadPacifierStatus, idVec4( 1.0f, 1.0f, 1.0f, 1.0f ), true );
+}
+// RB end
+
 /*
 ===============
 idCommonLocal::Draw
@@ -247,7 +268,7 @@ void idCommonLocal::Draw()
 		Sys_Sleep( com_sleepDraw.GetInteger() );
 	}
 
-	if( loadPacifierBinarizeActive )
+	if( loadPacifierBinarizeActive || LoadPacifierRunning() )
 	{
 		// foresthale 2014-05-30: when binarizing an asset we show a special
 		// overlay indicating progress
@@ -260,6 +281,9 @@ void idCommonLocal::Draw()
 		{
 			loadGUI->Render( renderSystem, Sys_Milliseconds() );
 		}
+
+		// draw general progress bar
+		DrawLoadPacifierProgressbar();
 
 		// update our progress estimates
 		int time = Sys_Milliseconds();
