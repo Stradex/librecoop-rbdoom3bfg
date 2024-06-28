@@ -329,23 +329,6 @@ idImage* idImageManager::AllocStandaloneImage( const char* name )
 }
 
 /*
-==============
-AllocDeferredImage
-
-Allocates an idDeferredImage to load images from memory, adds it to the hash chain
-==============
-*/
-idDeferredImage* idImageManager::AllocDeferredImage( const char* name )
-{
-	idDeferredImage* image = new( TAG_IMAGE ) idDeferredImage( name );
-
-	int hash = idStr( name ).FileNameHash();
-	deferredImageHash.Add( hash, deferredImages.Append( image ) );
-
-	return image;
-}
-
-/*
 ==================
 ImageFromFunction
 
@@ -356,7 +339,6 @@ system to be completely regenerated if needed.
 */
 idImage* idImageManager::ImageFromFunction( const char* _name, ImageGeneratorFunction generatorFunction )
 {
-
 	// strip any .tga file extensions from anywhere in the _name
 	idStr name = _name;
 	name.Replace( ".tga", "" );
@@ -780,8 +762,6 @@ void idImageManager::Shutdown()
 {
 	images.DeleteContents( true );
 	imageHash.Clear();
-	deferredImages.DeleteContents( true );
-	deferredImageHash.Clear();
 	commandList.Reset();
 }
 
