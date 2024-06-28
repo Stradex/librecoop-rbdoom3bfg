@@ -1035,12 +1035,16 @@ void R_LoadImage( const char* cname, byte** pic, int* width, int* height, ID_TIM
 		if( name.StripTrailingOnce( "_s" ) )
 		{
 			name += "_rmao";
+
+			ext = "png";
+			name.DefaultFileExtension( ".png" );
+
+			pbrImageLookup = true;
 		}
-
-		ext = "png";
-		name.DefaultFileExtension( ".png" );
-
-		pbrImageLookup = true;
+		else
+		{
+			name = origName;
+		}
 	}
 #if 0
 	else if( usage && *usage == TD_R11G11B10F )

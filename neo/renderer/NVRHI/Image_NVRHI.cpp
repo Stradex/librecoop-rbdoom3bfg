@@ -134,6 +134,16 @@ idImage::idImage( const char* name ) : imgName( name )
 	binaryFileTime = FILE_NOT_FOUND_TIMESTAMP;
 	refCount = 0;
 
+#if 0
+	// debugging code
+	idStr ext;
+	imgName.ExtractFileExtension( ext );
+	if( ext.Length() > 0 )
+	{
+		common->Printf( "Image %s has extension\n", imgName.c_str() );
+	}
+#endif
+
 	DeferredLoadImage();
 }
 

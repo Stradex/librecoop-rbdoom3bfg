@@ -390,9 +390,12 @@ void idImage::FinalizeImage( bool fromBackEnd, nvrhi::ICommandList* commandList 
 	// RB: PBR HACK - RMAO maps should end with _rmao insted of _s
 	if( usage == TD_SPECULAR_PBR_RMAO )
 	{
-		if( imgName.StripTrailingOnce( "_s" ) )
+		idStr baseName = imgName;
+		baseName.StripFileExtension();
+
+		if( baseName.StripTrailingOnce( "_s" ) )
 		{
-			imgName += "_rmao";
+			imgName = baseName + "_rmao";
 		}
 	}
 	// RB end
