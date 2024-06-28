@@ -5323,7 +5323,7 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 
 	// RB: we need to load all images left before rendering
 	// this can be expensive here because of the runtime image compression
-	globalImages->LoadDeferredImages( commandList );
+	//globalImages->LoadDeferredImages( commandList );
 
 	if( !ssaoPass && r_useNewSsaoPass.GetBool() )
 	{
