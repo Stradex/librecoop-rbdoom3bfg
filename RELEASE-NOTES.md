@@ -19,6 +19,67 @@ TBD - RBDOOM-3-BFG 1.6.0
 _______________________________
 
 
+## .plan - June 28, 2024
+
+This build brings back .pk4 support and the classic flash light through a gameplay option.
+
+It also should help modders to organize the content as the filesystem has been slightly changed so paks in mod folders are ensured to have a higher priority regardless of multimod filename clashes. So there is no need to name your pak files zzzWhatever.resources.
+
+E.g. a Multimod setup: 
+```
+RBDoom3BFG.exe +set fs_game mod_E3_Alpha_Weapons +set fs_game_base mod_D3HDP_Lite
+```
+
+mod_D3HDP_Lite is the base mod and mod_E3_Alpha_Weapons is a submod that extends it even further.
+
+The path command shows the priority how a file is being looked up in the virtual filesystem.
+Higher is better. 
+```
+Current search path:
+C:\Users\rober\Saved Games\id Software\RBDOOM 3 BFG/mod_E3_Alpha_Weapons
+C:\Projects\RBDOOM-3-BFG/mod_E3_Alpha_Weapons
+C:\Projects\RBDOOM-3-BFG/mod_E3_Alpha_Weapons/zzz_E3_Alpha_Weapons.resources (41 files)
+C:\Users\rober\Saved Games\id Software\RBDOOM 3 BFG/mod_D3HDP_Lite
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite/zzzD3HDPBFGLite06.resources (1641 files)
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite/zzzD3HDPBFGLite05.resources (3173 files)
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite/zzzD3HDPBFGLite04.resources (1683 files)
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite/zzzD3HDPBFGLite03.resources (1047 files)
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite/zzzD3HDPBFGLite02.resources (777 files)
+C:\Projects\RBDOOM-3-BFG/mod_D3HDP_Lite/zzzD3HDPBFGLite01.resources (524 files)
+C:\Users\rober\Saved Games\id Software\RBDOOM 3 BFG/base
+C:\Projects\RBDOOM-3-BFG/base
+C:\Projects\RBDOOM-3-BFG/base/maps/site3.resources (1725 files)
+...
+C:\Projects\RBDOOM-3-BFG/base/maps/admin.resources (2148 files)
+C:\Projects\RBDOOM-3-BFG/base/_sound_pc_gr.resources (830 files)
+C:\Projects\RBDOOM-3-BFG/base/_sound_pc_en.resources (840 files)
+C:\Projects\RBDOOM-3-BFG/base/_sound_pc.resources (4759 files)
+C:\Projects\RBDOOM-3-BFG/base/_ordered.resources (1336 files)
+C:\Projects\RBDOOM-3-BFG/base/_common.resources (2262 files)
+```
+
+zzz_E3_Alpha_Weapons.resources has a higher priority now regardless of how the other paks are named.
+
+Changelog:
+
+* Updated tools/bfgpakexplorer to version 1.0.5 (thanks to George Kalampokis)
+
+* Fixed PBR _rmao lookup hack on the wrong textures
+
+* Added classic flashlight from Doom BFA (single player only)
+
+* Replaced flashlight shadows option with classic flashlight
+
+* Added detection for Doom 2004/2019 .pk4 files or .resources
+
+* Added missing script event so we can boot vanilla Doom 3
+
+* Added back .pk4 support but only for paks without a dll inside
+
+* Changed file lookup order in .resources paks like in previous id Tech engines
+
+
 ## .plan - June 22, 2024
 
 Some people requested a separate oldschool map compiler so they don't have to open the engine every time they compile a map. Now you can just hit a button in TrenchBroomBFG. 
