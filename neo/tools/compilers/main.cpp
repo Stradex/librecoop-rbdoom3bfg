@@ -957,15 +957,15 @@ public:
 	};
 
 	virtual void				QueueShowShell() { };		// Will activate the shell on the next frame.
-	void						InitTool( const toolFlag_t, const idDict*, idEntity* ) {}
+	virtual void				InitTool( const toolFlag_t, const idDict*, idEntity* ) {}
 
-	void						LoadPacifierBinarizeFilename( const char* filename, const char* reason ) {}
-	void						LoadPacifierBinarizeInfo( const char* info ) {}
-	void						LoadPacifierBinarizeMiplevel( int level, int maxLevel ) {}
-	void						LoadPacifierBinarizeProgress( float progress ) {}
-	void						LoadPacifierBinarizeEnd() { };
-	void						LoadPacifierBinarizeProgressTotal( int total ) {}
-	void						LoadPacifierBinarizeProgressIncrement( int step ) {}
+	virtual void				LoadPacifierBinarizeFilename( const char* filename, const char* reason ) {}
+	virtual void				LoadPacifierBinarizeInfo( const char* info ) {}
+	virtual void				LoadPacifierBinarizeMiplevel( int level, int maxLevel ) {}
+	virtual void				LoadPacifierBinarizeProgress( float progress ) {}
+	virtual void				LoadPacifierBinarizeEnd() { };
+	virtual void				LoadPacifierBinarizeProgressTotal( int total ) {}
+	virtual void				LoadPacifierBinarizeProgressIncrement( int step ) {}
 
 	virtual void				DmapPacifierFilename( const char* filename, const char* reason )
 	{

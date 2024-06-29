@@ -59,7 +59,7 @@ bool idZipContainer::Init( const char* _fileName )
 		idFileLocal f = fileSystem->OpenExplicitFileRead( _fileName );
 		if( !f )
 		{
-			return NULL;
+			return false;
 		}
 		f->Seek( 0, FS_SEEK_END );
 		len = f->Tell();

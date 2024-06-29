@@ -330,7 +330,6 @@ private:
 };
 
 
-#if !defined( TYPEINFOPROJECT )
 class idFile_InZip : public idFile
 {
 	//friend class			idFileSystemLocal;
@@ -366,7 +365,6 @@ private:
 	int						fileSize;		// size of the file
 	void* 					z;				// unzip info
 };
-#endif
 
 class idFile_InnerResource : public idFile
 {

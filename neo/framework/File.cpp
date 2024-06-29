@@ -1712,8 +1712,6 @@ idFile_InZip
 =================================================================================
 */
 
-#if !defined( TYPEINFOPROJECT )
-
 /*
 =================
 idFile_InZip::idFile_InZip
@@ -1873,8 +1871,6 @@ int idFile_InZip::Seek( long offset, fsOrigin_t origin )
 	}
 	return -1;
 }
-
-#endif
 
 /*
 =================================================================================

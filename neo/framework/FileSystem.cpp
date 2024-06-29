@@ -30,15 +30,10 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
-#if !defined( TYPEINFOPROJECT ) && !defined( DMAP  )
-	#include "Unzip.h"
-	#include "Zip.h"
-#else
-	#include "Unzip.h"
+#include "Unzip.h"
 
-	#if !defined( DMAP  )
-		#include "Zip.h"
-	#endif
+#if !defined( TYPEINFOPROJECT ) && !defined( DMAP  )
+	#include "Zip.h"
 #endif
 
 #ifdef WIN32
