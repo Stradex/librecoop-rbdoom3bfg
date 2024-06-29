@@ -157,9 +157,6 @@ public:
 	virtual void				UpdateScreen( bool captureToImage, bool releaseMouse = true );
 	// DG end
 	virtual void				UpdateLevelLoadPacifier();  // Indefinate
-//	virtual void				UpdateLevelLoadPacifier( int mProgress );
-//	virtual void				UpdateLevelLoadPacifier( bool Secondary );
-//	virtual void				UpdateLevelLoadPacifier( bool updateSecondary, int mProgress );
 	virtual void				StartupVariable( const char* match );
 	virtual void				InitTool( const toolFlag_t tool, const idDict* dict, idEntity* entity );
 	virtual void				WriteConfigToFile( const char* filename );
@@ -440,6 +437,13 @@ public:
 	}
 	// SRS end
 
+	// RB begin
+	virtual void				LoadPacifierInfo( VERIFY_FORMAT_STRING const char* fmt, ... );
+	virtual void				LoadPacifierProgressTotal( int total );
+	virtual void				LoadPacifierProgressIncrement( int step );
+	virtual bool				LoadPacifierRunning();
+	// RB end
+
 	// foresthale 2014-05-30: a special binarize pacifier has to be shown in
 	// some cases, which includes filename and ETA information, note that
 	// the progress function takes 0-1 float, not 0-100, and can be called
@@ -655,17 +659,25 @@ private:
 	int					lastPacifierGuiTime;
 	bool				lastPacifierDialogState;
 
+	// RB begin
+	idStrStatic<256>	loadPacifierStatus = "-";
+	int					loadPacifierCount = 0;
+	int					loadPacifierExpectedCount = 0;
+	size_t				loadPacifierTics = 0;
+	size_t				loadPacifierNextTicCount = 0;
+	// RB end
+
 	// foresthale 2014-05-30: a special binarize pacifier has to be shown in some cases, which includes filename and ETA information
-	bool				loadPacifierBinarizeActive;
-	int					loadPacifierBinarizeStartTime;
-	float				loadPacifierBinarizeProgress;
-	float				loadPacifierBinarizeTimeLeft;
+	bool				loadPacifierBinarizeActive = false;
+	int					loadPacifierBinarizeStartTime = 0;
+	float				loadPacifierBinarizeProgress = 0.0f;
+	float				loadPacifierBinarizeTimeLeft = 0.0f;
 	idStr				loadPacifierBinarizeFilename;
 	idStr				loadPacifierBinarizeInfo;
-	int					loadPacifierBinarizeMiplevel;
-	int					loadPacifierBinarizeMiplevelTotal;
-	int					loadPacifierBinarizeProgressTotal;
-	int					loadPacifierBinarizeProgressCurrent;
+	int					loadPacifierBinarizeMiplevel = 0;
+	int					loadPacifierBinarizeMiplevelTotal = 0;
+	int					loadPacifierBinarizeProgressTotal = 0;
+	int					loadPacifierBinarizeProgressCurrent = 0;
 
 	bool				showShellRequested;
 
@@ -738,6 +750,7 @@ private:
 
 	// called by Draw when the scene to scene wipe is still running
 	void	DrawWipeModel();
+	void	DrawLoadPacifierProgressbar(); // RB
 	void	StartWipe( const char* materialName, bool hold = false );
 	void	CompleteWipe();
 	void	ClearWipe();

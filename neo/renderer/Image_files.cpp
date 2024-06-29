@@ -1115,26 +1115,6 @@ retry:
 			}
 		}
 	}
-	else
-	{
-		// Try loading from a deferred image hash list
-		int hash = name.FileNameHash();
-		for( int i = globalImages->deferredImageHash.First( hash ); i != -1; i = globalImages->deferredImageHash.Next( i ) )
-		{
-			idDeferredImage* image = globalImages->deferredImages[i];
-			if( name.Icmp( image->name ) == 0 )
-			{
-				if( pic && *pic == nullptr )
-				{
-					*usage = image->textureUsage;
-					*width = image->width;
-					*height = image->height;
-					memcpy( *pic, image->pic, 4 * *width * *height );
-					break;
-				}
-			}
-		}
-	}
 	// RB end
 
 	if( ( width && *width < 1 ) || ( height && *height < 1 ) )

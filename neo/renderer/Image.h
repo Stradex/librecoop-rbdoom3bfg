@@ -251,40 +251,6 @@ typedef enum
 	CF_SINGLE,      // SP: A single texture cubemap. All six sides in one image.
 } cubeFiles_t;
 
-class idDeferredImage
-{
-public:
-	idDeferredImage( const char* imageName );
-	~idDeferredImage();
-
-	idStr			name;
-	byte*			pic;
-	int				width;
-	int				height;
-	textureFilter_t textureFilter;
-	textureRepeat_t textureRepeat;
-	textureUsage_t	textureUsage;
-};
-
-ID_INLINE idDeferredImage::idDeferredImage( const char* imageName )
-	: name( imageName )
-	, pic( nullptr )
-	, width( 0 )
-	, height( 0 )
-	, textureFilter( TF_DEFAULT )
-	, textureRepeat( TR_CLAMP )
-	, textureUsage( TD_DEFAULT )
-{
-}
-
-ID_INLINE idDeferredImage::~idDeferredImage()
-{
-	if( pic )
-	{
-		delete pic;
-	}
-}
-
 typedef void ( *ImageGeneratorFunction )( idImage* image, nvrhi::ICommandList* commandList );
 
 #include "BinaryImage.h"
@@ -361,7 +327,7 @@ public:
 		levelLoadReferenced = true;
 	}
 
-	void		FinalizeImage( bool fromBackEnd, nvrhi::ICommandList* commandList );
+	void		ActuallyLoadImage( bool fromBackEnd, nvrhi::ICommandList* commandList );
 
 	// Adds the image to the list of images to load on the main thread to the gpu.
 	void		DeferredLoadImage();
@@ -666,8 +632,6 @@ public:
 	idImage* 			AllocImage( const char* name );
 	idImage* 			AllocStandaloneImage( const char* name );
 
-	idDeferredImage*	AllocDeferredImage( const char* name );
-
 	bool				ExcludePreloadImage( const char* name );
 
 	idList<idImage*, TAG_IDLIB_LIST_IMAGE>	images;
@@ -675,10 +639,6 @@ public:
 
 	// Transient list of images to load on the main thread to the gpu. Freed after images are loaded.
 	idList<idImage*, TAG_IDLIB_LIST_IMAGE>	imagesToLoad;
-
-	// Permanent images to load from memory instead of a file system.
-	idList<idDeferredImage*, TAG_IDLIB_LIST_IMAGE>	deferredImages;
-	idHashIndex										deferredImageHash;
 
 	bool									insideLevelLoad;			// don't actually load images now
 	bool									preloadingMapImages;		// unless this is set

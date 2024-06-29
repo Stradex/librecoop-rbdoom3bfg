@@ -670,7 +670,7 @@ public:
 	// Initialize everything.
 	// if the OS allows, pass argc/argv directly (without executable name)
 	// otherwise pass the command line in a single string (without executable name)
-	virtual void				Init( int argc, const char* const* argv, const char* cmdline ) { };
+	virtual void				Init( int argc, const char* const* argv, const char* cmdline ) {}
 
 	// Shuts down everything.
 	virtual void				Shutdown() {}
@@ -698,6 +698,13 @@ public:
 	virtual void				UpdateScreen( bool captureToImage, bool releaseMouse = true );
 
 	virtual void				UpdateLevelLoadPacifier() {}
+	virtual void				LoadPacifierInfo( VERIFY_FORMAT_STRING const char* fmt, ... ) {}
+	virtual void				LoadPacifierProgressTotal( int total ) {}
+	virtual void				LoadPacifierProgressIncrement( int step ) {}
+	virtual bool				LoadPacifierRunning()
+	{
+		return false;
+	}
 
 
 	// Checks for and removes command line "+set var arg" constructs.
@@ -706,7 +713,7 @@ public:
 	virtual void				StartupVariable( const char* match ) {}
 
 	// Begins redirection of console output to the given buffer.
-	virtual void				BeginRedirect( char* buffer, int buffersize, void ( *flush )( const char* ) ) { };
+	virtual void				BeginRedirect( char* buffer, int buffersize, void ( *flush )( const char* ) ) {}
 
 	// Stops redirection of console output.
 	virtual void				EndRedirect() {}

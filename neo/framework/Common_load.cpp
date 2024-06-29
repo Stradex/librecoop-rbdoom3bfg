@@ -772,13 +772,92 @@ void idCommonLocal::UpdateLevelLoadPacifier()
 			}
 			txtVal->SetStrokeInfo( true, 1.75f, 0.75f );
 		}
+
 		UpdateScreen( false );
+
 		if( autoswapsRunning )
 		{
 			renderSystem->BeginAutomaticBackgroundSwaps( icon );
 		}
 	}
 }
+
+// RB begin
+void idCommonLocal::LoadPacifierInfo( VERIFY_FORMAT_STRING const char* fmt, ... )
+{
+	char msg[256];
+
+	va_list argptr;
+	va_start( argptr, fmt );
+	idStr::vsnPrintf( msg, 256 - 1, fmt, argptr );
+	msg[ sizeof( msg ) - 1 ] = '\0';
+	va_end( argptr );
+
+	loadPacifierStatus = msg;
+
+	//if( com_refreshOnPrint )
+	//{
+	//	UpdateScreen( false );
+	//}
+}
+
+void idCommonLocal::LoadPacifierProgressTotal( int total )
+{
+	loadPacifierCount = 0;
+	loadPacifierExpectedCount = total;
+	loadPacifierTics = 0;
+	loadPacifierNextTicCount = 0;
+}
+
+void idCommonLocal::LoadPacifierProgressIncrement( int step )
+{
+	loadPacifierCount += step;
+
+	// don't refresh the UI with every step if there are e.g. 1300 steps
+	if( ( ( loadPacifierCount + 1 ) >= loadPacifierNextTicCount ) && loadPacifierExpectedCount > 0 )
+	{
+		size_t ticsNeeded = ( size_t )( ( ( double )( loadPacifierCount + 1 ) / loadPacifierExpectedCount ) * 50.0 );
+
+		//do
+		//{
+		//common->Printf( "*" );
+		//}
+		//while( ++loadPacifierTics < ticsNeeded );
+		loadPacifierTics = ticsNeeded;
+
+		loadPacifierNextTicCount = ( size_t )( ( loadPacifierTics / 50.0 ) * loadPacifierExpectedCount );
+		if( loadPacifierCount == ( loadPacifierExpectedCount - 1 ) )
+		{
+			// reset
+
+			//if( tics < 51 )
+			//{
+			//	common->Printf( "*" );
+			//}
+			//common->Printf( "\n" );
+
+			//stateUI.progress = 1;
+
+			//loadPacifierCount = 0;
+			//loadPacifierExpectedCount = 0;
+			//loadPacifierTics = 0;
+			//loadPacifierNextTicCount = 0;
+		}
+
+		UpdateLevelLoadPacifier();
+	}
+
+	if( loadPacifierCount >= loadPacifierExpectedCount )
+	{
+		loadPacifierExpectedCount = 0;
+	}
+}
+
+bool idCommonLocal::LoadPacifierRunning()
+{
+	return loadPacifierExpectedCount > 0;
+}
+// RB end
 
 // foresthale 2014-05-30: loading progress pacifier for binarize operations only
 void idCommonLocal::LoadPacifierBinarizeFilename( const char* filename, const char* reason )
@@ -817,16 +896,16 @@ void idCommonLocal::LoadPacifierBinarizeProgress( float progress )
 		// binarized for one filename, we don't give bogus estimates...
 		loadPacifierBinarizeStartTime = Sys_Milliseconds();
 	}
+
 	loadPacifierBinarizeProgress = progress;
-	if( ( time - lastUpdateTime ) >= 16 )
+
+	// RB: update every 2 milliseconds have passed
+	if( ( time - lastUpdateTime ) >= 2 )
 	{
 		lastUpdateTime = time;
 		loadPacifierBinarizeActive = true;
 
 		UpdateLevelLoadPacifier();
-
-		// TODO merge
-		//UpdateLevelLoadPacifier( true, progress );
 	}
 }
 
@@ -855,7 +934,11 @@ void idCommonLocal::LoadPacifierBinarizeProgressTotal( int total )
 void idCommonLocal::LoadPacifierBinarizeProgressIncrement( int step )
 {
 	loadPacifierBinarizeProgressCurrent += step;
-	LoadPacifierBinarizeProgress( ( float )loadPacifierBinarizeProgressCurrent / loadPacifierBinarizeProgressTotal );
+
+	if( loadPacifierBinarizeProgressTotal > 0 )
+	{
+		LoadPacifierBinarizeProgress( ( float )loadPacifierBinarizeProgressCurrent / loadPacifierBinarizeProgressTotal );
+	}
 }
 
 /*

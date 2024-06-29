@@ -1794,7 +1794,7 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 	{
 		if( event->evType == SE_KEY && event->evValue2 == 1 && ( event->evValue == K_ESCAPE || event->evValue == K_JOY9 ) )
 		{
-			if( game->CheckInCinematic() == true )
+			if( game->CheckInCinematic() )
 			{
 				game->SkipCinematicScene();
 			}

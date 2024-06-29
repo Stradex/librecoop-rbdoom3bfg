@@ -5320,7 +5320,10 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 	GL_StartFrame();
 
 	void* textureId = globalImages->hierarchicalZbufferImage->GetTextureID();
-	globalImages->LoadDeferredImages( commandList );
+
+	// RB: we need to load all images left before rendering
+	// this can be expensive here because of the runtime image compression
+	//globalImages->LoadDeferredImages( commandList );
 
 	if( !ssaoPass && r_useNewSsaoPass.GetBool() )
 	{
