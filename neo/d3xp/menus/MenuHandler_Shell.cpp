@@ -330,6 +330,34 @@ bool idMenuHandler_Shell::HandleGuiEvent( const sysEvent_t* sev )
 
 	if( showingIntro )
 	{
+		// RB: allow to skip intro videos
+		if( sev->evType == SE_KEY && sev->evValue2 == 1 && ( sev->evValue == K_ESCAPE || sev->evValue == K_JOY9 ) )
+		{
+			if( introGui != NULL && introGui->IsActive() )
+			{
+				gui->StopSound();
+				showingIntro = false;
+				introGui->Activate( false );
+				PlaySound( GUI_SOUND_MUSIC );
+
+				const char* introName = introGui->GetName();
+
+				if( idStr::Cmp( introName, "swf/roeintro.swf" ) == 0 )
+				{
+					StartGame( 1 );
+				}
+				else if( idStr::Cmp( introName, "swf/leintro.swf" ) == 0 )
+				{
+					StartGame( 2 );
+				}
+				else
+				{
+					StartGame( 0 );
+				}
+			}
+		}
+		// RB end
+
 		return true;
 	}
 
