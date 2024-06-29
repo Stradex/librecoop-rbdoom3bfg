@@ -327,7 +327,7 @@ public:
 		levelLoadReferenced = true;
 	}
 
-	void		FinalizeImage( bool fromBackEnd, nvrhi::ICommandList* commandList );
+	void		ActuallyLoadImage( bool fromBackEnd, nvrhi::ICommandList* commandList );
 
 	// Adds the image to the list of images to load on the main thread to the gpu.
 	void		DeferredLoadImage();

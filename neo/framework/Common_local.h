@@ -668,16 +668,16 @@ private:
 	// RB end
 
 	// foresthale 2014-05-30: a special binarize pacifier has to be shown in some cases, which includes filename and ETA information
-	bool				loadPacifierBinarizeActive;
-	int					loadPacifierBinarizeStartTime;
-	float				loadPacifierBinarizeProgress;
-	float				loadPacifierBinarizeTimeLeft;
+	bool				loadPacifierBinarizeActive = false;
+	int					loadPacifierBinarizeStartTime = 0;
+	float				loadPacifierBinarizeProgress = 0.0f;
+	float				loadPacifierBinarizeTimeLeft = 0.0f;
 	idStr				loadPacifierBinarizeFilename;
 	idStr				loadPacifierBinarizeInfo;
-	int					loadPacifierBinarizeMiplevel;
-	int					loadPacifierBinarizeMiplevelTotal;
-	int					loadPacifierBinarizeProgressTotal;
-	int					loadPacifierBinarizeProgressCurrent;
+	int					loadPacifierBinarizeMiplevel = 0;
+	int					loadPacifierBinarizeMiplevelTotal = 0;
+	int					loadPacifierBinarizeProgressTotal = 0;
+	int					loadPacifierBinarizeProgressCurrent = 0;
 
 	bool				showShellRequested;
 

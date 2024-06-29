@@ -141,7 +141,7 @@ bool BasicTriangle::Init()
 	commandList->open();
 	for( int i = 0; i < material->GetNumStages(); i++ )
 	{
-		material->GetStage( i )->texture.image->FinalizeImage( true, commandList );
+		material->GetStage( i )->texture.image->ActuallyLoadImage( true, commandList );
 	}
 	commandList->close();
 	GetDevice()->executeCommandList( commandList );

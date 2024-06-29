@@ -2270,7 +2270,7 @@ void idRenderBackend::SetCurrentImage( idImage* image )
 	if( !image->IsLoaded() && !image->IsDefaulted() )
 	{
 		// TODO(Stephen): Fix me.
-		image->FinalizeImage( true, commandList );
+		image->ActuallyLoadImage( true, commandList );
 	}
 
 	context.imageParms[context.currentImageParm] = image;
