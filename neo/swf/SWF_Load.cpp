@@ -1776,6 +1776,17 @@ void idSWF::WriteJSON( const char* jsonFilename )
 
 				idStr initialText = idStr::CStyleQuote( et->initialText.c_str() );
 
+				// RB: ugly hack but necessary for exporting pda.json
+				//if( initialText.Cmp( "\"It\\'s DONE bay-bee!\"") == 0 )
+				if( idStr::FindText( initialText, "bay-bee" ) > -1 )
+				{
+					initialText = "\"It is DONE bay-bee!\"";
+				}
+				else if( idStr::FindText( initialText, "Email text goes in" ) > -1 )
+				{
+					initialText = "\"Email text goes in here\"";
+				}
+
 				file->WriteFloatString( "\t\t\t\"flags\": %i, \"fontID\": %i, \"fontHeight\": %i, \"maxLength\": %i, \"align\": \"%s\", \"leftMargin\": %i, \"rightMargin\": %i, \"indent\": %i, \"leading\": %i, \"variable\": \"%s\", \"initialText\": %s,\n",
 										et->flags, et->fontID, et->fontHeight, et->maxLength, idSWF::GetEditTextAlignName( et->align ),
 										et->leftMargin, et->rightMargin, et->indent, et->leading,
