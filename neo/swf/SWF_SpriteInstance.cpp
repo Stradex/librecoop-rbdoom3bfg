@@ -427,7 +427,7 @@ void idSWFSpriteInstance::RunTo( int targetFrame )
 		targetFrame = sprite->frameOffsets.Num() - 1;
 	}
 
-	// actions.Clear();
+	//actions.Clear();
 
 	uint32 firstActionCommand = sprite->frameOffsets[ targetFrame - 1 ];
 

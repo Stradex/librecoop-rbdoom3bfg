@@ -811,8 +811,8 @@ void idCommonDialog::Init()
 
 	Shutdown();
 
-	dialog = new( TAG_SWF ) idSWF( "dialog" );
-	saveIndicator = new( TAG_SWF ) idSWF( "save_indicator" );
+	dialog = new( TAG_SWF ) idSWF( "dialog", NULL );
+	saveIndicator = new( TAG_SWF ) idSWF( "save_indicator", NULL );
 
 #define BIND_DIALOG_CONSTANT( x ) dialog->SetGlobal( #x, x )
 	if( dialog != NULL )

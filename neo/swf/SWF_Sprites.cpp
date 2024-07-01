@@ -725,8 +725,8 @@ void idSWFSprite::WriteJSON_DoAction( idFile* file, idSWFBitStream& bitstream, i
 	base64.Encode( bitstream.Ptr(), bitstream.Length() );
 
 #if 1
-	//file->WriteFloatString( "%s\t\t\t\t{\t\"type\": \"Tag_DoAction\", \"streamLength\": %i, \"stream\": \"%s\" }", ( commandID != 0 ) ? ",\n" : "", bitstream.Length(), base64.c_str() );
-	file->WriteFloatString( "%s\t\t\t\t{\t\"type\": \"Tag_DoAction\", \"streamLength\": %i, \"stream\": \"FIXME\" }", ( commandID != 0 ) ? ",\n" : "", bitstream.Length() );
+	file->WriteFloatString( "%s\t\t\t\t{\t\"type\": \"Tag_DoAction\", \"streamLength\": %i, \"stream\": \"%s\" }", ( commandID != 0 ) ? ",\n" : "", bitstream.Length(), base64.c_str() );
+	//file->WriteFloatString( "%s\t\t\t\t{\t\"type\": \"Tag_DoAction\", \"streamLength\": %i, \"stream\": \"FIXME\" }", ( commandID != 0 ) ? ",\n" : "", bitstream.Length() );
 #else
 	idSWFScriptObject* scriptObject = idSWFScriptObject::Alloc();
 	scriptObject->SetPrototype( &spriteInstanceScriptObjectPrototype );

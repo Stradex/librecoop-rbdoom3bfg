@@ -1154,7 +1154,7 @@ bool idSWF::LoadJSON( const char* filename )
 				for( int d = 0; d < shape->lineDraws.Num(); d++ )
 				{
 					idSWFShapeDrawLine& lineDraw = shape->lineDraws[d];
-					Value& jsonDraw = entry["lineDraw"][d];
+					Value& jsonDraw = entry["lineDraws"][d];
 
 					Value& style = jsonDraw["style"];
 					lineDraw.style.startWidth = style["startWidth"].GetUint();
@@ -1808,4 +1808,5 @@ void idSWF::WriteJSON( const char* jsonFilename )
 	file->WriteFloatString( "\t]\n" );
 	file->WriteFloatString( "}\n" );
 }
+
 // RB end

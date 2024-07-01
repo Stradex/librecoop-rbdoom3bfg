@@ -34,11 +34,6 @@ If you have questions concerning this license or the applicable additional terms
 #pragma warning(disable: 4355) // 'this' : used in base member initializer list
 
 idCVar swf_loadBinary( "swf_loadBinary", "1", CVAR_INTEGER, "used to set whether to load binary swf from generated" );
-// RB begin
-idCVar postLoadExportFlashAtlas( "postLoadExportFlashAtlas", "0", CVAR_INTEGER, "" );
-idCVar postLoadExportFlashToSWF( "postLoadExportFlashToSWF", "0", CVAR_INTEGER, "" );
-idCVar postLoadExportFlashToJSON( "postLoadExportFlashToJSON", "0", CVAR_INTEGER, "" );
-// RB end
 
 int idSWF::mouseX = -1;
 int idSWF::mouseY = -1;
@@ -53,7 +48,7 @@ extern idCVar in_useJoystick;
 idSWF::idSWF
 ===================
 */
-idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
+idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON, bool exportSWF )
 {
 
 	atlasMaterial = NULL;
@@ -179,7 +174,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 		}
 	}
 
-	if( postLoadExportFlashToJSON.GetBool() )
+	if( exportJSON )
 	{
 		idStr jsonFileName = "exported/";
 		jsonFileName += filename;
@@ -196,7 +191,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 	int atlasExportImageWidth = 0;
 	int atlasExportImageHeight = 0;
 
-	if( /*!loadedFromJSON &&*/ ( postLoadExportFlashToJSON.GetBool() || postLoadExportFlashAtlas.GetBool() || postLoadExportFlashToSWF.GetBool() ) )
+	if( /*!loadedFromJSON &&*/ ( exportJSON || exportSWF ) )
 	{
 		// try loading the TGA first
 		ID_TIME_T timestamp;
@@ -205,7 +200,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 
 		if( ( atlasExportImageRGBA == NULL ) || ( timestamp == FILE_NOT_FOUND_TIMESTAMP ) )
 		{
-			idLib::Warning( "failed to load atlas '%s'", atlasFileName.c_str() );
+			//idLib::Warning( "failed to load atlas '%s'", atlasFileName.c_str() );
 
 			idStrStatic< MAX_OSPATH > generatedName = atlasFileName;
 			generatedName.StripFileExtension();
@@ -221,15 +216,33 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 
 				const byte* data = im.GetImageData( 0 );
 
-				//( img.level, 0, 0, img.destZ, img.width, img.height, data );
+				// RB: Images that are were DXT compressed and aren't multiples of 4 were padded out before compressing
+				// however the idBinaryImageData stores the original input width and height.
+				// We need multiples of 4 for the decompression routines
 
-				idTempArray<byte> rgba( img.width * img.height * 4 );
+				int	dxtWidth = img.width;
+				int	dxtHeight = img.height;
+				if( imgHeader.format == FMT_DXT5 || imgHeader.format == FMT_DXT1 )
+				{
+					if( ( img.width & 3 ) || ( img.height & 3 ) )
+					{
+						dxtWidth = ( img.width + 3 ) & ~3;
+						dxtHeight = ( img.height + 3 ) & ~3;
+					}
+				}
+
+				idTempArray<byte> rgba( dxtWidth * dxtHeight * 4 );
 				memset( rgba.Ptr(), 255, rgba.Size() );
 
 				if( imgHeader.format == FMT_DXT1 )
 				{
 					idDxtDecoder dxt;
-					dxt.DecompressImageDXT1( data, rgba.Ptr(), img.width, img.height );
+					dxt.DecompressImageDXT1( data, rgba.Ptr(), dxtWidth, dxtHeight );
+
+					for( int i = 0; i < ( dxtWidth * dxtHeight ); i++ )
+					{
+						rgba[i * 4 + 3] = 255;
+					}
 				}
 				else if( imgHeader.format == FMT_DXT5 )
 				{
@@ -237,16 +250,33 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 
 					if( imgHeader.colorFormat == CFM_NORMAL_DXT5 )
 					{
-						dxt.DecompressNormalMapDXT5( data, rgba.Ptr(), img.width, img.height );
+						dxt.DecompressNormalMapDXT5( data, rgba.Ptr(), dxtWidth, dxtHeight );
+
+						for( int i = 0; i < ( dxtWidth * dxtHeight ); i++ )
+						{
+							rgba[i * 4 + 3] = 255;
+						}
 					}
+					/*
 					else if( imgHeader.colorFormat == CFM_YCOCG_DXT5 )
 					{
-						dxt.DecompressYCoCgDXT5( data, rgba.Ptr(), img.width, img.height );
+						dxt.DecompressYCoCgDXT5( data, rgba.Ptr(), dxtWidth, dxtHeight );
+						idColorSpace::ConvertCoCg_YToRGB( rgba.Ptr(), rgba.Ptr(), dxtWidth, dxtHeight );
+
+						for( int i = 0; i < ( dxtWidth * dxtHeight ); i++ )
+						{
+							rgba[i * 4 + 3] = 255;
+						}
 					}
+					*/
 					else
 					{
+						dxt.DecompressImageDXT5( data, rgba.Ptr(), dxtWidth, dxtHeight );
 
-						dxt.DecompressImageDXT5( data, rgba.Ptr(), img.width, img.height );
+						for( int i = 0; i < ( dxtWidth * dxtHeight ); i++ )
+						{
+							rgba[i * 4 + 3] = 255;
+						}
 					}
 				}
 				else if( imgHeader.format == FMT_LUM8 || imgHeader.format == FMT_INT8 )
@@ -303,9 +333,11 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 				atlasFileNameExport.Replace( "generated/", "exported/" );
 				atlasFileNameExport.SetFileExtension( ".png" );
 
+				idLib::Printf( "Exporting image '%s'\n", atlasFileNameExport.c_str() );
+
 				R_WritePNG( atlasFileNameExport, rgba.Ptr(), 4, img.width, img.height, "fs_basepath" );
 
-				if( postLoadExportFlashToSWF.GetBool() )
+				if( exportSWF )
 				{
 					atlasExportImageWidth = img.width;
 					atlasExportImageHeight = img.height;
@@ -317,7 +349,7 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_ )
 
 	}
 
-	if( postLoadExportFlashToSWF.GetBool() )
+	if( exportSWF )
 	{
 		idStr swfFileName = "exported/";
 		swfFileName += filename;
@@ -974,3 +1006,51 @@ void idSWF::idSWFScriptNativeVar_crop::Set( idSWFScriptObject* object, const idS
 {
 	pThis->crop = value.ToBool();
 }
+
+// RB begin
+CONSOLE_COMMAND_SHIP( exportFlash, "Export all .bswf files to the exported/swf/ folder", NULL )
+{
+	bool exportSWF = false;
+
+	for( int i = 1; i < args.Argc(); i++ )
+	{
+		idStr option = args.Argv( i );
+		option.StripLeading( '-' );
+
+		if( option.Icmp( "swf" ) == 0 )
+		{
+			exportSWF = true;
+		}
+	}
+
+	idFileList* files = fileSystem->ListFilesTree( "generated", ".bswf", true, true );
+
+	for( int f = 0; f < files->GetList().Num(); f++ )
+	{
+		idStr bswfName = files->GetList()[ f ];
+
+#if 0
+		// only export hud for testing
+		if( idStr::Icmp( bswfName, "generated/swf/hud.bswf" ) != 0 )
+		{
+			continue;
+		}
+#endif
+
+		/*
+		idFileLocal bFile = fileSystem->OpenFileRead( bswfName );
+		if( bFile == NULL )
+		{
+			continue;
+		}
+		*/
+
+		bswfName.StripLeadingOnce( "generated/" );
+
+		idSWF* swf = new idSWF( bswfName, NULL, true, true ); //exportSWF );
+		delete swf;
+	}
+
+	fileSystem->FreeFileList( files );
+}
+// RB end
