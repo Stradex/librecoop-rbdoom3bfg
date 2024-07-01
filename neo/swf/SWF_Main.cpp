@@ -248,35 +248,16 @@ idSWF::idSWF( const char* filename_, idSoundWorld* soundWorld_, bool exportJSON,
 				{
 					idDxtDecoder dxt;
 
-					if( imgHeader.colorFormat == CFM_NORMAL_DXT5 )
-					{
-						dxt.DecompressNormalMapDXT5( data, rgba.Ptr(), dxtWidth, dxtHeight );
-
-						for( int i = 0; i < ( dxtWidth * dxtHeight ); i++ )
-						{
-							rgba[i * 4 + 3] = 255;
-						}
-					}
-					/*
-					else if( imgHeader.colorFormat == CFM_YCOCG_DXT5 )
-					{
-						dxt.DecompressYCoCgDXT5( data, rgba.Ptr(), dxtWidth, dxtHeight );
-						idColorSpace::ConvertCoCg_YToRGB( rgba.Ptr(), rgba.Ptr(), dxtWidth, dxtHeight );
-
-						for( int i = 0; i < ( dxtWidth * dxtHeight ); i++ )
-						{
-							rgba[i * 4 + 3] = 255;
-						}
-					}
-					*/
-					else
+					if( imgHeader.colorFormat == CFM_DEFAULT )
 					{
 						dxt.DecompressImageDXT5( data, rgba.Ptr(), dxtWidth, dxtHeight );
 
+						/*
 						for( int i = 0; i < ( dxtWidth * dxtHeight ); i++ )
 						{
 							rgba[i * 4 + 3] = 255;
 						}
+						*/
 					}
 				}
 				else if( imgHeader.format == FMT_LUM8 || imgHeader.format == FMT_INT8 )
