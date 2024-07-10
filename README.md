@@ -33,7 +33,7 @@ This file contains the following sections:
 9. [Compiling on Windows](#compile_windows)
 10. [Compiling on Linux](#compile_linux)
 11. [Compiling on macOS](#compile_macos)
-12. [Installation, Getting the Game Data, Running the Game](#installation)
+12. [Getting the Game Data](#installation)
 13. [New Console Variables](#console)
 14. [Known Issues](#issues)
 15. [Bug Reports](#reports)
@@ -407,7 +407,7 @@ See LICENSE_EXCEPTIONS.md for all parts of the code that are not covered by the 
 
 This project's GitHub.net Git repository can be checked out through Git with the following instruction set: 
 
-	> git clone --recursive https://github.com/RobertBeckebans/RBDOOM-3-BFG.git
+	> git clone --recursive https://github.com/RobertBeckebans/RBDOOM-3-BFG.git DoomCode
 
 Existing repositories can be updated manually:
 
@@ -426,11 +426,11 @@ Existing repositories can be updated manually:
 3. Download and install the latest Vulkan SDK from LunarG: https://www.lunarg.com/vulkan-sdk/
 You can skip this step if you compile with DX12 only by adding -DUSE_VULKAN=OFF to the CMake options.
 
-4. Generate the VS2022 projects using CMake by doubleclicking a matching configuration .bat file in the neo/ folder.
+4. Generate the VS2022 projects using CMake by doubleclicking a matching configuration .bat file in the `DoomCode/neo/` folder.
 Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 
 5. Use the VS2022 solution to compile what you need:
-	RBDOOM-3-BFG/build/RBDoom3BFG.sln
+	`DoomCode/build/RBDoom3BFG.sln`
 	
 
 ## Optional if you want to use FFmpeg
@@ -441,25 +441,23 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 
 
 ---
-# Compiling on Linux <a name="compile_linux"></a>
+# Compiling on and Running on Linux <a name="compile_linux"></a>
 
-1. Go to https://github.com/microsoft/DirectXShaderCompiler and download the DXC binaries for Linux and put them into your local PATH.
-    E.g. Unpack dxc-artifacts.tar.gz to your home directory and add this to your ~/.profile
+1. Go to https://github.com/microsoft/DirectXShaderCompiler/releases/tag/v1.8.2405 and download the DXC binaries for Linux and put them into your local PATH.
+	
+	E.g. Unpack linux_dxc_2024_05_24.x86_64.tar.gz to `~/.local` and make `~/.local/bin/dxc` as executable with chmod +x
 
-		> # DXC compiler
-		> PATH="~/dxc-artifacts/bin:$PATH"
-
-	As an alternative to modifying your PATH, you can add -DDXC\_CUSTOM_PATH=\<path-to-dxc-binary> to the CMake options.
+	As an alternative you can add `-DDXC_CUSTOM_PATH=<path-to-dxc-binary>` to the CMake options.
 
 2. You need the following dependencies in order to compile RBDoom3BFG with all features:
 
 	On Debian or Ubuntu:
 
-		> apt-get install cmake libsdl2-dev libopenal-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libvulkan-dev
+		> apt-get install cmake libsdl2-dev libopenal-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libvulkan-dev libncurses-dev
 	
 	On Fedora
 		
-		> yum install cmake SDL-devel openal-devel ffmpeg-devel
+		> yum install cmake SDL-devel openal-devel ffmpeg-devel ncurses-devel
 	
 	On ArchLinux 
 	
@@ -471,15 +469,30 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 
 	You don't need FFmpeg to be installed. You can turn it off by adding -DFFMPEG=OFF and -DBINKDEC=ON to the CMake options. It is enabled by default because the bundled libbinkdec is slow during development if compiled for Debug mode.
 
-3. Generate the Makefiles using CMake:
+3. Checkout the source code into a new `DoomCode` directory
 
-		> cd neo/
+		> git clone --recursive https://github.com/RobertBeckebans/RBDOOM-3-BFG.git DoomCode
+
+4. Generate the Makefiles using CMake:
+
+		> cd DoomCode/neo/
 		> ./cmake-linux-release.sh
 	
-4. Compile RBDOOM-3-BFG targets with
+5. Compile the engine and tools in `DoomCode/build/` with
 
-		> cd ../build
-		> make
+		> make -j<number of your cores>
+
+6. Copy the base folder of your `Steam/steamapps/common/DOOM 3 BFG Edition/base/` over to `DoomCode/base/` See also [Getting the Game Data](#installation)
+
+7. [`OPTIONAL`] Download https://www.moddb.com/mods/rbdoom-3-bfg/downloads/rbdoom-3-bfg-130 and unpack it over your DoomCode/ folder and then run in `DoomCode/`
+
+		> git checkout . 
+		
+	With this the local git files are newer for the files that have the same names.
+
+8. Copy `DoomCode/build/RBDoom3BFG` to `DoomCode/`
+
+9. Start the game in `DoomCode/`
 
 ---
 # Compiling on macOS <a name="compile_macos"></a>
@@ -521,7 +534,7 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 		> cd ../build
 		> make
 	
-	For Xcode builds double click on RBDOOM-3-BFG/xcode-\<buildtype\>/RBDoom3BFG.xcodeproj and start the build. The generated Xcode project file is pre-configured with the correct targets and build settings.
+	For Xcode builds double click on `DoomCode/xcode-\<buildtype\>/RBDoom3BFG.xcodeproj` and start the build. The generated Xcode project file is pre-configured with the correct targets and build settings.
 
 ---
 # Installation, Getting the Game Data, Running the Game <a name="installation"></a>
@@ -532,24 +545,26 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 
 <a href="https://www.moddb.com/mods/rbdoom-3-bfg" title="View RBDOOM-3-BFG on Mod DB" target="_blank"><img src="https://button.moddb.com/popularity/medium/mods/49231.png" alt="RBDOOM-3-BFG" /></a>
 
-2. There are usually 2 kinds of RBDOOM-3-BFG packages. The Full and the Lite version.
+There are usually 2 kinds of RBDOOM-3-BFG packages. The Full and the Lite version.
 With the Full version you have the Win64 binaries, the baked environment probes and lightgrid data for all BFG single player maps like RBDOOM-3-BFG-1.3.0.42-`full`-win64-20211030-git-b4e0366.7z (6.18 GB download). 
-The Lite version has the `lite` in the filename like RBDOOM-3-BFG-1.3.0.42-lite-win64-20211030-git-b4e0366.7z.
+
+The Lite version has the `lite` in the filename like RBDOOM-3-BFG-1.5.1.2-lite-win64-20230523-git-39ae120.7z.
 Those packages don't ship with the precomputed light data but have everything else needed to run the mod and the tools like the custom TrenchBroom build.
 
-3. Simply extract both packages over your
-`C:\Program Files (x86)\Steam\SteamApps\common\Doom 3 BFG Edition\` directory and run RBDoom3BFG.exe.
+2. Make a new `DoomBFG` folder
+
+3. Copy `base/` from your Steam Doom 3 BFG folder into `DoomBFG`
+
+4. Download the RBDOOM-3-BFG 1.3.0 full package from the RBDOOM-3-BFG ModDB page and extract it over DoomBFG
+
+5. Do the same with the newest version version which acts like a patch
 
 This should also work fine with your GOG installation.
 
 ---
 ## The following instructions are primarily intented for `Linux` users and all hackers on other operating systems.
 
-To play the game, you need the game data from a legal copy of the game.
-
-Currently this requires a Windows installer, whether that be the GOG installer or by using Steam for Windows.
-
-Note: the original DVD release of Doom 3 BFG contains encrypted data that is decoded by Steam on install.
+Linux users are advised the compile the engine from the Github source code and to put the `base/` data from the retail game into the `DoomCode/base/` directory.
 
 On Linux and macOS the easiest way to install is with SteamCMD: https://developer.valvesoftware.com/wiki/SteamCMD.
 See the description on https://developer.valvesoftware.com/wiki/SteamCMD#Linux (macOS is directly below that) on how to install SteamCMD on your system. You won't have to create a new user.
@@ -572,9 +587,9 @@ Once Wine is installed and configured on your system install Doom 3 BFG edition 
 
 (there will be several .exe files from GOG, make sure all of them are in the same directory)
 
-Once this is complete, by default you can find your Doom 3 BFG "base/" directory at ".wine/drive_c/GOG\ Games/DOOM\ 3\ BFG/base".
+Once this is complete, by default you can find your Doom 3 BFG `base/` directory at `.wine/drive_c/GOG\ Games/DOOM\ 3\ BFG/base`.
 
-Note that you may want to create a autoexec.cfg file in whatever "base/" directory you use with the following content:
+Note that you may want to create a autoexec.cfg file in the `DoomCode/base/` directory with the following content:
 
 * set sys_lang "english"
 
@@ -587,48 +602,15 @@ This will ensure the game and its menus are in english and don't default to some
 * set sys_lang "japanese"
 * set sys_lang "spanish"
 
-Anyway:
+On macOS the RBDoom3BFG executable will also search for game data within an app bundle's Contents/Resources/base folder, and as a last resort, within the absolute path /Applications/RBDoom3BFG.app/Contents/Resources/base.  In addition, if you want the game to be standalone without dependencies on pre-installed dynamic libs, you can use macdylibbundler to bundle all external dylib dependencies into the app bundle (see https://github.com/auriamg/macdylibbundler or simply install via "brew install dylibbundler" or "sudo port install dylibbundler").  For example, the following command will copy all external dylib dependencies to the Contents/libs directory of the game's app bundle and adjust the rpaths within the RBDoom3BFG executable and copied dylibs.
 
-1. Install Doom 3 BFG in Steam (Windows version) or SteamCMD, make sure it's getting
-   updated/patched.
+	> dylibbundler -od -b -x RBDoom3BFG.app/Contents/MacOS/RBDoom3BFG -d RBDoom3BFG.app/Contents/libs/
 
-2. Create your own Doom 3 BFG directory, e.g. /path/to/Doom3BFG/
+After running dylibbundler you may need to re-sign the modified executable and dylibs if planning to run on **Apple Silicon** machines.  Newer versions of dylibbundler now do this automatically.  The output of dylibbundler will indicate which executable and dylibs (if any) require re-signing.  This code signing step is not needed for x86-based Macs.
 
-3. Copy the game-data's base dir from Steam or GOG to that directory
-   (e.g. /path/to/Doom3BFG/), it's in
-	/your/path/to/Steam/steamapps/common/DOOM 3 BFG Edition/base/
-	or, if you used SteamCMD or GOG installer with Wine, in the path you used above.
-
-4. Copy your RBDoom3BFG executable and the optional FFmpeg DLLs (if Windows FFmpeg enabled) to your own 
-   Doom 3 BFG directory (/path/to/Doom3BFG). Your Doom 3 BFG directory now should look like:  
-   
-	/path/to/Doom3BFG/
-	* RBDoom3BFG (or RBDoom3BFG.exe on Windows)
-	* avcodec-58.dll (Windows FFmpeg only)
-	* avformat-58.dll (Windows FFmpeg only)
-	* avutil-56.dll (Windows FFmpeg only)
-	* swresample-3.dll (Windows FFmpeg only)
-	* swscale-5.dll (Windows FFmpeg only)
-	* base/
-		* classicmusic/
-		* _common.crc
-		* (etc)
-		 
-5. On macOS the RBDoom3BFG executable will also search for game data within an app bundle's Contents/Resources/base folder, and as a last resort, within the absolute path /Applications/RBDoom3BFG.app/Contents/Resources/base.  In addition, if you want the game to be standalone without dependencies on pre-installed dynamic libs, you can use macdylibbundler to bundle all external dylib dependencies into the app bundle (see https://github.com/auriamg/macdylibbundler or simply install via "brew install dylibbundler" or "sudo port install dylibbundler").  For example, the following command will copy all external dylib dependencies to the Contents/libs directory of the game's app bundle and adjust the rpaths within the RBDoom3BFG executable and copied dylibs.
-
-		> dylibbundler -od -b -x RBDoom3BFG.app/Contents/MacOS/RBDoom3BFG -d RBDoom3BFG.app/Contents/libs/
-
-	After running dylibbundler you may need to re-sign the modified executable and dylibs if planning to run on **Apple Silicon** machines.  Newer versions of dylibbundler now do this automatically.  The output of dylibbundler will indicate which executable and dylibs (if any) require re-signing.  This code signing step is not needed for x86-based Macs.
-
-		> codesign -s - --force RBDoom3BFG.app/Contents/libs/lib<modified-by-dylibbundler>.dylib
-		...
-		> codesign -s - --force RBDoom3BFG.app/Contents/MacOS/RBDoom3BFG
-
-6. Run the game by executing the RBDoom3BFG executable.
-
-7. Enjoy
-
-8. If you run into bugs, please report them, see [Bug Reports](#reports)
+	> codesign -s - --force RBDoom3BFG.app/Contents/libs/lib<modified-by-dylibbundler>.dylib
+	...
+	> codesign -s - --force RBDoom3BFG.app/Contents/MacOS/RBDoom3BFG
 
 ---
 # New Console Variables and Commands <a name="console"></a>
