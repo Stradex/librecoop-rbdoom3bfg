@@ -33,7 +33,7 @@ This file contains the following sections:
 9. [Compiling on Windows](#compile_windows)
 10. [Compiling on Linux](#compile_linux)
 11. [Compiling on macOS](#compile_macos)
-12. [Getting the Game Data](#installation)
+12. [Installation](#installation)
 13. [New Console Variables](#console)
 14. [Known Issues](#issues)
 15. [Bug Reports](#reports)
@@ -85,14 +85,19 @@ RBDOOM-3-BFG allows mod editing and has many tiny fixes so custom content can be
 * New PBR related material keywords like basecolormap, normalmap, rmaomap
 * invertGreen( normalmap.png ) material keyword to allow flipping the Y-Axis for tangent space normal maps 
 * glTF2 .glb model support for static and skinned models (thanks to Harrie van Ginneken)
+* Added back dmap and aas compilers as `standalone rbdmap.exe` tool (thanks to Pat Raynor) and improved them to work with TrenchBroom and Blender
 * Changed dmap to support compiling maps straight from glTF2 .glb models instead of .map files using a new polygon based workflow
 * Wavefront OBJ model support to make it easier getting static models from Blender/Maya/3D Studio Max into TrenchBroom
-* Added back dmap and aas compilers (mapping tools, thanks to Pat Raynor) and improved them to work with TrenchBroom and Blender
 * Added in-engine Flash debugging tools and new console variables
 * Added support for Mikkelsen tangent space standard for new assets (thanks to Stephen Pridham)
 * Bumped the static vertex cache limit of 31 MB to roughly ~ 128 MB to help with some custom models and maps by the Doom 3 community
 * com_showFPS bigger than 1 uses ImGui to show more detailed renderer stats like the original console prints with r_speeds
-* Native C++ AI & Weapons framework instead of Doomscript in the IcedHellfire mod by Justin Marshall (mods/icedhellfire branch)
+* .png .exr .hdr image support
+* .ogg sound file support
+* .pk4 archive support
+* Reworked virtual filesystem so .resources and .pk4 archives in mod directories have a higher priority than in base/
+* Native C++ AI & Weapons framework instead of Doomscript in the IcedHellfire mod by Justin Marshall (`mods/icedhellfire` Git branch)
+
 
 If you want to start mod from a directory, you should first specify your mod directory adding the following command to the launcher:
 
@@ -115,7 +120,7 @@ Short term goals:
 
 ---
 # May or may not ".plan" <a name="plan2"></a>
-* Replace expensive multipass forward shading with a faster forward+ solution
+* Replace traditional multipass forward shading with a faster forward+ solution
 * [Volumetric Lighting](http://www.alexandre-pestana.com/volumetric-lights/)
 * ReSTIR or some other realtime path tracing
 * Optional alternative collision detection and physics with PhysX 5 or Jolt
@@ -482,9 +487,9 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 
 		> make -j<number of your cores>
 
-6. Copy the base folder of your `Steam/steamapps/common/DOOM 3 BFG Edition/base/` over to `DoomCode/base/` See also [Getting the Game Data](#installation)
+6. Copy the base folder of your `Steam/steamapps/common/DOOM 3 BFG Edition/base/` over to `DoomCode/base/` See also [Installation](#installation)
 
-7. [`OPTIONAL`] Download https://www.moddb.com/mods/rbdoom-3-bfg/downloads/rbdoom-3-bfg-130 and unpack it over your DoomCode/ folder and then run in `DoomCode/`
+7. [`OPTIONAL`] Download https://www.moddb.com/mods/rbdoom-3-bfg/downloads/rbdoom-3-bfg-130 and unpack it over your `DoomCode/` folder and then run in `DoomCode/`
 
 		> git checkout . 
 		
@@ -537,11 +542,11 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 	For Xcode builds double click on `DoomCode/xcode-\<buildtype\>/RBDoom3BFG.xcodeproj` and start the build. The generated Xcode project file is pre-configured with the correct targets and build settings.
 
 ---
-# Installation, Getting the Game Data, Running the Game <a name="installation"></a>
+# Installation <a name="installation"></a>
 
 ## For 99% of all users:
 
-1. Download the newest version from the [RBDOOM-3-BFG Mod DB Page](https://www.moddb.com/mods/rbdoom-3-bfg) 
+1. Download the newest version from the [RBDOOM-3-BFG ModDB Page](https://www.moddb.com/mods/rbdoom-3-bfg) 
 
 <a href="https://www.moddb.com/mods/rbdoom-3-bfg" title="View RBDOOM-3-BFG on Mod DB" target="_blank"><img src="https://button.moddb.com/popularity/medium/mods/49231.png" alt="RBDOOM-3-BFG" /></a>
 
@@ -555,7 +560,7 @@ Those packages don't ship with the precomputed light data but have everything el
 
 3. Copy `base/` from your Steam Doom 3 BFG folder into `DoomBFG`
 
-4. Download the RBDOOM-3-BFG 1.3.0 full package from the RBDOOM-3-BFG ModDB page and extract it over DoomBFG
+4. Download the RBDOOM-3-BFG 1.3.0 full package from the RBDOOM-3-BFG ModDB page and extract it over `DoomBFG`
 
 5. Do the same with the newest version version which acts like a patch
 
