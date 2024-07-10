@@ -42,11 +42,11 @@ If you have questions concerning this license or the applicable additional terms
 
 extern idCVar r_vkUploadBufferSizeMB;
 
-idCVar binaryLoadRenderModels( "binaryLoadRenderModels", "1", 0, "enable binary load/write of render models" );
+idCVar binaryLoadRenderModels( "binaryLoadRenderModels", "1", CVAR_NEW, "enable binary load/write of render models" );
 idCVar preload_MapModels( "preload_MapModels", "1", CVAR_SYSTEM | CVAR_BOOL, "preload models during begin or end levelload" );
 
 // RB begin
-idCVar postLoadExportModels( "postLoadExportModels", "0", CVAR_BOOL | CVAR_RENDERER, "export models after loading to OBJ model format" );
+idCVar postLoadExportModels( "postLoadExportModels", "0", CVAR_BOOL | CVAR_RENDERER | CVAR_NEW, "export models after loading to OBJ model format" );
 // RB end
 
 class idRenderModelManagerLocal : public idRenderModelManager

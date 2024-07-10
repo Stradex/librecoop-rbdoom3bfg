@@ -38,7 +38,7 @@ If you have questions concerning this license or the applicable additional terms
 
 
 // SRS - Add cvar to control whether cinematic audio is played: default is ON
-idCVar s_playCinematicAudio( "s_playCinematicAudio", "1", CVAR_BOOL, "Play audio if available in cinematic video files" );
+idCVar s_playCinematicAudio( "s_playCinematicAudio", "1", CVAR_BOOL | CVAR_NEW, "Play audio if available in cinematic video files" );
 
 // DG: get rid of libjpeg; as far as I can tell no roqs that actually use it exist
 //#define ID_USE_LIBJPEG 1

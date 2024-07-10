@@ -44,6 +44,7 @@ idUserInterfaceManager* 	uiManager = &uiManagerLocal;
 idDeviceContext* dc;
 
 idCVar g_useNewGuiCode(	"g_useNewGuiCode",	"1", CVAR_GAME | CVAR_INTEGER, "use optimized device context code, 2 = toggle on/off every frame" );
+idCVar binaryLoadGuis( "binaryLoadGuis", "1", CVAR_NEW, "enable binary load/write of particle decls" );
 
 extern idCVar sys_lang;
 
@@ -123,6 +124,12 @@ void idUserInterfaceManagerLocal::SetSize( float width, float height )
 
 void idUserInterfaceManagerLocal::Preload( const char* mapName )
 {
+	// RB: allow skipping binary preloading so modders can add new .gui files
+	if( !binaryLoadGuis.GetBool() )
+	{
+		return;
+	}
+
 	if( mapName != NULL && mapName[ 0 ] != '\0' )
 	{
 		mapParser.LoadFromFile( va( "generated/guis/%s.bgui", mapName ) );
@@ -374,7 +381,6 @@ bool idUserInterfaceLocal::IsInteractive() const
 
 bool idUserInterfaceLocal::InitFromFile( const char* qpath, bool rebuild, bool cache )
 {
-
 	if( !( qpath && *qpath ) )
 	{
 		// FIXME: Memory leak!!
@@ -417,7 +423,7 @@ bool idUserInterfaceLocal::InitFromFile( const char* qpath, bool rebuild, bool c
 	state.Set( "text", "Test Text!" );
 
 	idTokenParser& bsrc = uiManagerLocal.GetBinaryParser();
-	if( !bsrc.IsLoaded() || !bsrc.StartParsing( source ) )
+	if( !bsrc.IsLoaded() || !bsrc.StartParsing( source ) || !binaryLoadGuis.GetBool() )
 	{
 		idParser src( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_ALLOWBACKSLASHSTRINGCONCAT );
 		src.LoadFile( source );
@@ -458,18 +464,21 @@ bool idUserInterfaceLocal::InitFromFile( const char* qpath, bool rebuild, bool c
 		desktop->SetupFromState();
 		common->Warning( "Couldn't load gui: '%s'", source.c_str() );
 	}
+
 	interactive = desktop->Interactive();
+
 	if( uiManagerLocal.guis.Find( this ) == NULL )
 	{
 		uiManagerLocal.guis.Append( this );
 	}
+
 	loading = false;
+
 	return true;
 }
 
 const char* idUserInterfaceLocal::HandleEvent( const sysEvent_t* event, int _time, bool* updateVisuals )
 {
-
 	time = _time;
 
 	if( bindHandler && event->evType == SE_KEY && event->evValue2 == 1 )
