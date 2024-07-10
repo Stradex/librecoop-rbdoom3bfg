@@ -65,10 +65,10 @@
 
 	VmaAllocator m_VmaAllocator = nullptr;
 
-	idCVar r_vmaDeviceLocalMemoryMB( "r_vmaDeviceLocalMemoryMB", "256", CVAR_INTEGER | CVAR_INIT, "Size of VMA allocation block for gpu memory." );
+	idCVar r_vmaDeviceLocalMemoryMB( "r_vmaDeviceLocalMemoryMB", "256", CVAR_INTEGER | CVAR_INIT | CVAR_NEW, "Size of VMA allocation block for gpu memory." );
 #endif
 
-idCVar r_vkPreferFastSync( "r_vkPreferFastSync", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "Prefer Fast Sync/no-tearing in place of VSync off/tearing" );
+idCVar r_vkPreferFastSync( "r_vkPreferFastSync", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL | CVAR_NEW, "Prefer Fast Sync/no-tearing in place of VSync off/tearing" );
 
 // Define the Vulkan dynamic dispatcher - this needs to occur in exactly one cpp file in the program.
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE

@@ -43,7 +43,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <sys/DeviceManager.h>
 #include <nvrhi/utils.h>
 
-idCVar r_useNewSsaoPass( "r_useNewSSAOPass", "1", CVAR_RENDERER | CVAR_BOOL, "use the new SSAO pass from Donut" );
+idCVar r_useNewSsaoPass( "r_useNewSSAOPass", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "use the new SSAO pass from Donut" );
 extern DeviceManager* deviceManager;
 
 idCVar r_drawEyeColor( "r_drawEyeColor", "0", CVAR_RENDERER | CVAR_BOOL, "Draw a colored box, red = left eye, blue = right eye, grey = non-stereo" );

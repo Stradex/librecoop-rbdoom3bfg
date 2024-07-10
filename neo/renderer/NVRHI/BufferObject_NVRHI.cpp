@@ -47,7 +47,7 @@ extern DeviceManager* deviceManager;
 
 extern VmaAllocator m_VmaAllocator;
 
-idCVar r_vmaAllocateBufferMemory( "r_vmaAllocateBufferMemory", "1", CVAR_BOOL | CVAR_INIT, "Use VMA allocator for buffer memory." );
+idCVar r_vmaAllocateBufferMemory( "r_vmaAllocateBufferMemory", "1", CVAR_BOOL | CVAR_INIT | CVAR_NEW, "Use VMA allocator for buffer memory." );
 
 /*
 ========================

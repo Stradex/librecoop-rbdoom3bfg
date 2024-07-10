@@ -38,10 +38,10 @@ idCVar swf_titleSafe( "swf_titleSafe", "0.005", CVAR_FLOAT, "space between UI el
 idCVar swf_forceAlpha( "swf_forceAlpha", "0", CVAR_FLOAT, "force an alpha value on all elements, useful to show invisible animating elements", 0.0f, 1.0f );
 
 // RB begin
-idCVar swf_skipSolids( "swf_skipSolids", "0", CVAR_BOOL, "" );
-idCVar swf_skipGradients( "swf_skipGradients", "0", CVAR_BOOL, "" );
-idCVar swf_skipLineDraws( "swf_skipLineDraws", "0", CVAR_BOOL, "" );
-idCVar swf_skipBitmaps( "swf_skipBitmaps", "0", CVAR_BOOL, "" );
+idCVar swf_skipSolids( "swf_skipSolids", "0", CVAR_BOOL | CVAR_NEW, "" );
+idCVar swf_skipGradients( "swf_skipGradients", "0", CVAR_BOOL | CVAR_NEW, "" );
+idCVar swf_skipLineDraws( "swf_skipLineDraws", "0", CVAR_BOOL | CVAR_NEW, "" );
+idCVar swf_skipBitmaps( "swf_skipBitmaps", "0", CVAR_BOOL | CVAR_NEW, "" );
 
 idCVar swf_show( "swf_show", "0", CVAR_INTEGER, "" );
 // RB end

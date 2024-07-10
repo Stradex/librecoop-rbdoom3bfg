@@ -65,18 +65,18 @@ idCVar r_requestStereoPixelFormat( "r_requestStereoPixelFormat", "1", CVAR_RENDE
 idCVar r_debugContext( "r_debugContext", "0", CVAR_RENDERER, "Enable various levels of context debug." );
 
 #if defined( _WIN32 )
-	idCVar r_graphicsAPI( "r_graphicsAPI", "dx12", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE, "Specifies the graphics api to use (dx12, vulkan)" );
+	idCVar r_graphicsAPI( "r_graphicsAPI", "dx12", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE | CVAR_NEW, "Specifies the graphics api to use (dx12, vulkan)" );
 #else
-	idCVar r_graphicsAPI( "r_graphicsAPI", "vulkan", CVAR_RENDERER | CVAR_ROM | CVAR_STATIC, "Specifies the graphics api to use (vulkan)" );
+	idCVar r_graphicsAPI( "r_graphicsAPI", "vulkan", CVAR_RENDERER | CVAR_ROM | CVAR_STATIC | CVAR_NEW, "Specifies the graphics api to use (vulkan)" );
 #endif
 
-idCVar r_useValidationLayers( "r_useValidationLayers", "1", CVAR_INTEGER | CVAR_INIT, "1 is just the NVRHI and 2 will turn on additional DX12, VK validation layers" );
+idCVar r_useValidationLayers( "r_useValidationLayers", "1", CVAR_INTEGER | CVAR_INIT | CVAR_NEW, "1 is just the NVRHI and 2 will turn on additional DX12, VK validation layers" );
 
 // RB: disabled 16x MSAA
 #if ID_MSAA
-	idCVar r_antiAliasing( "r_antiAliasing", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, " 0 = None\n 1 = TAA 1x\n 2 = TAA + SMAA 1x\n 3 = MSAA 2x\n 4 = MSAA 4x\n", 0, ANTI_ALIASING_MSAA_4X );
+	idCVar r_antiAliasing( "r_antiAliasing", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, " 0 = None\n 1 = TAA 1x\n 2 = TAA + SMAA 1x\n 3 = MSAA 2x\n 4 = MSAA 4x\n", 0, ANTI_ALIASING_MSAA_4X );
 #else
-	idCVar r_antiAliasing( "r_antiAliasing", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, " 0 = None\n 1 = TAA 1x", 0, ANTI_ALIASING_TAA );
+	idCVar r_antiAliasing( "r_antiAliasing", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, " 0 = None\n 1 = TAA 1x", 0, ANTI_ALIASING_TAA );
 #endif
 // RB end
 idCVar r_vidMode( "r_vidMode", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "fullscreen video mode number" );
@@ -175,7 +175,7 @@ idCVar r_screenFraction( "r_screenFraction", "100", CVAR_RENDERER | CVAR_INTEGER
 idCVar r_usePortals( "r_usePortals", "1", CVAR_RENDERER | CVAR_BOOL, " 1 = use portals to perform area culling, otherwise draw everything" );
 idCVar r_singleLight( "r_singleLight", "-1", CVAR_RENDERER | CVAR_INTEGER, "suppress all but one light" );
 idCVar r_singleEntity( "r_singleEntity", "-1", CVAR_RENDERER | CVAR_INTEGER, "suppress all but one entity" );
-idCVar r_singleEnvprobe( "r_singleEnvprobe", "-1", CVAR_RENDERER | CVAR_INTEGER, "suppress all but one environment probe" );
+idCVar r_singleEnvprobe( "r_singleEnvprobe", "-1", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "suppress all but one environment probe" );
 idCVar r_singleSurface( "r_singleSurface", "-1", CVAR_RENDERER | CVAR_INTEGER, "suppress all but one surface on each entity" );
 idCVar r_singleArea( "r_singleArea", "0", CVAR_RENDERER | CVAR_BOOL, "only draw the portal area the view is actually in" );
 idCVar r_orderIndexes( "r_orderIndexes", "1", CVAR_RENDERER | CVAR_BOOL, "perform index reorganization to optimize vertex use" );
@@ -211,8 +211,8 @@ idCVar r_showDominantTri( "r_showDominantTri", "0", CVAR_RENDERER | CVAR_BOOL, "
 idCVar r_showTextureVectors( "r_showTextureVectors", "0", CVAR_RENDERER | CVAR_FLOAT, " if > 0 draw each triangles texture (tangent) vectors" );
 idCVar r_showOverDraw( "r_showOverDraw", "0", CVAR_RENDERER | CVAR_INTEGER, "1 = geometry overdraw, 2 = light interaction overdraw, 3 = geometry and light interaction overdraw", 0, 3, idCmdSystem::ArgCompletion_Integer<0, 3> );
 // RB begin
-idCVar r_showShadowMaps( "r_showShadowMaps", "0", CVAR_RENDERER | CVAR_BOOL, "" );
-idCVar r_showShadowMapLODs( "r_showShadowMapLODs", "0", CVAR_RENDERER | CVAR_INTEGER, "" );
+idCVar r_showShadowMaps( "r_showShadowMaps", "0", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "" );
+idCVar r_showShadowMapLODs( "r_showShadowMapLODs", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "" );
 // RB end
 
 idCVar r_useEntityCallbacks( "r_useEntityCallbacks", "1", CVAR_RENDERER | CVAR_BOOL, "if 0, issue the callback immediately at update time, rather than defering" );
@@ -234,75 +234,75 @@ idCVar stereoRender_enable( "stereoRender_enable", "0", CVAR_INTEGER | CVAR_ARCH
 idCVar stereoRender_swapEyes( "stereoRender_swapEyes", "0", CVAR_BOOL | CVAR_ARCHIVE, "reverse eye adjustments" );
 idCVar stereoRender_deGhost( "stereoRender_deGhost", "0.05", CVAR_FLOAT | CVAR_ARCHIVE, "subtract from opposite eye to reduce ghosting" );
 
-idCVar r_useVirtualScreenResolution( "r_useVirtualScreenResolution", "0", CVAR_RENDERER | CVAR_BOOL | CVAR_ARCHIVE, "do 2D rendering at 640x480 and stretch to the current resolution" );
+idCVar r_useVirtualScreenResolution( "r_useVirtualScreenResolution", "0", CVAR_RENDERER | CVAR_BOOL | CVAR_ARCHIVE | CVAR_NEW, "do 2D rendering at 640x480 and stretch to the current resolution" );
 
 // RB: shadow mapping parameters
-idCVar r_useShadowAtlas( "r_useShadowAtlas", "1", CVAR_RENDERER | CVAR_INTEGER, "" );
-idCVar r_shadowMapAtlasSize( "r_shadowMapAtlasSize", "8192", CVAR_RENDERER | CVAR_INTEGER | CVAR_ROM, "size of the shadowmap atlas" );
-idCVar r_shadowMapFrustumFOV( "r_shadowMapFrustumFOV", "92", CVAR_RENDERER | CVAR_FLOAT, "oversize FOV for point light side matching" );
-idCVar r_shadowMapSingleSide( "r_shadowMapSingleSide", "-1", CVAR_RENDERER | CVAR_INTEGER, "only draw a single side (0-5) of point lights" );
-idCVar r_shadowMapImageSize( "r_shadowMapImageSize", "1024", CVAR_RENDERER | CVAR_INTEGER, "", 128, 2048 );
-idCVar r_shadowMapJitterScale( "r_shadowMapJitterScale", "2.5", CVAR_RENDERER | CVAR_FLOAT, "scale factor for jitter offset" );
-//idCVar r_shadowMapBiasScale( "r_shadowMapBiasScale", "0.0001", CVAR_RENDERER | CVAR_FLOAT, "scale factor for jitter bias" );
-idCVar r_shadowMapRandomizeJitter( "r_shadowMapRandomizeJitter", "1", CVAR_RENDERER | CVAR_BOOL, "randomly offset jitter texture each draw" );
-idCVar r_shadowMapSamples( "r_shadowMapSamples", "16", CVAR_RENDERER | CVAR_INTEGER, "1, 4, 12 or 16", 1, 64 );
-idCVar r_shadowMapSplits( "r_shadowMapSplits", "3", CVAR_RENDERER | CVAR_INTEGER, "number of splits for cascaded shadow mapping with parallel lights", 0, 4 );
-idCVar r_shadowMapSplitWeight( "r_shadowMapSplitWeight", "0.9", CVAR_RENDERER | CVAR_FLOAT, "" );
-idCVar r_shadowMapLodScale( "r_shadowMapLodScale", "1.4", CVAR_RENDERER | CVAR_FLOAT, "" );
-idCVar r_shadowMapLodBias( "r_shadowMapLodBias", "0", CVAR_RENDERER | CVAR_INTEGER, "" );
-idCVar r_shadowMapPolygonFactor( "r_shadowMapPolygonFactor", "2", CVAR_RENDERER | CVAR_FLOAT, "polygonOffset factor for drawing shadow buffer" );
-idCVar r_shadowMapPolygonOffset( "r_shadowMapPolygonOffset", "3000", CVAR_RENDERER | CVAR_FLOAT, "polygonOffset units for drawing shadow buffer" );
-idCVar r_shadowMapOccluderFacing( "r_shadowMapOccluderFacing", "2", CVAR_RENDERER | CVAR_INTEGER, "0 = front faces, 1 = back faces, 2 = twosided" );
-idCVar r_shadowMapRegularDepthBiasScale( "r_shadowMapRegularDepthBiasScale", "0.999", CVAR_RENDERER | CVAR_FLOAT, "shadowmap bias to fight shadow acne for point and spot lights" );
-idCVar r_shadowMapSunDepthBiasScale( "r_shadowMapSunDepthBiasScale", "0.999991", CVAR_RENDERER | CVAR_FLOAT, "shadowmap bias to fight shadow acne for cascaded shadow mapping with parallel lights" );
+idCVar r_useShadowAtlas( "r_useShadowAtlas", "1", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "" );
+idCVar r_shadowMapAtlasSize( "r_shadowMapAtlasSize", "8192", CVAR_RENDERER | CVAR_INTEGER | CVAR_ROM | CVAR_NEW, "size of the shadowmap atlas" );
+idCVar r_shadowMapFrustumFOV( "r_shadowMapFrustumFOV", "92", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "oversize FOV for point light side matching" );
+idCVar r_shadowMapSingleSide( "r_shadowMapSingleSide", "-1", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "only draw a single side (0-5) of point lights" );
+idCVar r_shadowMapImageSize( "r_shadowMapImageSize", "1024", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "", 128, 2048 );
+idCVar r_shadowMapJitterScale( "r_shadowMapJitterScale", "2.5", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "scale factor for jitter offset" );
+//idCVar r_shadowMapBiasScale( "r_shadowMapBiasScale", "0.0001", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "scale factor for jitter bias" );
+idCVar r_shadowMapRandomizeJitter( "r_shadowMapRandomizeJitter", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "randomly offset jitter texture each draw" );
+idCVar r_shadowMapSamples( "r_shadowMapSamples", "16", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "1, 4, 12 or 16", 1, 64 );
+idCVar r_shadowMapSplits( "r_shadowMapSplits", "3", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "number of splits for cascaded shadow mapping with parallel lights", 0, 4 );
+idCVar r_shadowMapSplitWeight( "r_shadowMapSplitWeight", "0.9", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_shadowMapLodScale( "r_shadowMapLodScale", "1.4", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_shadowMapLodBias( "r_shadowMapLodBias", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "" );
+idCVar r_shadowMapPolygonFactor( "r_shadowMapPolygonFactor", "2", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "polygonOffset factor for drawing shadow buffer" );
+idCVar r_shadowMapPolygonOffset( "r_shadowMapPolygonOffset", "3000", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "polygonOffset units for drawing shadow buffer" );
+idCVar r_shadowMapOccluderFacing( "r_shadowMapOccluderFacing", "2", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "0 = front faces, 1 = back faces, 2 = twosided" );
+idCVar r_shadowMapRegularDepthBiasScale( "r_shadowMapRegularDepthBiasScale", "0.999", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "shadowmap bias to fight shadow acne for point and spot lights" );
+idCVar r_shadowMapSunDepthBiasScale( "r_shadowMapSunDepthBiasScale", "0.999991", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "shadowmap bias to fight shadow acne for cascaded shadow mapping with parallel lights" );
 
 // RB: HDR parameters
-idCVar r_hdrAutoExposure( "r_hdrAutoExposure", "0", CVAR_RENDERER | CVAR_BOOL, "EXPENSIVE: enables adapative HDR tone mapping otherwise the exposure is derived by r_exposure" );
-idCVar r_hdrAdaptionRate( "r_hdrAdaptionRate", "1", CVAR_RENDERER | CVAR_FLOAT, "The rate of adapting the hdr exposure value`. Defaulted to a second." );
-idCVar r_hdrMinLuminance( "r_hdrMinLuminance", "0.02", CVAR_RENDERER | CVAR_FLOAT, "" );
-idCVar r_hdrMaxLuminance( "r_hdrMaxLuminance", "0.5", CVAR_RENDERER | CVAR_FLOAT, "" );
-idCVar r_hdrKey( "r_hdrKey", "0.015", CVAR_RENDERER | CVAR_FLOAT, "magic exposure key that works well with Doom 3 maps" );
-idCVar r_hdrContrastDynamicThreshold( "r_hdrContrastDynamicThreshold", "2", CVAR_RENDERER | CVAR_FLOAT, "if auto exposure is on, all pixels brighter than this cause HDR bloom glares" );
-idCVar r_hdrContrastStaticThreshold( "r_hdrContrastStaticThreshold", "3", CVAR_RENDERER | CVAR_FLOAT, "if auto exposure is off, all pixels brighter than this cause HDR bloom glares" );
-idCVar r_hdrContrastOffset( "r_hdrContrastOffset", "100", CVAR_RENDERER | CVAR_FLOAT, "" );
-idCVar r_hdrGlarePasses( "r_hdrGlarePasses", "8", CVAR_RENDERER | CVAR_INTEGER, "how many times the bloom blur is rendered offscreen. number should be even" );
-idCVar r_hdrDebug( "r_hdrDebug", "0", CVAR_RENDERER | CVAR_FLOAT, "show scene luminance as heat map" );
+idCVar r_hdrAutoExposure( "r_hdrAutoExposure", "0", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "EXPENSIVE: enables adapative HDR tone mapping otherwise the exposure is derived by r_exposure" );
+idCVar r_hdrAdaptionRate( "r_hdrAdaptionRate", "1", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "The rate of adapting the hdr exposure value`. Defaulted to a second." );
+idCVar r_hdrMinLuminance( "r_hdrMinLuminance", "0.02", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_hdrMaxLuminance( "r_hdrMaxLuminance", "0.5", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_hdrKey( "r_hdrKey", "0.015", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "magic exposure key that works well with Doom 3 maps" );
+idCVar r_hdrContrastDynamicThreshold( "r_hdrContrastDynamicThreshold", "2", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "if auto exposure is on, all pixels brighter than this cause HDR bloom glares" );
+idCVar r_hdrContrastStaticThreshold( "r_hdrContrastStaticThreshold", "3", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "if auto exposure is off, all pixels brighter than this cause HDR bloom glares" );
+idCVar r_hdrContrastOffset( "r_hdrContrastOffset", "100", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_hdrGlarePasses( "r_hdrGlarePasses", "8", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "how many times the bloom blur is rendered offscreen. number should be even" );
+idCVar r_hdrDebug( "r_hdrDebug", "0", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "show scene luminance as heat map" );
 
-idCVar r_ldrContrastThreshold( "r_ldrContrastThreshold", "1.1", CVAR_RENDERER | CVAR_FLOAT, "" );
-idCVar r_ldrContrastOffset( "r_ldrContrastOffset", "3", CVAR_RENDERER | CVAR_FLOAT, "" );
+idCVar r_ldrContrastThreshold( "r_ldrContrastThreshold", "1.1", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_ldrContrastOffset( "r_ldrContrastOffset", "3", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
 
-idCVar r_useFilmicPostFX( "r_useFilmicPostFX", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "filmic look with chromatic abberation and film grain" );
+idCVar r_useFilmicPostFX( "r_useFilmicPostFX", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL | CVAR_NEW, "filmic look with chromatic abberation and film grain" );
 
-idCVar r_forceAmbient( "r_forceAmbient", "0.5", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "render additional ambient pass to make the game less dark", 0.0f, 1.0f );
+idCVar r_forceAmbient( "r_forceAmbient", "0.5", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT | CVAR_NEW, "render additional ambient pass to make the game less dark", 0.0f, 1.0f );
 
-idCVar r_useSSAO( "r_useSSAO", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "use screen space ambient occlusion to darken corners" );
-idCVar r_ssaoDebug( "r_ssaoDebug", "0", CVAR_RENDERER | CVAR_INTEGER, "" );
-idCVar r_ssaoFiltering( "r_ssaoFiltering", "0", CVAR_RENDERER | CVAR_BOOL, "" );
-idCVar r_useHierarchicalDepthBuffer( "r_useHierarchicalDepthBuffer", "1", CVAR_RENDERER | CVAR_BOOL, "" );
+idCVar r_useSSAO( "r_useSSAO", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL | CVAR_NEW, "use screen space ambient occlusion to darken corners" );
+idCVar r_ssaoDebug( "r_ssaoDebug", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "" );
+idCVar r_ssaoFiltering( "r_ssaoFiltering", "0", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "" );
+idCVar r_useHierarchicalDepthBuffer( "r_useHierarchicalDepthBuffer", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "" );
 
-idCVar r_pbrDebug( "r_pbrDebug", "0", CVAR_RENDERER | CVAR_INTEGER, "show which materials have PBR support (green = PBR, red = oldschool D3)" );
-idCVar r_showViewEnvprobes( "r_showViewEnvprobes", "0", CVAR_RENDERER | CVAR_INTEGER, "1 = displays the bounding boxes of all view environment probes, 2 = show irradiance" );
-idCVar r_showLightGrid( "r_showLightGrid", "0", CVAR_RENDERER | CVAR_INTEGER, "show Quake 3 style light grid points" );
+idCVar r_pbrDebug( "r_pbrDebug", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "show which materials have PBR support (green = PBR, red = oldschool D3)" );
+idCVar r_showViewEnvprobes( "r_showViewEnvprobes", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "1 = displays the bounding boxes of all view environment probes, 2 = show irradiance" );
+idCVar r_showLightGrid( "r_showLightGrid", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "show Quake 3 style light grid points" );
 
-idCVar r_useLightGrid( "r_useLightGrid", "1", CVAR_RENDERER | CVAR_BOOL, "" );
+idCVar r_useLightGrid( "r_useLightGrid", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "" );
 
-idCVar r_exposure( "r_exposure", "0.5", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_FLOAT, "HDR exposure or LDR brightness [-4.0 .. 4.0]", -4.0f, 4.0f );
+idCVar r_exposure( "r_exposure", "0.5", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "HDR exposure or LDR brightness [-4.0 .. 4.0]", -4.0f, 4.0f );
 
-idCVar r_useTemporalAA( "r_useTemporalAA", "1", CVAR_RENDERER | CVAR_BOOL, "only disable for debugging" );
-idCVar r_taaJitter( "r_taaJitter", "3", CVAR_RENDERER | CVAR_INTEGER, "0: None, 1: MSAA, 2: Halton, 3: R2 Sequence, 4: White Noise" );
-idCVar r_taaEnableHistoryClamping( "r_taaEnableHistoryClamping", "1", CVAR_RENDERER | CVAR_BOOL, "" );
-idCVar r_taaClampingFactor( "r_taaClampingFactor", "1.0", CVAR_RENDERER | CVAR_FLOAT, "" );
-idCVar r_taaNewFrameWeight( "r_taaNewFrameWeight", "0.1", CVAR_RENDERER | CVAR_FLOAT, "" );
-idCVar r_taaMaxRadiance( "r_taaMaxRadiance", "10000", CVAR_RENDERER | CVAR_FLOAT, "" );
-idCVar r_taaMotionVectors( "r_taaMotionVectors", "1", CVAR_RENDERER | CVAR_BOOL, "" );
+idCVar r_useTemporalAA( "r_useTemporalAA", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "only disable for debugging" );
+idCVar r_taaJitter( "r_taaJitter", "3", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "0: None, 1: MSAA, 2: Halton, 3: R2 Sequence, 4: White Noise" );
+idCVar r_taaEnableHistoryClamping( "r_taaEnableHistoryClamping", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "" );
+idCVar r_taaClampingFactor( "r_taaClampingFactor", "1.0", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_taaNewFrameWeight( "r_taaNewFrameWeight", "0.1", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_taaMaxRadiance( "r_taaMaxRadiance", "10000", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_taaMotionVectors( "r_taaMotionVectors", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "" );
 
-idCVar r_useCRTPostFX( "r_useCRTPostFX", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "RetroArch CRT shader: 1 = Matthias CRT, 1 = New Pixie", 0, 2 );
-idCVar r_crtCurvature( "r_crtCurvature", "2", CVAR_RENDERER | CVAR_FLOAT, "rounded borders" );
-idCVar r_crtVignette( "r_crtVignette", "0.8", CVAR_RENDERER | CVAR_FLOAT, "fading into the borders" );
+idCVar r_useCRTPostFX( "r_useCRTPostFX", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "RetroArch CRT shader: 1 = Matthias CRT, 1 = New Pixie", 0, 2 );
+idCVar r_crtCurvature( "r_crtCurvature", "2", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "rounded borders" );
+idCVar r_crtVignette( "r_crtVignette", "0.8", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "fading into the borders" );
 
-idCVar r_retroDitherScale( "r_retroDitherScale", "0.3", CVAR_RENDERER | CVAR_FLOAT, "" );
+idCVar r_retroDitherScale( "r_retroDitherScale", "0.3", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
 
-idCVar r_renderMode( "r_renderMode", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "0 = Doom, 1 = Commodore 64, 2 = Commodore 64 Highres, 3 = Amstrad CPC 6128, 4 = Amstrad CPC 6128 Highres, 5 = Sega Genesis, 6 = Sega Genesis Highres, 7 = Sony PSX", 0, 7 );
+idCVar r_renderMode( "r_renderMode", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "0 = Doom, 1 = Commodore 64, 2 = Commodore 64 Highres, 3 = Amstrad CPC 6128, 4 = Amstrad CPC 6128 Highres, 5 = Sega Genesis, 6 = Sega Genesis Highres, 7 = Sony PSX", 0, 7 );
 // RB end
 
 const char* fileExten[4] = { "tga", "png", "jpg", "exr" };

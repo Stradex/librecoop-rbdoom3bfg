@@ -32,7 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "dmap.h"
 
-idCVar dmap_verbose( "dmap_verbose", "0", CVAR_BOOL | CVAR_SYSTEM, "dmap developer mode" );
+idCVar dmap_verbose( "dmap_verbose", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NEW, "dmap developer mode" );
 
 dmapGlobals_t	dmapGlobals;
 
