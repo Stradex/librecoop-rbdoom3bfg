@@ -19,6 +19,29 @@ TBD - RBDOOM-3-BFG 1.6.0
 _______________________________
 
 
+## .plan - July 11, 2024
+
+This update fixes a critical issue where the loading screen inadvertently caused textures to load recursively. This fix ensures a smoother, more efficient experience by optimizing texture management and significantly reducing redundancy in video memory on low VRAM graphics cards.
+
+Changelog:
+
+* Updated README to reflect some of the newer changes
+
+* Allow skipping intro videos with Escape or Xbox controller Menu button
+
+* Fixed VRAM memory leak when reloading maps
+
+* Added cvar binaryLoadGuis so mods can override .gui files
+
+* Extended listCvars with -new option to show all RBDoom related cvars
+
+* Added new loading screen progressbar when loading textures
+
+* Fixed a couple of bugs regarding Flash JSON reimport
+
+* Show binarization indicator for 2D packed mipchain EXR files
+
+
 ## .plan - June 28, 2024
 
 This build brings back .pk4 support and the classic flash light through a gameplay option.
