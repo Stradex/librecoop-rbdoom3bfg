@@ -4273,6 +4273,7 @@ int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs,
 			// set privatePolygonOffset if necessary
 			if( pStage->privatePolygonOffset )
 			{
+				GL_PolygonOffset( r_offsetFactor.GetFloat(), r_offsetUnits.GetFloat() * pStage->privatePolygonOffset );
 				stageGLState |= GLS_POLYGON_OFFSET;
 			}
 
