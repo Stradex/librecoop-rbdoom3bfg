@@ -458,11 +458,11 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 
 	On Debian or Ubuntu:
 
-		> apt-get install cmake libsdl2-dev libopenal-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libvulkan-dev libncurses-dev
+		> sudo apt install cmake libsdl2-dev libopenal-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libvulkan-dev libncurses-dev
 	
 	On Fedora
 		
-		> yum install cmake SDL-devel openal-devel ffmpeg-devel ncurses-devel
+		> sudo dnf install cmake clang SDL2-devel openal-devel ffmpeg-devel ncurses-devel vulkan-devel
 	
 	On ArchLinux 
 	
