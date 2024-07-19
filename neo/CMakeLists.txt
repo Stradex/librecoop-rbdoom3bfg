@@ -30,10 +30,10 @@ option(OPENAL
 		"Use OpenAL soft instead of XAudio2" OFF)
 
 option(FFMPEG
-		"Use FMPEG to render Bink videos" ON)
+		"Use FMPEG to render Bink videos" OFF)
 
 option(BINKDEC
-		"Use included libbinkdec to render Bink videos" OFF)
+		"Use included libbinkdec to render Bink videos" ON)
 
 option(USE_MoltenVK
 		"Link directly to MoltenVK library instead of Vulkan loader on macOS" OFF)
