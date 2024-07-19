@@ -119,12 +119,18 @@ file(GLOB MC_IMTUI_SOURCES ../../libs/imtui/*.cpp)
 file(GLOB MC_IMGUI_INCLUDES ../../libs/imtui/imgui/*.h)
 file(GLOB MC_IMGUI_SOURCES ../../libs/imtui/imgui/*.cpp)
 
-if (NOT ZLIB_FOUND)
-	file(GLOB MC_ZLIB_INCLUDES ../../libs/zlib/*.h)
-	file(GLOB MC_ZLIB_SOURCES ../../libs/zlib/*.c)
-else()
+if(ZLIB_FOUND)
+	include_directories(${ZLIB_INCLUDE_DIRS})
+	set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
+
 	set(MC_ZLIB_INCLUDES "")
 	set(MC_ZLIB_SOURCES "")
+else()
+	include_directories("libs/zlib")
+	set(ZLIB_LIBRARY "" )
+	
+	file(GLOB MC_ZLIB_INCLUDES ../../libs/zlib/*.h)
+	file(GLOB MC_ZLIB_SOURCES ../../libs/zlib/*.c)
 endif()
 
 
@@ -264,7 +270,7 @@ if(MSVC)
 
     add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
 	add_dependencies(rbdmap idlib)
-	target_link_libraries(rbdmap idlib winmm imtui-pdcurses)
+	target_link_libraries(rbdmap idlib winmm imtui-pdcurses ${ZLIB_LIBRARY})
 
 	# set MSVC default debug directory on executable	
 	if(CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 8)
@@ -313,7 +319,7 @@ else()
 	if (USE_PRECOMPILED_HEADERS)
 	add_dependencies(rbdmap precomp_header_rbdmap)
 	endif()
-	target_link_libraries(rbdmap idlib ${CURSES_NCURSES_LIBRARY})
+	target_link_libraries(rbdmap idlib ${CURSES_NCURSES_LIBRARY} ${ZLIB_LIBRARY})
 	
 endif()
 	
