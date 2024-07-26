@@ -631,7 +631,7 @@ r_useSSAO [0 .. 1]                     | Use Screen Space Ambient Occlusion to d
 r_forceAmbient                         | Default 0.5, controls additional brightness by Global Illumination 
 r_useFilmicPostFX [0, 1]               | Apply several post process effects to mimic a filmic look
 r_useCRTPostFX [0 .. 2]                | CRT monitor/TV filter
-r_renderMode [0 .. 5]				   | Default 0 = Doom 3, 1 = Commodore 64, 2 = Commodore 64 Highres, 3 = Amstrad CPC, 4 = Amstrad CPC Highres, 5 = Sega Genesis, 6 = Sega Genesis Highres, 7 = Sony PSX
+r_renderMode [0 .. 7]				   | Default 0 = Doom 3, 1 = Commodore 64, 2 = Commodore 64 Highres, 3 = Amstrad CPC, 4 = Amstrad CPC Highres, 5 = Sega Genesis, 6 = Sega Genesis Highres, 7 = Sony PSX
 
 ## Modding Support
 Name                              | Description
