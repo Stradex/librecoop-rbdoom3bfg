@@ -125,7 +125,7 @@ Steven Pridham has resolved the fullscreen FX effects, enhancing the game's visu
 
 A classic flashlight option has been added for a nostalgic gameplay experience.
 
-Private matches now function flawlessly, with ongoing efforts to fix the online game browser and leaderboards.
+Private multiplayer matches now function flawlessly, with ongoing efforts to fix the online game browser and leaderboards.
 
 Steven Saunders, has addressed many Linux/macOS related compiler warnings and improved the renderer. The renderer now supports the Optick profiler using the Vulkan backend.
 Optick has been enhanced for macOS and Vulkan users.
@@ -145,6 +145,8 @@ The bug causing the game to crash when triggering the bathroom mirror horror eff
 Changelog:
 
 * Allow skipping intro videos with Escape or Xbox controller Menu button
+
+* Fixed enemy corpse burn effect
 
 * Fixed VRAM memory leak when reloading maps
 
