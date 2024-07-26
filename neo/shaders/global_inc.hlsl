@@ -499,9 +499,18 @@ static float3 psxVertexJitter( float4 spos )
 	{
 		// snap to vertex to a pixel position on a lower grid
 		float3 vertex = spos.xyz / spos.w;
-		//float2 resolution = float2( 320, 240 ); // TODO 320x240 * jitterScale
-		float2 resolution = float2( 160, 120 );
-		vertex.xy = floor( resolution * vertex.xy ) / resolution;
+
+		//float2 resolution = float2( 320, 240 ) * ( 1.0 - jitterScale );
+		//float2 resolution = float2( 160, 120 );
+		float2 resolution = float2( rpPSXDistortions.x, rpPSXDistortions.y );
+
+		float w = dot4( rpProjectionMatrixW,  float4( vertex.xyz, 1.0 ) );
+		vertex.xy = round( vertex.xy / w * resolution ) / resolution * w;
+
+		//vertex.xy = floor( vertex.xy / 4.0 ) * 4.0;
+		//vertex.xy = round( vertex.xy * resolution ) / resolution;
+		//vertex.xyz = round( vertex.xyz * resolution.x ) / resolution.x;
+
 		vertex *= spos.w;
 
 		return vertex;
