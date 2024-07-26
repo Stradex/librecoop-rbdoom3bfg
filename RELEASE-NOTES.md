@@ -42,7 +42,7 @@ The Light editor features a range of powerful gizmos that enable you to easily m
 
 To ensure accuracy and precision, the Light editor includes snapping functionality. By default, the grid snapping is set to 4 units, angle snapping to 15 degrees, and scale snapping to 10%. This allows you to align lights perfectly and achieve the desired look and feel for your scene.
 
-To streamline your workflow, the Light editor also provides a set of convenient keyboard shortcuts. These shortcuts allow you to perform common actions quickly and efficiently, saving you valuable time and effort.
+To streamline your workflow, the Light editor also provides a set of convenient keyboard shortcuts.
 
 ```
 G: Change to the translation gizmo
@@ -127,8 +127,8 @@ A classic flashlight option has been added for a nostalgic gameplay experience.
 
 Private multiplayer matches now function flawlessly, with ongoing efforts to fix the online game browser and leaderboards.
 
-Steven Saunders, has addressed many Linux/macOS related compiler warnings and improved the renderer. The renderer now supports the Optick profiler using the Vulkan backend.
-Optick has been enhanced for macOS and Vulkan users.
+Steven Saunders, has addressed many Linux/macOS related compiler warnings and improved the renderer by minimizing the swapchain latency with DX12 / Vulkan.
+The renderer now also supports the Optick profiler using the Vulkan backend. Optick has been enhanced for macOS and Vulkan users.
 
 NVRHI has been updated to the latest version, and a new tool called ShaderMake by Nvidia has been integrated.
 
@@ -150,15 +150,13 @@ Changelog:
 
 * Fixed VRAM memory leak when reloading maps
 
-* Added cvar binaryLoadGuis so mods can override .gui files
-
 * Extended listCvars with -new option to show all RBDoom related cvars
+
+* Added cvar binaryLoadGuis so mods can override .gui files
 
 * Added new loading screen progressbar when loading textures
 
 * Fixed a couple of bugs regarding Flash JSON reimport
-
-* Show binarization indicator for 2D packed mipchain EXR files
 
 * Updated tools/bfgpakexplorer to version 1.0.5 (thanks to George Kalampokis)
 
@@ -170,7 +168,7 @@ Changelog:
 
 * Added detection for Doom 2004/2019 .pk4 files or .resources
 
-* Added missing script event so we can boot vanilla Doom 3
+* Added missing script event so we can boot vanilla Doom 3 by just adding _common.resources and _ordered.resources from BFG
 
 * Added back .pk4 support but only for paks without a dll inside
 
@@ -310,11 +308,7 @@ Changelog:
 
 * Update rapidjson lib to remove deprecated std::iterator template and replace with required iterator types
 
-* Update jpeglib's format_message() error routine to use snprintf() for buffer security
-
 * Replace sprintf() / vsprintf() with idStr::snPrintf() / idStr::vsnPrintf() for buffer security
-
-* BFG Resource File Manager under tools/bfgpakexplorer has been updated
 
 
 Changelog TrenchBroomBFG:
