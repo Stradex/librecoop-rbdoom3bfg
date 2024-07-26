@@ -5580,7 +5580,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		SetVertexParms( RENDERPARM_PROJMATRIX_X, projMatrixTranspose, 4 );
 
 		// PSX jitter parms
-		if( !_viewDef->is2Dgui )
+		if( ( r_renderMode.GetInteger() == RENDERMODE_PSX ) && ( _viewDef->viewEntitys && !_viewDef->is2Dgui ) )
 		{
 			parm[0] = r_psxVertexJitter.GetFloat();
 			parm[1] = 0;

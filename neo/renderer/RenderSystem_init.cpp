@@ -326,6 +326,11 @@ bool R_UseTemporalAA()
 		return false;
 	}
 
+	if( r_renderMode.GetInteger() == RENDERMODE_PSX )
+	{
+		return false;
+	}
+
 	switch( r_antiAliasing.GetInteger() )
 	{
 		case ANTI_ALIASING_TAA:
