@@ -6336,72 +6336,8 @@ void idRenderBackend::PostProcess( const void* data )
 
 		SetFragmentParm( RENDERPARM_JITTERTEXOFFSET, jitterTexOffset ); // rpJitterTexOffset
 
-#if 1
 		//SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToCameraRenderMatrix[0], 4 );
 		SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToWorldRenderMatrix[0], 4 );
-
-		//R_MatrixMultiply( viewDef->worldSpace.modelViewMatrix, viewDef->projectionMatrix, viewDef->unprojectionToWorldMatrix );
-		///R_MatrixFullInverse( viewDef->unprojectionToWorldMatrix, viewDef->unprojectionToWorldMatrix );
-
-		//idRenderMatrix::Transpose( *( idRenderMatrix* )viewDef->unprojectionToWorldMatrix, viewDef->unprojectionToWorldRenderMatrix );
-#else
-		idRenderMatrix matClipToView;
-		idRenderMatrix::Inverse( *( idRenderMatrix* ) viewDef->projectionMatrix, matClipToView );
-
-		SetVertexParms( RENDERPARM_MODELMATRIX_X, matClipToView[0], 4 );
-#endif
-
-		{
-			// transform by the camera rotation
-			const idVec3& origin = viewDef->renderView.vieworg;
-			const idMat3& axis = viewDef->renderView.viewaxis;
-
-			float viewerMatrix[16];
-			viewerMatrix[0 * 4 + 0] = axis[0][0];
-			viewerMatrix[1 * 4 + 0] = axis[0][1];
-			viewerMatrix[2 * 4 + 0] = axis[0][2];
-			viewerMatrix[3 * 4 + 0] = - origin[0] * axis[0][0] - origin[1] * axis[0][1] - origin[2] * axis[0][2];
-
-			viewerMatrix[0 * 4 + 1] = axis[1][0];
-			viewerMatrix[1 * 4 + 1] = axis[1][1];
-			viewerMatrix[2 * 4 + 1] = axis[1][2];
-			viewerMatrix[3 * 4 + 1] = - origin[0] * axis[1][0] - origin[1] * axis[1][1] - origin[2] * axis[1][2];
-
-			viewerMatrix[0 * 4 + 2] = axis[2][0];
-			viewerMatrix[1 * 4 + 2] = axis[2][1];
-			viewerMatrix[2 * 4 + 2] = axis[2][2];
-			viewerMatrix[3 * 4 + 2] = - origin[0] * axis[2][0] - origin[1] * axis[2][1] - origin[2] * axis[2][2];
-
-			viewerMatrix[0 * 4 + 3] = 0.0f;
-			viewerMatrix[1 * 4 + 3] = 0.0f;
-			viewerMatrix[2 * 4 + 3] = 0.0f;
-			viewerMatrix[3 * 4 + 3] = 1.0f;
-
-			float mvp[16];
-			float modelViewdMatrix[16];
-			float unprojectionToWorldMatrix[16];
-
-			static float s_flipMatrix[16] =
-			{
-				// convert from our coordinate system (looking down X)
-				// to OpenGL's coordinate system (looking down -Z)
-				0, 0, -1, 0,
-				-1, 0,  0, 0,
-				0, 1,  0, 0,
-				0, 0,  0, 1
-			};
-
-			// convert from our coordinate system (looking down X)
-			// to OpenGL's coordinate system (looking down -Z)
-			R_MatrixMultiply( viewerMatrix, s_flipMatrix, modelViewdMatrix );
-
-			R_MatrixMultiply( modelViewdMatrix, viewDef->projectionMatrix, mvp );
-			R_MatrixFullInverse( mvp, unprojectionToWorldMatrix );
-
-			idRenderMatrix unprojectionToWorldRenderMatrix;
-			idRenderMatrix::Transpose( *( idRenderMatrix* )unprojectionToWorldMatrix, unprojectionToWorldRenderMatrix );
-			//SetVertexParms( RENDERPARM_MODELMATRIX_X, unprojectionToWorldRenderMatrix[0], 4 );
-		}
 
 		// Draw
 		DrawElementsWithCounters( &unitSquareSurface );

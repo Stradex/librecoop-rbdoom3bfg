@@ -141,7 +141,7 @@ void main( VS_IN vertex, out VS_OUT result )
 	//result.texcoord1.y = dot3( toEye, rpModelMatrixY );
 	//result.texcoord1.z = dot3( toEye, rpModelMatrixZ );
 
-#if 0
+#if 1
 	// rotate into world space
 	result.texcoord2.x = dot3( tangent, rpModelMatrixX );
 	result.texcoord3.x = dot3( tangent, rpModelMatrixY );

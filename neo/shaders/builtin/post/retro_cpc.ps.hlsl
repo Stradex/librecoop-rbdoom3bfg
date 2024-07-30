@@ -53,7 +53,7 @@ struct PS_OUT
 
 
 #define RESOLUTION_DIVISOR 4.0
-#define NUM_COLORS 32 // original 27
+#define NUM_COLORS 4 // original 27
 
 
 float3 Average( float3 pal[NUM_COLORS] )
@@ -315,6 +315,28 @@ float3 ditherRGB( float2 fragPos, float3 quantDeviation )
 	return float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
 }
 
+float2 cubeProject( float3 p )
+{
+	float2 x = p.zy;
+	float2 y = p.xz;
+	float2 z = p.xy;
+
+	//select face
+	p = abs( p );
+	if( p.x > p.y && p.x > p.z )
+	{
+		return x;
+	}
+	else if( p.y > p.x && p.y > p.z )
+	{
+		return y;
+	}
+	else
+	{
+		return z;
+	}
+}
+
 void main( PS_IN fragment, out PS_OUT result )
 {
 #if 0
@@ -364,7 +386,7 @@ void main( PS_IN fragment, out PS_OUT result )
 #endif
 	};
 
-#elif 1
+#elif 0
 	// Tweaked LOSPEC CPC BOY PALETTE which is less saturated by Arne Niklas Jansson
 	// https://lospec.com/palette-list/cpc-boy
 
@@ -468,7 +490,7 @@ void main( PS_IN fragment, out PS_OUT result )
 		RGB( 120, 120, 120 ),
 	};
 
-#elif 1
+#elif 0
 
 	// NES Advanced
 	// https://lospec.com/palette-list/nes-advanced
@@ -700,15 +722,15 @@ void main( PS_IN fragment, out PS_OUT result )
 	// find closest color match from CPC color palette
 	color = LinearSearch( color.rgb, palette );
 
-#if 0
+#if 1
 	// similar to Obra Dinn
 
 	// triplanar mapping based on reconstructed depth buffer
 
 	int2 ssP = int2( fragment.position.xy );
 	float3 C = GetPosition( ssP );
-	float3 n_C = t_Normals.Sample( s_LinearClamp, uv ).rgb;
-	//float3 n_C = normalize( ( 2.0 * t_Normals.Sample( s_LinearClamp, uv ).rgb ) - 1.0 );
+	//float3 n_C = t_Normals.Sample( s_LinearClamp, uv ).rgb;
+	float3 n_C = ( ( 2.0 * t_Normals.Sample( s_LinearClamp, uv ).rgb ) - 1.0 );
 
 	//result.color = float4( n_C * 0.5 + 0.5, 1.0 );
 	//return;
@@ -743,24 +765,47 @@ void main( PS_IN fragment, out PS_OUT result )
 	float2 uvY = worldPos.xz; // y facing plane
 	float2 uvZ = worldPos.xy; // z facing plane
 
-	float2 suvX = round( float2( uvX.x, uvX.y ) );
-	float2 suvY = round( float2( uvY.x, uvY.y ) );
-	float2 suvZ = round( float2( uvZ.x, uvZ.y ) );
+#if 0
+	uvX = abs( uvX );
+	uvY = abs( uvY );
+	uvZ = abs( uvZ );
+#endif
+
+#if 0
+	uvX *= 4.0;
+	uvY *= 4.0;
+	uvZ *= 4.0;
+#endif
+
+#if 0
+	uvX = round( float2( uvX.x, uvX.y ) );
+	uvY = round( float2( uvY.x, uvY.y ) );
+	uvZ = round( float2( uvZ.x, uvZ.y ) );
+#endif
 
 	// offset UVs to prevent obvious mirroring
 	//uvY += 0.33;
 	//uvZ += 0.67;
 
-	float3 worldNormal = n_C;
+	float3 worldNormal = normalize( abs( n_C ) );
+	//float3 worldNormal = normalize( n_C );
 
 	float3 triblend = saturate( pow( worldNormal, 4.0 ) );
 	triblend /= max( dot( triblend, float3( 1, 1, 1 ) ), 0.0001 );
 
+#if 0
+	// preview blend
+	result.color = float4( triblend.xyz, 1.0 );
+	return;
+#endif
+
 	float3 axisSign = sign( n_C );
 
-	//uvX.x *= axisSign.x;
-	//uvY.x *= axisSign.y;
-	//uvZ.x *= -axisSign.z;
+#if 0
+	uvX.x *= axisSign.x;
+	uvY.x *= axisSign.y;
+	uvZ.x *= -axisSign.z;
+#endif
 
 	//result.color = float4( suv.xy, 0.0, 1.0 );
 	//return;
@@ -769,9 +814,9 @@ void main( PS_IN fragment, out PS_OUT result )
 	//color = t_BaseColor.Sample( s_LinearClamp, uvPixelated * rpWindowCoord.xy ).rgb;
 	color = t_BaseColor.Sample( s_LinearClamp, uv ).rgb;
 
-	float3 colX = ditherRGB( uvX, quantDeviation );
-	float3 colY = ditherRGB( uvY, quantDeviation );
-	float3 colZ = ditherRGB( uvZ, quantDeviation );
+	float3 colX = ditherRGB( uvX, quantDeviation ) * 2.0;
+	float3 colY = ditherRGB( uvY, quantDeviation ) * 2.0;
+	float3 colZ = ditherRGB( uvZ, quantDeviation ) * 2.0;
 
 	float3 dither3D = colX * triblend.x + colY * triblend.y + colZ * triblend.z;
 	color.rgb += dither3D;
@@ -780,9 +825,14 @@ void main( PS_IN fragment, out PS_OUT result )
 	color = LinearSearch( color.rgb, palette );
 
 #if 0
-	colX = _float3( DitherArray8x8( suvX ) - 0.5 );
-	colY = _float3( DitherArray8x8( suvY ) - 0.5 );
-	colZ = _float3( DitherArray8x8( suvZ ) - 0.5 );
+	float2 uvC = cubeProject( abs( worldPos ) );
+	color.rgb = _float3( DitherArray8x8( uvC ) - 0.5 );
+#endif
+
+#if 1
+	colX = _float3( DitherArray8x8( uvX ) - 0.5 );
+	colY = _float3( DitherArray8x8( uvY ) - 0.5 );
+	colZ = _float3( DitherArray8x8( uvZ ) - 0.5 );
 
 	dither3D = colX * triblend.x + colY * triblend.y + colZ * triblend.z;
 	color.rgb = dither3D;
