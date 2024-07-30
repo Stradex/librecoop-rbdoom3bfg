@@ -153,6 +153,8 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.texcoord1.x = dot4( vertex.texcoord.xy, rpBumpMatrixS );
 	result.texcoord1.y = dot4( vertex.texcoord.xy, rpBumpMatrixT );
 
+	//result.texcoord1.xy = psxAffineTexMapping( result.texcoord1.xy, )
+
 	//# texture 2 has one texgen
 	result.texcoord2 = defaultTexCoord;
 	result.texcoord2.x = dot4( modelPosition, rpLightFalloffS );

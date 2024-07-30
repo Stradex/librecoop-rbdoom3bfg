@@ -519,6 +519,11 @@ static float3 psxVertexJitter( float4 spos )
 	return spos.xyz;
 }
 
+static float2 psxAffineTexMapping( float2 uv, float4 spos )
+{
+	return uv;
+}
+
 #define BRANCH
 #define IFANY
 
