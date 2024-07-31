@@ -35,8 +35,9 @@
 Texture2D t_CurrentRender	: register( t0 VK_DESCRIPTOR_SET( 0 ) );
 Texture2D t_BlueNoise		: register( t1 VK_DESCRIPTOR_SET( 0 ) );
 
-SamplerState LinearSampler	: register(s0 VK_DESCRIPTOR_SET( 1 ) );
-SamplerState samp1			: register(s1 VK_DESCRIPTOR_SET( 1 ) ); // blue noise 256
+SamplerState s_LinearClamp	: register(s0 VK_DESCRIPTOR_SET( 1 ) );
+SamplerState s_LinearWrap	: register(s1 VK_DESCRIPTOR_SET( 1 ) ); // blue noise 256
+
 
 struct PS_IN
 {
@@ -50,7 +51,7 @@ struct PS_OUT
 };
 // *INDENT-ON*
 
-#define TEX2D(c) dilate(t_CurrentRender.Sample( LinearSampler, c ).rgba)
+#define TEX2D(c) dilate(t_CurrentRender.Sample( s_LinearClamp, c ).rgba)
 #define FIX(c) max(abs(c), 1e-5)
 
 // Set to 0 to use linear filter and gain speed
@@ -58,9 +59,10 @@ struct PS_OUT
 
 float4 dilate( float4 col )
 {
-#if 0
+#if 1
 	// FIXME
-	float4 x = lerp( _float4( 1.0 ), col, params.DILATION );
+	//float4 x = lerp( _float4( 1.0 ), col, params.DILATION );
+	float4 x = lerp( _float4( 1.0 ), col, 1.0 );
 	return col * x;
 #else
 	return col;
@@ -69,7 +71,6 @@ float4 dilate( float4 col )
 
 float curve_distance( float x, float sharp )
 {
-
 	/*
 	    apply half-circle s-curve to distance for sharper (more pixelated) interpolation
 	    single line formula for Graph Toy:
@@ -89,13 +90,18 @@ float4x4 get_color_matrix( float2 co, float2 dx )
 
 float3 filter_lanczos( float4 coeffs, float4x4 color_matrix )
 {
-	float4 col        = mul( color_matrix, coeffs );
+	float4 col        = mul( coeffs, color_matrix );
 	float4 sample_min = min( color_matrix[1], color_matrix[2] );
 	float4 sample_max = max( color_matrix[1], color_matrix[2] );
 
 	col = clamp( col, sample_min, sample_max );
 
 	return col.rgb;
+}
+
+float mod( float x, float y )
+{
+	return x - y * floor( x / y );
 }
 
 void main( PS_IN fragment, out PS_OUT result )
@@ -124,7 +130,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	};
 
 	Params params;
-	params.BRIGHT_BOOST = 1.0;
+	params.BRIGHT_BOOST = 1.2;
 	params.DILATION = 1.0;
 	params.GAMMA_INPUT = 2.0;
 	params.GAMMA_OUTPUT = 1.8;
@@ -208,7 +214,7 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	float mask   = 1.0 - params.MASK_STRENGTH;
 	float2 mod_fac = floor( vTexCoord * outputSize.xy * sourceSize.xy / ( sourceSize.xy * float2( params.MASK_SIZE, params.MASK_DOT_HEIGHT * params.MASK_SIZE ) ) );
-	int dot_no   = int( fmod( ( mod_fac.x + fmod( mod_fac.y, 2.0 ) * params.MASK_STAGGER ) / params.MASK_DOT_WIDTH, 3.0 ) );
+	int dot_no   = int( mod( ( mod_fac.x + mod( mod_fac.y, 2.0 ) * params.MASK_STAGGER ) / params.MASK_DOT_WIDTH, 3.0 ) );
 	float3 mask_weight;
 
 	if( dot_no == 0 )
@@ -224,10 +230,12 @@ void main( PS_IN fragment, out PS_OUT result )
 		mask_weight = float3( mask, mask, 1.0 );
 	}
 
+#if 0
 	if( sourceSize.y >= params.SCANLINE_CUTOFF )
 	{
 		scan_weight = 1.0;
 	}
+#endif
 
 	col2 = col.rgb;
 	col *= _float3( scan_weight );
