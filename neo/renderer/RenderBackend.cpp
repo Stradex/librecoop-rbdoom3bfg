@@ -6364,7 +6364,13 @@ void idRenderBackend::PostProcess( const void* data )
 
 		float jitterTexScale[4] = {};
 
-		if( r_renderMode.GetInteger() == RENDERMODE_C64 || r_renderMode.GetInteger() == RENDERMODE_C64_HIGHRES )
+		if( r_renderMode.GetInteger() == RENDERMODE_2BIT || r_renderMode.GetInteger() == RENDERMODE_2BIT_HIGHRES )
+		{
+			jitterTexScale[0] = r_renderMode.GetInteger() == RENDERMODE_2BIT_HIGHRES ? 2.0 : 1.0;
+
+			renderProgManager.BindShader_PostProcess_Retro2Bit();
+		}
+		else if( r_renderMode.GetInteger() == RENDERMODE_C64 || r_renderMode.GetInteger() == RENDERMODE_C64_HIGHRES )
 		{
 			jitterTexScale[0] = r_renderMode.GetInteger() == RENDERMODE_C64_HIGHRES ? 2.0 : 1.0;
 
@@ -6375,6 +6381,12 @@ void idRenderBackend::PostProcess( const void* data )
 			jitterTexScale[0] = r_renderMode.GetInteger() == RENDERMODE_CPC_HIGHRES ? 2.0 : 1.0;
 
 			renderProgManager.BindShader_PostProcess_RetroCPC();
+		}
+		else if( r_renderMode.GetInteger() == RENDERMODE_NES || r_renderMode.GetInteger() == RENDERMODE_NES_HIGHRES )
+		{
+			jitterTexScale[0] = r_renderMode.GetInteger() == RENDERMODE_NES_HIGHRES ? 2.0 : 1.0;
+
+			renderProgManager.BindShader_PostProcess_RetroNES();
 		}
 		else if( r_renderMode.GetInteger() == RENDERMODE_GENESIS || r_renderMode.GetInteger() == RENDERMODE_GENESIS_HIGHRES )
 		{

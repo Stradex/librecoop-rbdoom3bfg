@@ -53,7 +53,7 @@ struct PS_OUT
 
 
 #define RESOLUTION_DIVISOR 4.0
-#define NUM_COLORS 4 // original 27
+#define NUM_COLORS 32 // original 27
 
 
 float3 Average( float3 pal[NUM_COLORS] )
@@ -319,6 +319,7 @@ void main( PS_IN fragment, out PS_OUT result )
 {
 #if 0
 	// Amstrad CPC colors https://www.cpcwiki.eu/index.php/CPC_Palette
+	// those are the original colors but they are too saturated and kinda suck
 	const float3 palette[NUM_COLORS] =
 	{
 		RGB( 0, 0, 0 ),			// black
@@ -364,7 +365,7 @@ void main( PS_IN fragment, out PS_OUT result )
 #endif
 	};
 
-#elif 0
+#elif 1
 	// Tweaked LOSPEC CPC BOY PALETTE which is less saturated by Arne Niklas Jansson
 	// https://lospec.com/palette-list/cpc-boy
 
@@ -402,134 +403,6 @@ void main( PS_IN fragment, out PS_OUT result )
 		RGB( 118, 132, 72 ),
 		RGB( 63, 80, 63 ),
 		RGB( 36, 49, 55 ),
-	};
-
-#elif 0
-
-	// NES 1
-	// https://lospec.com/palette-list/nintendo-entertainment-system
-
-	const float3 palette[NUM_COLORS] = // 55
-	{
-		RGB( 0, 0, 0 ),
-		RGB( 252, 252, 252 ),
-		RGB( 248, 248, 248 ),
-		RGB( 188, 188, 188 ),
-		RGB( 124, 124, 124 ),
-		RGB( 164, 228, 252 ),
-		RGB( 60, 188, 252 ),
-		RGB( 0, 120, 248 ),
-		RGB( 0, 0, 252 ),
-		RGB( 184, 184, 248 ),
-		RGB( 104, 136, 252 ),
-		RGB( 0, 88, 248 ),
-		RGB( 0, 0, 188 ),
-		RGB( 216, 184, 248 ),
-		RGB( 152, 120, 248 ),
-		RGB( 104, 68, 252 ),
-		RGB( 68, 40, 188 ),
-		RGB( 248, 184, 248 ),
-		RGB( 248, 120, 248 ),
-		RGB( 216, 0, 204 ),
-		RGB( 148, 0, 132 ),
-		RGB( 248, 164, 192 ),
-		RGB( 248, 88, 152 ),
-		RGB( 228, 0, 88 ),
-		RGB( 168, 0, 32 ),
-		RGB( 240, 208, 176 ),
-		RGB( 248, 120, 88 ),
-		RGB( 248, 56, 0 ),
-		RGB( 168, 16, 0 ),
-		RGB( 252, 224, 168 ),
-		RGB( 252, 160, 68 ),
-		RGB( 228, 92, 16 ),
-		RGB( 136, 20, 0 ),
-		RGB( 248, 216, 120 ),
-		RGB( 248, 184, 0 ),
-		RGB( 172, 124, 0 ),
-		RGB( 80, 48, 0 ),
-		RGB( 216, 248, 120 ),
-		RGB( 184, 248, 24 ),
-		RGB( 0, 184, 0 ),
-		RGB( 0, 120, 0 ),
-		RGB( 184, 248, 184 ),
-		RGB( 88, 216, 84 ),
-		RGB( 0, 168, 0 ),
-		RGB( 0, 104, 0 ),
-		RGB( 184, 248, 216 ),
-		RGB( 88, 248, 152 ),
-		RGB( 0, 168, 68 ),
-		RGB( 0, 88, 0 ),
-		RGB( 0, 252, 252 ),
-		RGB( 0, 232, 216 ),
-		RGB( 0, 136, 136 ),
-		RGB( 0, 64, 88 ),
-		RGB( 248, 216, 248 ),
-		RGB( 120, 120, 120 ),
-	};
-
-#elif 0
-
-	// NES Advanced
-	// https://lospec.com/palette-list/nes-advanced
-
-	const float3 palette[NUM_COLORS] = // 55
-	{
-		RGB( 0, 0, 0 ),
-		RGB( 38, 35, 47 ),
-		RGB( 49, 64, 71 ),
-		RGB( 89, 109, 98 ),
-		RGB( 146, 156, 116 ),
-		RGB( 200, 197, 163 ),
-		RGB( 252, 252, 252 ),
-		RGB( 27, 55, 127 ),
-		RGB( 20, 122, 191 ),
-		RGB( 64, 175, 221 ),
-		RGB( 178, 219, 244 ),
-		RGB( 24, 22, 103 ),
-		RGB( 59, 44, 150 ),
-		RGB( 112, 106, 225 ),
-		RGB( 143, 149, 238 ),
-		RGB( 68, 10, 65 ),
-		RGB( 129, 37, 147 ),
-		RGB( 204, 75, 185 ),
-		RGB( 236, 153, 219 ),
-		RGB( 63, 0, 17 ),
-		RGB( 179, 28, 53 ),
-		RGB( 239, 32, 100 ),
-		RGB( 242, 98, 130 ),
-		RGB( 150, 8, 17 ),
-		RGB( 232, 24, 19 ),
-		RGB( 167, 93, 105 ),
-		RGB( 236, 158, 164 ),
-		RGB( 86, 13, 4 ),
-		RGB( 196, 54, 17 ),
-		RGB( 226, 106, 18 ),
-		RGB( 240, 175, 102 ),
-		RGB( 42, 26, 20 ),
-		RGB( 93, 52, 42 ),
-		RGB( 166, 110, 70 ),
-		RGB( 223, 156, 110 ),
-		RGB( 142, 78, 17 ),
-		RGB( 216, 149, 17 ),
-		RGB( 234, 209, 30 ),
-		RGB( 245, 235, 107 ),
-		RGB( 47, 84, 28 ),
-		RGB( 90, 131, 27 ),
-		RGB( 162, 187, 30 ),
-		RGB( 198, 223, 107 ),
-		RGB( 15, 69, 15 ),
-		RGB( 0, 139, 18 ),
-		RGB( 11, 203, 18 ),
-		RGB( 62, 243, 63 ),
-		RGB( 17, 81, 83 ),
-		RGB( 12, 133, 99 ),
-		RGB( 4, 191, 121 ),
-		RGB( 106, 230, 170 ),
-		RGB( 38, 39, 38 ),
-		RGB( 81, 79, 76 ),
-		RGB( 136, 126, 131 ),
-		RGB( 179, 170, 192 ),
 	};
 
 #elif 0
@@ -611,17 +484,6 @@ void main( PS_IN fragment, out PS_OUT result )
 		RGB( 218, 41, 142 ),
 		RGB( 11, 134, 51 ),
 		RGB( 46, 43, 18 ),
-	};
-
-#elif 0
-
-	// Gameboy
-	const float3 palette[NUM_COLORS] = // 4
-	{
-		RGB( 27, 42, 9 ),
-		RGB( 14, 69, 11 ),
-		RGB( 73, 107, 34 ),
-		RGB( 154, 158, 63 ),
 	};
 
 #elif 0

@@ -443,14 +443,18 @@ float idConsoleLocal::DrawFPS( float y )
 			aaMode = aaValues[ r_antiAliasing.GetInteger() ];
 		}
 
-		static const int rrNumValues = 8;
+		static const int rrNumValues = 12;
 		static const char* rrValues[rrNumValues] =
 		{
-			"None",
+			"Doom",
+			"2-bit",
+			"2-bit Hi",
 			"C64",
 			"C64 Hi",
 			"CPC",
 			"CPC Hi",
+			"NES",
+			"NES Hi",
 			"Sega",
 			"Sega Hi",
 			"Sony PSX",

@@ -302,7 +302,7 @@ idCVar r_crtVignette( "r_crtVignette", "0.8", CVAR_RENDERER | CVAR_FLOAT | CVAR_
 
 idCVar r_retroDitherScale( "r_retroDitherScale", "0.3", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
 
-idCVar r_renderMode( "r_renderMode", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "0 = Doom, 1 = Commodore 64, 2 = Commodore 64 Highres, 3 = Amstrad CPC 6128, 4 = Amstrad CPC 6128 Highres, 5 = Sega Genesis, 6 = Sega Genesis Highres, 7 = Sony PSX", 0, 7 );
+idCVar r_renderMode( "r_renderMode", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "0 = Doom, 1 = Commodore 64, 2 = Commodore 64 Highres, 3 = Amstrad CPC 6128, 4 = Amstrad CPC 6128 Highres, 5 = Gameboy, 6 = Gameboy Highres, 7 = NES, 8 = NES Highres, 9 = Sega Genesis, 10 = Sega Genesis Highres, 11 = Sony PSX", 0, 11 );
 
 idCVar r_psxVertexJitter( "r_psxVertexJitter", "0.5", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "", 0.0f, 0.75f );
 // RB end
