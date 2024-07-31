@@ -134,6 +134,18 @@ void main( PS_IN fragment, out PS_OUT result )
 		RGB( 95, 199, 93 ),
 	};
 
+#elif 1
+
+	// CGA
+	// https://lospec.com/palette-list/cga-mibend4
+	const float3 palette[NUM_COLORS] = // 4
+	{
+		RGB( 41, 31, 35 ),
+		RGB( 189, 80, 47 ),
+		RGB( 52, 209, 175 ),
+		RGB( 247, 236, 185 ),
+	};
+
 #elif 0
 
 	// Hollow
