@@ -826,12 +826,13 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
 
 		case SYSTEM_FIELD_CRT_POSTFX:
 		{
-			static const int numValues = 3;
+			static const int numValues = 4;
 			static const char* values[numValues] =
 			{
 				"#str_swf_disabled",
 				"Mattias CRT",
 				"Newpixie CRT",
+				"Zfast CRT",
 			};
 
 			return values[ r_useCRTPostFX.GetInteger() ];

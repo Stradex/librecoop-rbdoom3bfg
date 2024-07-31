@@ -296,7 +296,7 @@ idCVar r_taaNewFrameWeight( "r_taaNewFrameWeight", "0.1", CVAR_RENDERER | CVAR_F
 idCVar r_taaMaxRadiance( "r_taaMaxRadiance", "10000", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
 idCVar r_taaMotionVectors( "r_taaMotionVectors", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "" );
 
-idCVar r_useCRTPostFX( "r_useCRTPostFX", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "RetroArch CRT shader: 1 = Matthias CRT, 1 = New Pixie", 0, 2 );
+idCVar r_useCRTPostFX( "r_useCRTPostFX", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "RetroArch CRT shader: 1 = Matthias CRT, 1 = New Pixie, 2 = Zfast", 0, 3 );
 idCVar r_crtCurvature( "r_crtCurvature", "2", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "rounded borders" );
 idCVar r_crtVignette( "r_crtVignette", "0.8", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "fading into the borders" );
 

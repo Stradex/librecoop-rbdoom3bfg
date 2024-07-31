@@ -6503,9 +6503,13 @@ void idRenderBackend::CRTPostProcess()
 		{
 			renderProgManager.BindShader_CrtMattias();
 		}
-		else
+		else if( r_useCRTPostFX.GetInteger() == 2 )
 		{
 			renderProgManager.BindShader_CrtNewPixie();
+		}
+		else
+		{
+			renderProgManager.BindShader_CrtZFast();
 		}
 
 		float windowCoordParm[4];
