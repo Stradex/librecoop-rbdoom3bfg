@@ -5116,6 +5116,11 @@ void idRenderBackend::DrawScreenSpaceAmbientOcclusion( const viewDef_t* _viewDef
 
 	SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToCameraRenderMatrix[0], 4 );
 
+	// RB: we need to rotate the normals of the gbuffer from world space to view space
+	idRenderMatrix viewMatrix;
+	idRenderMatrix::Transpose( *( idRenderMatrix* ) viewDef->worldSpace.modelViewMatrix, viewMatrix );
+	SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, viewMatrix[0], 4 );
+
 	const float jitterSampleScale = 1.0f;
 
 	float jitterTexScale[4];
@@ -6251,10 +6256,78 @@ void idRenderBackend::PostProcess( const void* data )
 		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
+		globalFramebuffers.smaaBlendFBO->Bind();
+
+		//GL_Viewport( 0, 0, screenWidth, screenHeight );
+		//GL_Scissor( 0, 0, screenWidth, screenHeight );
+
+		if( r_renderMode.GetInteger() == RENDERMODE_CPC || r_renderMode.GetInteger() == RENDERMODE_CPC_HIGHRES )
+		{
+			// clear the alpha buffer and draw only the hands + weapon into it so
+			// we can avoid blurring them
+			renderLog.OpenBlock( "Render_HandsAlpha" );
+
+			GL_State( GLS_COLORMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS |  GLS_CULL_TWOSIDED );
+			GL_Color( 0, 0, 0, 1 );
+
+			renderProgManager.BindShader_Color();
+
+			currentSpace = NULL;
+
+			// draw shader over entire screen
+			RB_SetMVP( renderMatrix_identity );
+
+			DrawElementsWithCounters( &unitSquareSurface );
+
+			// draw the hands + weapon with alpha 0
+			GL_Color( 0, 0, 0, 0 );
+
+			drawSurf_t** drawSurfs = ( drawSurf_t** )&viewDef->drawSurfs[0];
+			for( int surfNum = 0; surfNum < viewDef->numDrawSurfs; surfNum++ )
+			{
+				const drawSurf_t* surf = drawSurfs[ surfNum ];
+
+				if( !surf->space->weaponDepthHack && !surf->space->skipMotionBlur && !surf->material->HasSubview() )
+				{
+					// Apply motion blur to this object
+					continue;
+				}
+
+				const idMaterial* shader = surf->material;
+				if( shader->Coverage() == MC_TRANSLUCENT )
+				{
+					// muzzle flash, etc
+					continue;
+				}
+
+				// set mvp matrix
+				if( surf->space != currentSpace )
+				{
+					RB_SetMVP( surf->space->mvp );
+					currentSpace = surf->space;
+				}
+
+				// this could just be a color, but we don't have a skinned color-only prog
+				if( surf->jointCache )
+				{
+					renderProgManager.BindShader_TextureVertexColorSkinned();
+				}
+				else
+				{
+					renderProgManager.BindShader_TextureVertexColor();
+				}
+
+				// draw it solid
+				DrawElementsWithCounters( surf );
+			}
+
+			renderLog.CloseBlock();
+		}
+
+		GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS |  GLS_CULL_TWOSIDED );
+
 		GL_SelectTexture( 0 );
 		globalImages->smaaBlendImage->Bind();
-
-		globalFramebuffers.ldrFBO->Bind();
 
 		GL_SelectTexture( 1 );
 		globalImages->blueNoiseImage256->Bind();
@@ -6265,10 +6338,10 @@ void idRenderBackend::PostProcess( const void* data )
 		GL_SelectTexture( 3 );
 		if( r_useHierarchicalDepthBuffer.GetBool() )
 		{
-			commandList->clearTextureFloat( globalImages->hierarchicalZbufferImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 1.f ) );
-
 			// build hierarchical depth buffer
 			renderLog.OpenBlock( "Render_HiZ" );
+
+			commandList->clearTextureFloat( globalImages->hierarchicalZbufferImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 1.f ) );
 
 			commonPasses.BlitTexture(
 				commandList,
@@ -6286,6 +6359,8 @@ void idRenderBackend::PostProcess( const void* data )
 		{
 			globalImages->currentDepthImage->Bind();
 		}
+
+		globalFramebuffers.ldrFBO->Bind();
 
 		float jitterTexScale[4] = {};
 

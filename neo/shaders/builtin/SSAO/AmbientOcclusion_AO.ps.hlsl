@@ -361,7 +361,15 @@ void main( PS_IN fragment, out PS_OUT result )
 	visibility = 0.0;
 
 #if 1
-	float3 n_C = sampleNormal( t_NormalRoughness, ssP, 0 );
+	float3 n_W = sampleNormal( t_NormalRoughness, ssP, 0 );
+
+	// rotate n_W from world space into view space
+	float3 n_C;
+	n_C.x = dot3( rpModelViewMatrixX, n_W );
+	n_C.y = dot3( rpModelViewMatrixY, n_W );
+	n_C.z = dot3( rpModelViewMatrixZ, n_W );
+
+	n_C = normalize( n_C );
 
 	if( length( n_C ) < 0.01 )
 	{

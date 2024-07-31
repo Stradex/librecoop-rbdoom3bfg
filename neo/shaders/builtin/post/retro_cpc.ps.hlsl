@@ -315,28 +315,6 @@ float3 ditherRGB( float2 fragPos, float3 quantDeviation )
 	return float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
 }
 
-float2 cubeProject( float3 p )
-{
-	float2 x = p.zy;
-	float2 y = p.xz;
-	float2 z = p.xy;
-
-	//select face
-	p = abs( p );
-	if( p.x > p.y && p.x > p.z )
-	{
-		return x;
-	}
-	else if( p.y > p.x && p.y > p.z )
-	{
-		return y;
-	}
-	else
-	{
-		return z;
-	}
-}
-
 void main( PS_IN fragment, out PS_OUT result )
 {
 #if 0
@@ -646,6 +624,18 @@ void main( PS_IN fragment, out PS_OUT result )
 		RGB( 154, 158, 63 ),
 	};
 
+#elif 0
+
+	// Hollow
+	// https://lospec.com/palette-list/hollow
+	const float3 palette[NUM_COLORS] = // 4
+	{
+		RGB( 15, 15, 27 ),
+		RGB( 86, 90, 117 ),
+		RGB( 198, 183, 190 ),
+		RGB( 250, 251, 246 ),
+	};
+
 #else
 
 	// https://lospec.com/palette-list/2bit-demichrome
@@ -666,7 +656,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float3 quantDeviation = Deviation( palette );
 
 	// get pixellated base color
-	float3 color = t_BaseColor.Sample( s_LinearClamp, uvPixelated * rpWindowCoord.xy ).rgb;
+	float4 color = t_BaseColor.Sample( s_LinearClamp, uvPixelated * rpWindowCoord.xy );
 
 	float2 uvDither = uvPixelated;
 	//if( rpJitterTexScale.x > 1.0 )
@@ -678,40 +668,40 @@ void main( PS_IN fragment, out PS_OUT result )
 #if 0
 	if( uv.y < 0.0625 )
 	{
-		color = HSVToRGB( float3( uv.x, 1.0, uv.y * 16.0 ) );
+		color.rgb = HSVToRGB( float3( uv.x, 1.0, uv.y * 16.0 ) );
 
-		result.color = float4( color, 1.0 );
+		result.color = float4( color.rgb, 1.0 );
 		return;
 	}
 	else if( uv.y < 0.125 )
 	{
 		// quantized
-		color = HSVToRGB( float3( uv.x, 1.0, ( uv.y - 0.0625 ) * 16.0 ) );
-		color = LinearSearch( color, palette );
+		color.rgb = HSVToRGB( float3( uv.x, 1.0, ( uv.y - 0.0625 ) * 16.0 ) );
+		color.rgb = LinearSearch( color.rgb, palette );
 
-		result.color = float4( color, 1.0 );
+		result.color = float4( color.rgb, 1.0 );
 		return;
 	}
 	else if( uv.y < 0.1875 )
 	{
 		// dithered quantized
-		color = HSVToRGB( float3( uv.x, 1.0, ( uv.y - 0.125 ) * 16.0 ) );
+		color.rgb = HSVToRGB( float3( uv.x, 1.0, ( uv.y - 0.125 ) * 16.0 ) );
 
 		color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
-		color = LinearSearch( color, palette );
+		color.rgb = LinearSearch( color.rgb, palette );
 
-		result.color = float4( color, 1.0 );
+		result.color = float4( color.rgb, 1.0 );
 		return;
 	}
 	else if( uv.y < 0.25 )
 	{
-		color = _float3( uv.x );
-		color = floor( color * NUM_COLORS ) * ( 1.0 / ( NUM_COLORS - 1.0 ) );
+		color.rgb = _float3( uv.x );
+		color.rgb = floor( color.rgb * NUM_COLORS ) * ( 1.0 / ( NUM_COLORS - 1.0 ) );
 
 		color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
-		color = LinearSearch( color, palette );
+		color.rgb = LinearSearch( color.rgb, palette );
 
-		result.color = float4( color, 1.0 );
+		result.color = float4( color.rgb, 1.0 );
 		return;
 	}
 #endif
@@ -720,10 +710,21 @@ void main( PS_IN fragment, out PS_OUT result )
 	color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
 
 	// find closest color match from CPC color palette
-	color = LinearSearch( color.rgb, palette );
+	color.rgb = LinearSearch( color.rgb, palette );
 
-#if 1
+#if 0
+
+	//
 	// similar to Obra Dinn
+	//
+
+	// don't post process the hands, which were drawn with alpha = 0
+	if( color.a == 0.0 )
+	{
+		result.color = float4( color.rgb, 1.0 );
+		return;
+	}
+
 
 	// triplanar mapping based on reconstructed depth buffer
 
@@ -765,13 +766,13 @@ void main( PS_IN fragment, out PS_OUT result )
 	float2 uvY = worldPos.xz; // y facing plane
 	float2 uvZ = worldPos.xy; // z facing plane
 
-#if 0
-	uvX = abs( uvX );
-	uvY = abs( uvY );
-	uvZ = abs( uvZ );
+#if 1
+	uvX = abs( uvX );// + 1.0;
+	uvY = abs( uvY );// + 1.0;
+	uvZ = abs( uvZ );// + 1.0;
 #endif
 
-#if 0
+#if 1
 	uvX *= 4.0;
 	uvY *= 4.0;
 	uvZ *= 4.0;
@@ -793,6 +794,24 @@ void main( PS_IN fragment, out PS_OUT result )
 	float3 triblend = saturate( pow( worldNormal, 4.0 ) );
 	triblend /= max( dot( triblend, float3( 1, 1, 1 ) ), 0.0001 );
 
+#if 1
+	// change from simple triplanar blending to cubic projection
+	// which handles diagonal geometry way better
+	if( ( abs( worldNormal.x ) > abs( worldNormal.y ) ) && ( abs( worldNormal.x ) > abs( worldNormal.z ) ) )
+	{
+		triblend = float3( 1, 0, 0 ); // X axis
+	}
+	else if( ( abs( worldNormal.z ) > abs( worldNormal.x ) ) && ( abs( worldNormal.z ) > abs( worldNormal.y ) ) )
+	{
+		triblend = float3( 0, 0, 1 ); // Z axis
+
+	}
+	else
+	{
+		triblend = float3( 0, 1, 0 ); // Y axis
+	}
+#endif
+
 #if 0
 	// preview blend
 	result.color = float4( triblend.xyz, 1.0 );
@@ -807,29 +826,34 @@ void main( PS_IN fragment, out PS_OUT result )
 	uvZ.x *= -axisSign.z;
 #endif
 
-	//result.color = float4( suv.xy, 0.0, 1.0 );
-	//return;
+	// FIXME get pixellated base color or not
+	//float2 pixelatedUVX = floor( uvX / RESOLUTION_DIVISOR ) * RESOLUTION_DIVISOR;
+	//float2 pixelatedUVY = floor( uvY / RESOLUTION_DIVISOR ) * RESOLUTION_DIVISOR;
+	//float2 pixelatedUVZ = floor( uvZ / RESOLUTION_DIVISOR ) * RESOLUTION_DIVISOR;
 
-	// FIXME get pixellated base color
-	//color = t_BaseColor.Sample( s_LinearClamp, uvPixelated * rpWindowCoord.xy ).rgb;
-	color = t_BaseColor.Sample( s_LinearClamp, uv ).rgb;
+	//float3 pixelatedColor = colX * triblend.x + colY * triblend.y + colZ * triblend.z;
+	//
+	//float2 uvPixelated = floor( fragment.position.xy / RESOLUTION_DIVISOR ) * RESOLUTION_DIVISOR;
 
-	float3 colX = ditherRGB( uvX, quantDeviation ) * 2.0;
-	float3 colY = ditherRGB( uvY, quantDeviation ) * 2.0;
-	float3 colZ = ditherRGB( uvZ, quantDeviation ) * 2.0;
+	color.rgb = t_BaseColor.Sample( s_LinearClamp, uvPixelated * rpWindowCoord.xy ).rgb;
+	//color = t_BaseColor.Sample( s_LinearClamp, uv ).rgb;
+
+	float3 colX = ditherRGB( uvX, quantDeviation ) * 1.0;
+	float3 colY = ditherRGB( uvY, quantDeviation ) * 1.0;
+	float3 colZ = ditherRGB( uvZ, quantDeviation ) * 1.0;
 
 	float3 dither3D = colX * triblend.x + colY * triblend.y + colZ * triblend.z;
 	color.rgb += dither3D;
 
 	// find closest color match from CPC color palette
-	color = LinearSearch( color.rgb, palette );
+	color.rgb = LinearSearch( color.rgb, palette );
 
 #if 0
 	float2 uvC = cubeProject( abs( worldPos ) );
 	color.rgb = _float3( DitherArray8x8( uvC ) - 0.5 );
 #endif
 
-#if 1
+#if 0
 	colX = _float3( DitherArray8x8( uvX ) - 0.5 );
 	colY = _float3( DitherArray8x8( uvY ) - 0.5 );
 	colZ = _float3( DitherArray8x8( uvZ ) - 0.5 );
@@ -859,5 +883,5 @@ void main( PS_IN fragment, out PS_OUT result )
 #endif // cubic mapping
 
 	//color.rgb = float3( suv.xy * 0.5 + 0.5, 1.0 );
-	result.color = float4( color, 1.0 );
+	result.color = float4( color.rgb, 1.0 );
 }

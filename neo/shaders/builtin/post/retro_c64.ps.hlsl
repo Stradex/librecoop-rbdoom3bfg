@@ -34,8 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 Texture2D t_BaseColor	: register( t0 VK_DESCRIPTOR_SET( 0 ) );
 Texture2D t_BlueNoise	: register( t1 VK_DESCRIPTOR_SET( 0 ) );
 
-SamplerState samp0		: register(s0 VK_DESCRIPTOR_SET( 1 ) );
-SamplerState samp1		: register(s1 VK_DESCRIPTOR_SET( 1 ) ); // blue noise 256
+SamplerState s_LinearClamp	: register(s0 VK_DESCRIPTOR_SET( 1 ) );
+SamplerState s_LinearWrap	: register(s1 VK_DESCRIPTOR_SET( 1 ) ); // blue noise 256
 
 struct PS_IN
 {
@@ -226,9 +226,10 @@ void main( PS_IN fragment, out PS_OUT result )
 	float2 uvPixelated = floor( fragment.position.xy / RESOLUTION_DIVISOR ) * RESOLUTION_DIVISOR;
 
 	float3 quantizationPeriod = _float3( 1.0 / NUM_COLORS );
+	float3 quantDeviation = Deviation( palette );
 
 	// get pixellated base color
-	float3 color = t_BaseColor.Sample( samp0, uvPixelated * rpWindowCoord.xy ).rgb;
+	float3 color = t_BaseColor.Sample( s_LinearClamp, uvPixelated * rpWindowCoord.xy ).rgb;
 
 	float2 uvDither = uvPixelated;
 	//if( rpJitterTexScale.x > 1.0 )
@@ -259,7 +260,7 @@ void main( PS_IN fragment, out PS_OUT result )
 		// dithered quantized
 		color = HSVToRGB( float3( uv.x, 1.0, ( uv.y - 0.125 ) * 16.0 ) );
 
-		color.rgb += float3( dither, dither, dither ) * quantizationPeriod;
+		color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
 		color = LinearSearch( color, palette );
 
 		result.color = float4( color, 1.0 );
@@ -269,11 +270,16 @@ void main( PS_IN fragment, out PS_OUT result )
 	{
 		color = _float3( uv.x );
 		color = floor( color * NUM_COLORS ) * ( 1.0 / ( NUM_COLORS - 1.0 ) );
+		color += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
+		color = LinearSearch( color.rgb, palette );
+
+		result.color = float4( color, 1.0 );
+		return;
 	}
 #endif
 
 	//color.rgb += float3( dither, dither, dither ) * quantizationPeriod;
-	color.rgb += float3( dither, dither, dither ) * Deviation( palette ) * rpJitterTexScale.y;
+	color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
 
 	// find closest color match from C64 color palette
 	color = LinearSearch( color.rgb, palette );
