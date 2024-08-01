@@ -57,7 +57,7 @@ struct PS_OUT
 // Set to 0 to use linear filter and gain speed
 #define ENABLE_LANCZOS 1
 
-#define RESOLUTION_DIVISOR 2.0
+#define RESOLUTION_DIVISOR 4.0
 
 float4 dilate( float4 col )
 {
@@ -108,6 +108,17 @@ float3 filter_lanczos( float4 coeffs, float4x4 color_matrix )
 float mod( float x, float y )
 {
 	return x - y * floor( x / y );
+}
+
+float2 curve( float2 uv, float curvature )
+{
+	uv = ( uv - 0.5 ) * curvature;
+	uv *= 1.1;
+	uv.x *= 1.0 + pow( ( abs( uv.y ) / 5.0 ), 2.0 );
+	uv.y *= 1.0 + pow( ( abs( uv.x ) / 4.0 ), 2.0 );
+	uv  = ( uv / curvature ) + 0.5;
+	uv =  uv * 0.92 + 0.04;
+	return uv;
 }
 
 void main( PS_IN fragment, out PS_OUT result )
@@ -163,11 +174,19 @@ void main( PS_IN fragment, out PS_OUT result )
 	float4 sourceSize = outputSize;
 #else
 	float4 sourceSize;
-	sourceSize.xy = rpWindowCoord.zw / RESOLUTION_DIVISOR;
+	sourceSize.xy = rpWindowCoord.zw / float2( 4, 4.4 ); //RESOLUTION_DIVISOR;
 	sourceSize.zw = float2( 1.0, 1.0 ) / sourceSize.xy;
 #endif
 
 	float2 vTexCoord = fragment.texcoord0.xy;
+
+#if 0
+	if( rpWindowCoord.x > 0.0 )
+	{
+		vTexCoord = curve( vTexCoord, 2.0 );
+	}
+#endif
+
 	float2 dx     = float2( sourceSize.z, 0.0 );
 	float2 dy     = float2( 0.0, sourceSize.w );
 	float2 pix_co = vTexCoord * sourceSize.xy - float2( 0.5, 0.5 );
@@ -201,7 +220,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float bright      = ( max( col.r, max( col.g, col.b ) ) + luma ) * 0.5;
 	float scan_bright = clamp( bright, params.SCANLINE_BRIGHT_MIN, params.SCANLINE_BRIGHT_MAX );
 	float scan_beam   = clamp( bright * params.SCANLINE_BEAM_WIDTH_MAX, params.SCANLINE_BEAM_WIDTH_MIN, params.SCANLINE_BEAM_WIDTH_MAX );
-	float scan_weight = 1.0 - pow( cos( vTexCoord.y * 2.0 * PI * sourceSize.y ) * 0.5 + 0.5, scan_beam ) * params.SCANLINE_STRENGTH;
+	float scan_weight = 1.0 - pow( cos( vTexCoord.y * 2.0 * PI * sourceSize.y / RESOLUTION_DIVISOR ) * 0.5 + 0.5, scan_beam ) * params.SCANLINE_STRENGTH;
 
 	float mask   = 1.0 - params.MASK_STRENGTH;
 	float2 mod_fac = floor( vTexCoord * outputSize.xy * sourceSize.xy / ( sourceSize.xy * float2( params.MASK_SIZE, params.MASK_DOT_HEIGHT * params.MASK_SIZE ) ) );
@@ -233,6 +252,10 @@ void main( PS_IN fragment, out PS_OUT result )
 	col  = lerp( col, col2, scan_bright );
 	col *= mask_weight;
 	col  = pow( col, _float3( 1.0 / params.GAMMA_OUTPUT ) );
+
+	//col = col2;
+	//col = _float3( scan_weight );
+	//col = float3( scan_bright, scan_beam, scan_weight );
 
 	result.color = float4( col * params.BRIGHT_BOOST, 1.0 );
 }

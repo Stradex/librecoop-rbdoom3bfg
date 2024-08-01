@@ -377,7 +377,7 @@ enum
 	BUILTIN_POSTPROCESS_RETRO_PSX,		// Sony Playstation 1
 	BUILTIN_CRT_MATTIAS,
 	BUILTIN_CRT_NUPIXIE,
-	BUILTIN_CRT_ZFAST,
+	BUILTIN_CRT_EASYMODE,
 	BUILTIN_SCREEN,
 	BUILTIN_TONEMAP,
 	BUILTIN_BRIGHTPASS,
@@ -869,9 +869,9 @@ public:
 		BindShader_Builtin( BUILTIN_CRT_NUPIXIE );
 	}
 
-	void	BindShader_CrtZFast()
+	void	BindShader_CrtEasyMode()
 	{
-		BindShader_Builtin( BUILTIN_CRT_ZFAST );
+		BindShader_Builtin( BUILTIN_CRT_EASYMODE );
 	}
 
 	void	BindShader_Screen()

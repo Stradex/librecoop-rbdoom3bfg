@@ -6509,7 +6509,7 @@ void idRenderBackend::CRTPostProcess()
 		}
 		else
 		{
-			renderProgManager.BindShader_CrtZFast();
+			renderProgManager.BindShader_CrtEasyMode();
 		}
 
 		float windowCoordParm[4];
