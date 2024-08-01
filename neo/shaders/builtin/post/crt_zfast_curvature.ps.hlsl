@@ -57,6 +57,8 @@ struct PS_OUT
 // Set to 0 to use linear filter and gain speed
 #define ENABLE_LANCZOS 1
 
+#define RESOLUTION_DIVISOR 2.0
+
 float4 dilate( float4 col )
 {
 #if 1
@@ -86,11 +88,15 @@ float curve_distance( float x, float sharp )
 float4x4 get_color_matrix( float2 co, float2 dx )
 {
 	return float4x4( TEX2D( co - dx ), TEX2D( co ), TEX2D( co + dx ), TEX2D( co + 2.0 * dx ) );
+
+	// transpose for HLSL
+	//m = transpose(m);
+	//return m;
 }
 
 float3 filter_lanczos( float4 coeffs, float4x4 color_matrix )
 {
-	float4 col        = mul( coeffs, color_matrix );
+	float4 col        = mul( color_matrix,  coeffs );
 	float4 sample_min = min( color_matrix[1], color_matrix[2] );
 	float4 sample_max = max( color_matrix[1], color_matrix[2] );
 
@@ -136,7 +142,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	params.GAMMA_OUTPUT = 1.8;
 	params.MASK_SIZE = 1.0;
 	params.MASK_STAGGER = 0.0;
-	params.MASK_STRENGTH = 1.0;
+	params.MASK_STRENGTH = 0.8;
 	params.MASK_DOT_HEIGHT = 1.0;
 	params.MASK_DOT_WIDTH = 1.0;
 	params.SCANLINE_CUTOFF = 400.0;
@@ -148,33 +154,18 @@ void main( PS_IN fragment, out PS_OUT result )
 	params.SHARPNESS_H = 0.5;
 	params.SHARPNESS_V = 1.0;
 
-#if 0
-	float2 uv = fragment.texcoord0.xy;
-	float2 uv2 = 2.0 * uv - 1.0;
-	float2 offset = uv2 / 3.0; //float(params.curvature);
 
-	offset *= offset; // Distance from the center, squared
+	float4 outputSize;
+	outputSize.xy = rpWindowCoord.zw;
+	outputSize.zw = float2( 1.0, 1.0 ) / rpWindowCoord.zw;
 
-	uv2 += uv2 * ( offset.yx );
-	uv2 = 0.5 * uv2 + 0.5;
-
-	uv = uv2;
-
-	float3 col = t_CurrentRender.Sample( LinearSampler, uv2 ).rgb;// + _float3( 0.1 );
-	//float3 col = texture(iChannel0, uv2).xyz + float3(0.1);
-	col = ( uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0 )
-		  ? col
-		  : float3( 0.0, 0.0, 0.0 );
-	col = col * ( 0.9 + 0.1 * sin( uv.y * 2.0 * rpWindowCoord.w ) );
-
-	result.color = float4( col, 1.0 );
+#if 1
+	float4 sourceSize = outputSize;
 #else
-
 	float4 sourceSize;
-	sourceSize.xy = rpWindowCoord.zw;
-	sourceSize.zw = float2( 1.0, 1.0 ) / rpWindowCoord.zw;
-
-	float4 outputSize = sourceSize;
+	sourceSize.xy = rpWindowCoord.zw / RESOLUTION_DIVISOR;
+	sourceSize.zw = float2( 1.0, 1.0 ) / sourceSize.xy;
+#endif
 
 	float2 vTexCoord = fragment.texcoord0.xy;
 	float2 dx     = float2( sourceSize.z, 0.0 );
@@ -244,5 +235,4 @@ void main( PS_IN fragment, out PS_OUT result )
 	col  = pow( col, _float3( 1.0 / params.GAMMA_OUTPUT ) );
 
 	result.color = float4( col * params.BRIGHT_BOOST, 1.0 );
-#endif
 }

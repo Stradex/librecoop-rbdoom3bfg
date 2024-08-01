@@ -34,8 +34,8 @@ SOFTWARE.
 Texture2D t_CurrentRender	: register( t0 VK_DESCRIPTOR_SET( 0 ) );
 Texture2D t_BlueNoise		: register( t1 VK_DESCRIPTOR_SET( 0 ) );
 
-SamplerState LinearSampler	: register(s0 VK_DESCRIPTOR_SET( 1 ) );
-SamplerState samp1			: register(s1 VK_DESCRIPTOR_SET( 1 ) ); // blue noise 256
+SamplerState s_LinearClamp	: register(s0 VK_DESCRIPTOR_SET( 1 ) );
+SamplerState s_LinearWrap	: register(s1 VK_DESCRIPTOR_SET( 1 ) ); // blue noise 256
 
 struct PS_IN
 {
@@ -50,14 +50,14 @@ struct PS_OUT
 // *INDENT-ON*
 
 
-float3 tsample( Texture2D tex, vec2 tc, float offs, vec2 resolution )
+float3 tsample( Texture2D tex, float2 tc, float offs, float2 resolution )
 {
 #if 1
-	//tc = tc * vec2( 1.025, 0.92 ) + vec2( -0.0125, 0.04 );
-	float3 s = pow( abs( tex.Sample( LinearSampler, vec2( tc.x, 1.0 - tc.y ) ).rgb ), _float3( 2.2 ) );
+	// DON'T this messes really everythign up tc = tc * float2( 1.025, 0.92 ) + float2( -0.0125, 0.04 );
+	float3 s = pow( abs( tex.Sample( s_LinearClamp, float2( tc.x, tc.y ) ).rgb ), _float3( 2.2 ) );
 	return s * _float3( 1.25 );
 #else
-	float3 s = tex.Sample( LinearSampler, vec2( tc.x, 1.0 - tc.y ) ).rgb;
+	float3 s = tex.Sample( s_LinearClamp, float2( tc.x, tc.y ) ).rgb;
 	return s;
 #endif
 }
@@ -70,7 +70,7 @@ float3 filmic( float3 LinearColor )
 
 float2 curve( float2 uv, float curvature )
 {
-	uv = ( uv - 0.5 ) * 2.0;
+	uv = ( uv - 0.5 ) * curvature;
 	uv *= 1.1;
 	uv.x *= 1.0 + pow( ( abs( uv.y ) / 5.0 ), 2.0 );
 	uv.y *= 1.0 + pow( ( abs( uv.x ) / 4.0 ), 2.0 );
@@ -81,13 +81,19 @@ float2 curve( float2 uv, float curvature )
 
 float2 curve2( float2 uv, float curvature )
 {
-	uv = ( uv - 0.5 ) * 2.0;
-	uv *= 1.1;
+	uv = ( uv - 0.5 );
+	uv *= float2( 0.925, 1.095 );
+	uv *= curvature;
 	uv.x *= 1.0 + pow( ( abs( uv.y ) / 4.0 ), 2.0 );
 	uv.y *= 1.0 + pow( ( abs( uv.x ) / 3.0 ), 2.0 );
 	uv  = ( uv / curvature ) + 0.5;
 	uv =  uv * 0.92 + 0.04;
 	return uv;
+}
+
+float mod( float x, float y )
+{
+	return x - y * floor( x / y );
 }
 
 void main( PS_IN fragment, out PS_OUT result )
@@ -113,18 +119,18 @@ void main( PS_IN fragment, out PS_OUT result )
 	params.FrameCount = int( rpJitterTexOffset.w );
 
 	// stop time variable so the screen doesn't wiggle
-	float time = params.FrameCount % 849 * 36.0;
+	float time = mod( params.FrameCount, 849.0 ) * 36.0;
 	float2 uv = fragment.texcoord0.xy;
-	uv.y = 1.0 - uv.y;
 	uv = saturate( uv );
 
 	/* Curve */
-	//float2 curved_uv = lerp( curve2( uv, params.curvature ), uv, 0.4 );
-	//float scale = -0.101;
-	//float2 scuv = curved_uv * ( 1.0 - scale ) + scale / 2.0 + float2( 0.003, -0.001 );
-
-	//uv = scuv;
-
+#if 0
+	float2 curved_uv = lerp( curve2( uv, params.curvature ), uv, 0.4 );
+	float scale = -0.101;
+	float2 scuv = curved_uv * ( 1.0 - scale ) + scale / 2.0 + float2( 0.003, -0.001 );
+	uv = scuv;
+#else
+	// RB: old curvature
 	float2 curved_uv = uv;
 
 	if( params.curvature > 0.0 )
@@ -132,6 +138,7 @@ void main( PS_IN fragment, out PS_OUT result )
 		curved_uv = curve( uv, 2.0 );
 	}
 	float2 scuv = curved_uv;
+#endif
 
 	float2 resolution = rpWindowCoord.zw;
 
@@ -140,13 +147,13 @@ void main( PS_IN fragment, out PS_OUT result )
 	float x = params.wiggle_toggle * sin( 0.1 * time + curved_uv.y * 13.0 ) * sin( 0.23 * time + curved_uv.y * 19.0 ) * sin( 0.3 + 0.11 * time + curved_uv.y * 23.0 ) * 0.0012;
 
 	// make time do something again
-	time = float( params.FrameCount % 640 * 1 );
+	time = float( mod( params.FrameCount, 640 ) * 1 );
 
 	Texture2D backbuffer = t_CurrentRender;
 #if 1
-	col.r = tsample( backbuffer, vec2( x + scuv.x + 0.0009, scuv.y + 0.0009 ), resolution.y / 800.0, resolution ).x + 0.02;
-	col.g = tsample( backbuffer, vec2( x + scuv.x + 0.0000, scuv.y - 0.0011 ), resolution.y / 800.0, resolution ).y + 0.02;
-	col.b = tsample( backbuffer, vec2( x + scuv.x - 0.0015, scuv.y + 0.0000 ), resolution.y / 800.0, resolution ).z + 0.02;
+	col.r = tsample( backbuffer, float2( x + scuv.x + 0.0009, scuv.y + 0.0009 ), resolution.y / 800.0, resolution ).x + 0.02;
+	col.g = tsample( backbuffer, float2( x + scuv.x + 0.0000, scuv.y - 0.0011 ), resolution.y / 800.0, resolution ).y + 0.02;
+	col.b = tsample( backbuffer, float2( x + scuv.x - 0.0015, scuv.y + 0.0000 ), resolution.y / 800.0, resolution ).z + 0.02;
 #else
 	col.r = t_CurrentRender.Sample( LinearSampler, float2( x + uv.x + 0.001, uv.y + 0.001 ) ).x + 0.05;
 	col.g = t_CurrentRender.Sample( LinearSampler, float2( x + uv.x + 0.000, uv.y - 0.002 ) ).y + 0.05;
@@ -204,7 +211,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	col = col * _float3( s );
 
 	/* Vertical lines (shadow mask) */
-	col *= 1.0 - 0.23 * ( clamp( ( fragment.position.xy.x % 3.0 ) / 2.0, 0.0, 1.0 ) );
+	col *= 1.0 - 0.23 * ( clamp( ( mod( fragment.position.xy.x, 3.0 ) ) / 2.0, 0.0, 1.0 ) );
 
 	/* Tone map */
 	col = filmic( col );
@@ -222,6 +229,7 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	/* Clamp */
 #if 1
+	curved_uv = scuv;
 	if( curved_uv.x < 0.0 || curved_uv.x > 1.0 )
 	{
 		col *= 0.0;
@@ -232,12 +240,12 @@ void main( PS_IN fragment, out PS_OUT result )
 	}
 #endif
 
+#if 0
 	uv = curved_uv;
 
-#if 1
 	/* Frame */
 	float2 fscale = float2( 0.026, -0.018 ); //float2( -0.018, -0.013 );
-	//uv = float2( uv.x, 1.0 - uv.y );
+	uv = float2( uv.x, 1.0 - uv.y );
 
 	//float4 f = texture( frametexture, vTexCoord.xy ); //*((1.0)+2.0*fscale)-fscale-float2(-0.0, 0.005));
 	//f.xyz = mix( f.xyz, float3( 0.5, 0.5, 0.5 ), 0.5 );
@@ -245,10 +253,10 @@ void main( PS_IN fragment, out PS_OUT result )
 	float fvig = clamp( -0.00 + 512.0 * uv.x * uv.y * ( 1.0 - uv.x ) * ( 1.0 - uv.y ), 0.2, 0.8 );
 	//col = lerp( col, lerp( max( col, 0.0 ), pow( abs( f.xyz ), _float3( 1.4 ) ) * fvig, f.w * f.w ), _float3( use_frame ) );
 	//col = lerp( col, lerp( max( col, 0.0 ), pow( abs( f.xyz ), _float3( 1.4 ) ) * fvig, f.w * f.w ), _float3( 1.0 ) );
-
-	// Gamma correction since we are not rendering to an sRGB render target.
-	col = pow( col, _float3( 1.0 / 1.1 ) );
 #endif
+
+	// RB: gamma boost
+	col = pow( max( col, 0.0 ), _float3( 1.0 / 1.1 ) );
 
 	result.color = float4( col, 1.0 );
 }
