@@ -455,8 +455,8 @@ float idConsoleLocal::DrawFPS( float y )
 			"CPC Hi",
 			"NES",
 			"NES Hi",
-			"Sega",
-			"Sega Hi",
+			"Sega MD",
+			"Sega MD Hi",
 			"Sony PSX",
 		};
 

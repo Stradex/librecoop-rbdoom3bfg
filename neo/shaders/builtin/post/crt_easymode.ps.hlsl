@@ -57,7 +57,7 @@ struct PS_OUT
 // Set to 0 to use linear filter and gain speed
 #define ENABLE_LANCZOS 1
 
-#define RESOLUTION_DIVISOR 4.0
+#define RESOLUTION_DIVISOR 6.0
 
 float4 dilate( float4 col )
 {

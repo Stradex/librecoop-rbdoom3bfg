@@ -51,7 +51,7 @@ struct PS_OUT
 };
 // *INDENT-ON*
 
-#define TEX2D(c) dilate(t_CurrentRender.Sample( s_LinearClamp, c ).rgba)
+#define TEX2D(c) dilate(t_CurrentRender.Sample( s_LinearClamp, c ).rgb)
 #define FIX(c) max(abs(c), 1e-5)
 
 // Set to 0 to use linear filter and gain speed
@@ -59,16 +59,40 @@ struct PS_OUT
 
 #define RESOLUTION_DIVISOR 4.0
 
-float4 dilate( float4 col )
+struct Params
 {
-#if 1
+	float4 sourceSize;
+	float4 outputSize;
+	uint FrameCount;
+
+	float SHARPNESS_IMAGE;
+	float SHARPNESS_EDGES;
+	float GLOW_WIDTH;
+	float GLOW_HEIGHT;
+	float GLOW_HALATION;
+	float GLOW_DIFFUSION;
+	float MASK_COLORS;
+	float MASK_STRENGTH;
+	float MASK_SIZE;
+	float SCANLINE_SIZE_MIN;
+	float SCANLINE_SIZE_MAX;
+	float SCANLINE_SHAPE;
+	float SCANLINE_OFFSET;
+	float GAMMA_INPUT;
+	float GAMMA_OUTPUT;
+	float BRIGHTNESS;
+};
+
+float3 dilate( float3 col )
+{
 	// FIXME
-	//float4 x = lerp( _float4( 1.0 ), col, params.DILATION );
-	float4 x = lerp( _float4( 1.0 ), col, 1.0 );
-	return col * x;
-#else
-	return col;
-#endif
+	//return pow(col, float3(params.GAMMA_INPUT))
+	return pow( col, _float3( 2.4 ) );
+}
+
+float mod( float x, float y )
+{
+	return x - y * floor( x / y );
 }
 
 float curve_distance( float x, float sharp )
@@ -85,30 +109,105 @@ float curve_distance( float x, float sharp )
 	return lerp( x, curve, sharp );
 }
 
-float4x4 get_color_matrix( float2 co, float2 dx )
+float3x3 get_color_matrix( float2 co, float2 dx )
 {
-	return float4x4( TEX2D( co - dx ), TEX2D( co ), TEX2D( co + dx ), TEX2D( co + 2.0 * dx ) );
+	return float3x3( TEX2D( co - dx ), TEX2D( co ), TEX2D( co + dx ) );
+}
+float3 blur( float3x3 m, float dist, float rad )
+{
+	float3 x = float3( dist - 1.0, dist, dist + 1.0 ) / rad;
+	float3 w = exp2( x * x * -1.0 );
 
-	// transpose for HLSL
-	//m = transpose(m);
-	//return m;
+	return ( m[0] * w.x + m[1] * w.y + m[2] * w.z ) / ( w.x + w.y + w.z );
 }
 
-float3 filter_lanczos( float4 coeffs, float4x4 color_matrix )
+float3 filter_gaussian( float2 co, float2 tex_size, Params params )
 {
-	float4 col        = mul( color_matrix,  coeffs );
-	float4 sample_min = min( color_matrix[1], color_matrix[2] );
-	float4 sample_max = max( color_matrix[1], color_matrix[2] );
+	float2 dx = float2( 1.0 / tex_size.x, 0.0 );
+	float2 dy = float2( 0.0, 1.0 / tex_size.y );
+	float2 pix_co = co * tex_size;
+	float2 tex_co = ( floor( pix_co ) + 0.5 ) / tex_size;
+	float2 dist = ( frac( pix_co ) - 0.5 ) * -1.0;
+
+	float3x3 line0 = get_color_matrix( tex_co - dy, dx );
+	float3x3 line1 = get_color_matrix( tex_co, dx );
+	float3x3 line2 = get_color_matrix( tex_co + dy, dx );
+	float3x3 column = float3x3( blur( line0, dist.x, params.GLOW_WIDTH ),
+								blur( line1, dist.x, params.GLOW_WIDTH ),
+								blur( line2, dist.x, params.GLOW_WIDTH ) );
+
+	return blur( column, dist.y, params.GLOW_HEIGHT );
+}
+
+float3 filter_lanczos2( float4 coeffs, float3x3 color_matrix )
+{
+	float3 col        = mul( color_matrix,  coeffs.rgb );
+	float3 sample_min = min( color_matrix[1], color_matrix[2] );
+	float3 sample_max = max( color_matrix[1], color_matrix[2] );
 
 	col = clamp( col, sample_min, sample_max );
 
 	return col.rgb;
 }
 
-float mod( float x, float y )
+float3 filter_lanczos( float2 co, float2 tex_size, float sharp )
 {
-	return x - y * floor( x / y );
+	tex_size.x *= sharp;
+
+	float2 dx = float2( 1.0 / tex_size.x, 0.0 );
+	float2 pix_co = co * tex_size - float2( 0.5, 0.0 );
+	float2 tex_co = ( floor( pix_co ) + float2( 0.5, 0.001 ) ) / tex_size;
+	float2 dist = frac( pix_co );
+	float4 coef = PI * float4( dist.x + 1.0, dist.x, dist.x - 1.0, dist.x - 2.0 );
+
+	coef = FIX( coef );
+	coef = 2.0 * sin( coef ) * sin( coef / 2.0 ) / ( coef * coef );
+	coef /= dot( coef, _float4( 1.0 ) );
+
+#if 0
+	float4 col1 = float4( TEX2D( tex_co ), 1.0 );
+	float4 col2 = float4( TEX2D( tex_co + dx ), 1.0 );
+
+	return ( mul( float4x4( col1, col1, col2, col2 ), coef ) ).rgb;
+#else
+	float3 col  = filter_lanczos2( coef, get_color_matrix( tex_co, _float2( 0 ) ) );
+	float3 col2 = filter_lanczos2( coef, get_color_matrix( tex_co, dx ) );
+
+	//col = lerp( col, col2, curve_distance( dist.y, params.SHARPNESS_V ) );
+	col = lerp( col, col2, sharp );
+
+	return col;
+#endif
 }
+
+float3 get_scanline_weight( float x, float3 col, Params params )
+{
+	float3 beam = lerp( _float3( params.SCANLINE_SIZE_MIN ), _float3( params.SCANLINE_SIZE_MAX ), pow( col, _float3( 1.0 / params.SCANLINE_SHAPE ) ) );
+	float3 x_mul = 2.0 / beam;
+	float3 x_offset = x_mul * 0.5;
+
+	return smoothstep( 0.0, 1.0, 1.0 - abs( x * x_mul - x_offset ) ) * x_offset;
+}
+
+float3 get_mask_weight( float x, Params params )
+{
+	float i = mod( floor( x * params.outputSize.x * params.sourceSize.x / ( params.sourceSize.x * params.MASK_SIZE ) ), params.MASK_COLORS );
+
+	if( i == 0.0 )
+	{
+		return lerp( float3( 1.0, 0.0, 1.0 ), float3( 1.0, 0.0, 0.0 ), params.MASK_COLORS - 2.0 );
+	}
+	else if( i == 1.0 )
+	{
+		return float3( 0.0, 1.0, 0.0 );
+	}
+	else
+	{
+		return float3( 0.0, 0.0, 1.0 );
+	}
+}
+
+
 
 float2 curve( float2 uv, float curvature )
 {
@@ -125,137 +224,58 @@ void main( PS_IN fragment, out PS_OUT result )
 {
 	// revised version from RetroArch
 
-	struct Params
-	{
-		float BRIGHT_BOOST;
-		float DILATION;
-		float GAMMA_INPUT;
-		float GAMMA_OUTPUT;
-		float MASK_SIZE;
-		float MASK_STAGGER;
-		float MASK_STRENGTH;
-		float MASK_DOT_HEIGHT;
-		float MASK_DOT_WIDTH;
-		float SCANLINE_CUTOFF;
-		float SCANLINE_BEAM_WIDTH_MAX;
-		float SCANLINE_BEAM_WIDTH_MIN;
-		float SCANLINE_BRIGHT_MAX;
-		float SCANLINE_BRIGHT_MIN;
-		float SCANLINE_STRENGTH;
-		float SHARPNESS_H;
-		float SHARPNESS_V;
-	};
-
 	Params params;
-	params.BRIGHT_BOOST = 1.2;
-	params.DILATION = 1.0;
-	params.GAMMA_INPUT = 2.0;
-	params.GAMMA_OUTPUT = 1.8;
+	params.FrameCount = int( rpJitterTexOffset.w );
+	params.SHARPNESS_IMAGE = 1.0;
+	params.SHARPNESS_EDGES = 3.0;
+	params.GLOW_WIDTH = 0.5;
+	params.GLOW_HEIGHT = 0.5;
+	params.GLOW_HALATION = 0.1;
+	params.GLOW_DIFFUSION = 0.05;
+	params.MASK_COLORS = 2.0;
+	params.MASK_STRENGTH = 0.3;
 	params.MASK_SIZE = 1.0;
-	params.MASK_STAGGER = 0.0;
-	params.MASK_STRENGTH = 0.8;
-	params.MASK_DOT_HEIGHT = 1.0;
-	params.MASK_DOT_WIDTH = 1.0;
-	params.SCANLINE_CUTOFF = 400.0;
-	params.SCANLINE_BEAM_WIDTH_MAX = 1.5;
-	params.SCANLINE_BEAM_WIDTH_MIN = 1.5;
-	params.SCANLINE_BRIGHT_MAX = 0.65;
-	params.SCANLINE_BRIGHT_MIN = 0.35;
-	params.SCANLINE_STRENGTH = 1.0;
-	params.SHARPNESS_H = 0.5;
-	params.SHARPNESS_V = 1.0;
-
+	params.SCANLINE_SIZE_MIN = 0.5;
+	params.SCANLINE_SIZE_MAX = 1.5;
+	params.SCANLINE_SHAPE = 2.5;
+	params.SCANLINE_OFFSET = 1.0;
+	params.GAMMA_INPUT = 2.4;
+	params.GAMMA_OUTPUT = 2.4;
+	params.BRIGHTNESS = 1.5;
 
 	float4 outputSize;
 	outputSize.xy = rpWindowCoord.zw;
 	outputSize.zw = float2( 1.0, 1.0 ) / rpWindowCoord.zw;
 
-#if 1
 	float4 sourceSize = outputSize;
-#else
-	float4 sourceSize;
-	sourceSize.xy = rpWindowCoord.zw / float2( 4, 4.4 ); //RESOLUTION_DIVISOR;
-	sourceSize.zw = float2( 1.0, 1.0 ) / sourceSize.xy;
-#endif
 
-	float2 vTexCoord = fragment.texcoord0.xy;
+	params.sourceSize = sourceSize;
+	params.outputSize = outputSize;
 
-#if 0
-	if( rpWindowCoord.x > 0.0 )
+	float scale = floor( outputSize.y * sourceSize.w );
+	float offset = 1.0 / scale * 0.5;
+
+	if( bool( mod( scale, 2.0 ) ) )
 	{
-		vTexCoord = curve( vTexCoord, 2.0 );
-	}
-#endif
-
-	float2 dx     = float2( sourceSize.z, 0.0 );
-	float2 dy     = float2( 0.0, sourceSize.w );
-	float2 pix_co = vTexCoord * sourceSize.xy - float2( 0.5, 0.5 );
-	float2 tex_co = ( floor( pix_co ) + float2( 0.5, 0.5 ) ) * sourceSize.zw;
-	float2 dist   = frac( pix_co );
-	float curve_x;
-	float3 col, col2;
-
-#if ENABLE_LANCZOS
-	curve_x = curve_distance( dist.x, params.SHARPNESS_H * params.SHARPNESS_H );
-
-	float4 coeffs = PI * float4( 1.0 + curve_x, curve_x, 1.0 - curve_x, 2.0 - curve_x );
-
-	coeffs = FIX( coeffs );
-	coeffs = 2.0 * sin( coeffs ) * sin( coeffs * 0.5 ) / ( coeffs * coeffs );
-	coeffs /= dot( coeffs, _float4( 1.0 ) );
-
-	col  = filter_lanczos( coeffs, get_color_matrix( tex_co, dx ) );
-	col2 = filter_lanczos( coeffs, get_color_matrix( tex_co + dy, dx ) );
-#else
-	curve_x = curve_distance( dist.x, params.SHARPNESS_H );
-
-	col  = lerp( TEX2D( tex_co ).rgb,      TEX2D( tex_co + dx ).rgb,      curve_x );
-	col2 = lerp( TEX2D( tex_co + dy ).rgb, TEX2D( tex_co + dx + dy ).rgb, curve_x );
-#endif
-
-	col = lerp( col, col2, curve_distance( dist.y, params.SHARPNESS_V ) );
-	col = pow( col, _float3( params.GAMMA_INPUT / ( params.DILATION + 1.0 ) ) );
-
-	float luma        = dot( float3( 0.2126, 0.7152, 0.0722 ), col );
-	float bright      = ( max( col.r, max( col.g, col.b ) ) + luma ) * 0.5;
-	float scan_bright = clamp( bright, params.SCANLINE_BRIGHT_MIN, params.SCANLINE_BRIGHT_MAX );
-	float scan_beam   = clamp( bright * params.SCANLINE_BEAM_WIDTH_MAX, params.SCANLINE_BEAM_WIDTH_MIN, params.SCANLINE_BEAM_WIDTH_MAX );
-	float scan_weight = 1.0 - pow( cos( vTexCoord.y * 2.0 * PI * sourceSize.y / RESOLUTION_DIVISOR ) * 0.5 + 0.5, scan_beam ) * params.SCANLINE_STRENGTH;
-
-	float mask   = 1.0 - params.MASK_STRENGTH;
-	float2 mod_fac = floor( vTexCoord * outputSize.xy * sourceSize.xy / ( sourceSize.xy * float2( params.MASK_SIZE, params.MASK_DOT_HEIGHT * params.MASK_SIZE ) ) );
-	int dot_no   = int( mod( ( mod_fac.x + mod( mod_fac.y, 2.0 ) * params.MASK_STAGGER ) / params.MASK_DOT_WIDTH, 3.0 ) );
-	float3 mask_weight;
-
-	if( dot_no == 0 )
-	{
-		mask_weight = float3( 1.0,  mask, mask );
-	}
-	else if( dot_no == 1 )
-	{
-		mask_weight = float3( mask, 1.0,  mask );
-	}
-	else
-	{
-		mask_weight = float3( mask, mask, 1.0 );
+		offset = 0.0;
 	}
 
-#if 0
-	if( sourceSize.y >= params.SCANLINE_CUTOFF )
-	{
-		scan_weight = 1.0;
-	}
-#endif
+	float2 vTexCoord = abs( fragment.texcoord0.xy );
 
-	col2 = col.rgb;
-	col *= _float3( scan_weight );
-	col  = lerp( col, col2, scan_bright );
-	col *= mask_weight;
-	col  = pow( col, _float3( 1.0 / params.GAMMA_OUTPUT ) );
+	float2 co = ( vTexCoord * sourceSize.xy - float2( 0.0, offset * params.SCANLINE_OFFSET ) ) * sourceSize.zw;
+	float3 col_glow = filter_gaussian( co, sourceSize.xy, params );
+	float3 col_soft = filter_lanczos( co, sourceSize.xy, params.SHARPNESS_IMAGE );
+	float3 col_sharp = filter_lanczos( co, sourceSize.xy, params.SHARPNESS_EDGES );
+	float3 col = sqrt( col_sharp * col_soft );
 
-	//col = col2;
-	//col = _float3( scan_weight );
-	//col = float3( scan_bright, scan_beam, scan_weight );
+	col *= get_scanline_weight( frac( co.y * sourceSize.y / RESOLUTION_DIVISOR ), col_soft, params );
+	col_glow = saturate( col_glow - col );
+	col += col_glow * col_glow * params.GLOW_HALATION;
+	col = lerp( col, col * get_mask_weight( vTexCoord.x, params ) * params.MASK_COLORS, params.MASK_STRENGTH );
+	col += col_glow * params.GLOW_DIFFUSION;
+	col = pow( col * params.BRIGHTNESS, _float3( 1.0 / params.GAMMA_OUTPUT ) );
 
-	result.color = float4( col * params.BRIGHT_BOOST, 1.0 );
+	//col = col_soft;
+
+	result.color = float4( col, 1.0 );
 }
