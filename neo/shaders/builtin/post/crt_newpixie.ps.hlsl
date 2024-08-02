@@ -53,7 +53,7 @@ struct PS_OUT
 float3 tsample( Texture2D tex, float2 tc, float offs, float2 resolution )
 {
 #if 1
-	// DON'T this messes really everythign up tc = tc * float2( 1.025, 0.92 ) + float2( -0.0125, 0.04 );
+	// DON'T : this really messes everything up tc = tc * float2( 1.025, 0.92 ) + float2( -0.0125, 0.04 );
 	float3 s = pow( abs( tex.Sample( s_LinearClamp, float2( tc.x, tc.y ) ).rgb ), _float3( 2.2 ) );
 	return s * _float3( 1.25 );
 #else
@@ -150,17 +150,9 @@ void main( PS_IN fragment, out PS_OUT result )
 	time = float( mod( params.FrameCount, 640 ) * 1 );
 
 	Texture2D backbuffer = t_CurrentRender;
-#if 1
 	col.r = tsample( backbuffer, float2( x + scuv.x + 0.0009, scuv.y + 0.0009 ), resolution.y / 800.0, resolution ).x + 0.02;
 	col.g = tsample( backbuffer, float2( x + scuv.x + 0.0000, scuv.y - 0.0011 ), resolution.y / 800.0, resolution ).y + 0.02;
 	col.b = tsample( backbuffer, float2( x + scuv.x - 0.0015, scuv.y + 0.0000 ), resolution.y / 800.0, resolution ).z + 0.02;
-#else
-	col.r = t_CurrentRender.Sample( LinearSampler, float2( x + uv.x + 0.001, uv.y + 0.001 ) ).x + 0.05;
-	col.g = t_CurrentRender.Sample( LinearSampler, float2( x + uv.x + 0.000, uv.y - 0.002 ) ).y + 0.05;
-	col.b = t_CurrentRender.Sample( LinearSampler, float2( x + uv.x - 0.002, uv.y + 0.000 ) ).z + 0.05;
-#endif
-
-
 
 	/* Ghosting */
 #if 1

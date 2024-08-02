@@ -55,9 +55,10 @@ struct PS_OUT
 #define FIX(c) max(abs(c), 1e-5)
 
 // Set to 0 to use linear filter and gain speed
-#define ENABLE_LANCZOS 1
+#define ENABLE_LANCZOS 0
+#define ENABLE_NTSC 1
 
-#define RESOLUTION_DIVISOR 6.0
+#define RESOLUTION_DIVISOR 4.0
 
 float4 dilate( float4 col )
 {
@@ -121,6 +122,119 @@ float2 curve( float2 uv, float curvature )
 	return uv;
 }
 
+#if 1
+float3 rgb2yiq( float3 c )
+{
+	return float3(
+			   ( 0.2989 * c.x + 0.5959 * c.y + 0.2115 * c.z ),
+			   ( 0.5870 * c.x - 0.2744 * c.y - 0.5229 * c.z ),
+			   ( 0.1140 * c.x - 0.3216 * c.y + 0.3114 * c.z )
+		   );
+}
+
+float3 yiq2rgb( float3 c )
+{
+	return float3(
+			   ( 1.0 * c.x +	  1.0 * c.y + 	1.0 * c.z ),
+			   ( 0.956 * c.x - 0.2720 * c.y - 1.1060 * c.z ),
+			   ( 0.6210 * c.x - 0.6474 * c.y + 1.7046 * c.z )
+		   );
+}
+
+float2 circle( float start, float points, float p )
+{
+	float rad = ( 3.141592 * 2.0 * ( 1.0 / points ) ) * ( p + start );
+	//return float2(sin(rad), cos(rad));
+	return float2( -( .3 + rad ), cos( rad ) );
+
+}
+
+float3 blur( float2 uv, float f, float d )
+{
+	float t = 0.0;
+	float b = 1.0;
+
+	float2 pixelOffset = float2( d + 0.0005 * t, 0 );
+
+	float start = 2.0 / 14.0;
+	float2 scale = 0.66 * 4.0 * 2.0 * pixelOffset.xy;
+
+	//t_CurrentRender.Sample( s_LinearClamp, c ).rgb
+	float3 N0 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 0.0 ) * scale ).rgb;
+	float3 N1 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 1.0 ) * scale ).rgb;
+	float3 N2 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 2.0 ) * scale ).rgb;
+	float3 N3 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 3.0 ) * scale ).rgb;
+	float3 N4 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 4.0 ) * scale ).rgb;
+	float3 N5 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 5.0 ) * scale ).rgb;
+	float3 N6 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 6.0 ) * scale ).rgb;
+	float3 N7 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 7.0 ) * scale ).rgb;
+	float3 N8 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 8.0 ) * scale ).rgb;
+	float3 N9 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 9.0 ) * scale ).rgb;
+	float3 N10 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 10.0 ) * scale ).rgb;
+	float3 N11 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 11.0 ) * scale ).rgb;
+	float3 N12 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 12.0 ) * scale ).rgb;
+	float3 N13 = t_CurrentRender.Sample( s_LinearClamp, uv + circle( start, 14.0, 13.0 ) * scale ).rgb;
+	float3 N14 = t_CurrentRender.Sample( s_LinearClamp, uv ).rgb;
+
+	float4 clr = t_CurrentRender.Sample( s_LinearClamp, uv );
+	float W = 1.0 / 15.0;
+
+	clr.rgb =
+		( N0 * W ) +
+		( N1 * W ) +
+		( N2 * W ) +
+		( N3 * W ) +
+		( N4 * W ) +
+		( N5 * W ) +
+		( N6 * W ) +
+		( N7 * W ) +
+		( N8 * W ) +
+		( N9 * W ) +
+		( N10 * W ) +
+		( N11 * W ) +
+		( N12 * W ) +
+		( N13 * W ) +
+		( N14 * W );
+
+	return  float3( clr.xyz ) * b;
+}
+
+
+
+float3 get_blurred_pixel( float2 uv )
+{
+	float d = 0.0;
+	float s = 0.0;
+
+	float e = min( 0.30, pow( max( 0.0, cos( uv.y * 4.0 + 0.3 ) - 0.75 ) * ( s + 0.5 ) * 1.0, 3.0 ) ) * 25.0;
+
+	d = 0.051 + abs( sin( s / 4.0 ) );
+	float c = max( 0.0001, 0.002 * d );
+	float2 uvo = uv;
+	// uv.x+=.1*d;
+
+	float3 fragColor;
+	fragColor.xyz = blur( uv, 0.0, c + c * ( uv.x ) );
+	float y = rgb2yiq( fragColor.xyz ).r;
+
+	uv.x += 0.01 * d;
+	c *= 6.0;
+	fragColor.xyz = blur( uv, 0.333, c );
+	float i = rgb2yiq( fragColor.xyz ).g;
+
+	uv.x += 0.005 * d;
+	c *= 2.50;
+	fragColor.xyz = blur( uv, 0.666, c );
+	float q = rgb2yiq( fragColor.xyz ).b;
+
+	fragColor.xyz = yiq2rgb( float3( y, i, q ) ) - pow( s + e * 2.0, 3.0 );
+	fragColor.xyz *= smoothstep( 1.0, .999, uv.x - 0.1 );
+
+	return fragColor;
+}
+#endif
+
+
 void main( PS_IN fragment, out PS_OUT result )
 {
 	// revised version from RetroArch
@@ -147,13 +261,13 @@ void main( PS_IN fragment, out PS_OUT result )
 	};
 
 	Params params;
-	params.BRIGHT_BOOST = 1.2;
+	params.BRIGHT_BOOST = 1.5;
 	params.DILATION = 1.0;
-	params.GAMMA_INPUT = 2.0;
-	params.GAMMA_OUTPUT = 1.8;
+	params.GAMMA_INPUT = 2.4;
+	params.GAMMA_OUTPUT = 2.5;
 	params.MASK_SIZE = 1.0;
 	params.MASK_STAGGER = 0.0;
-	params.MASK_STRENGTH = 0.8;
+	params.MASK_STRENGTH = 0.4;
 	params.MASK_DOT_HEIGHT = 1.0;
 	params.MASK_DOT_WIDTH = 1.0;
 	params.SCANLINE_CUTOFF = 400.0;
@@ -206,6 +320,9 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	col  = filter_lanczos( coeffs, get_color_matrix( tex_co, dx ) );
 	col2 = filter_lanczos( coeffs, get_color_matrix( tex_co + dy, dx ) );
+
+#elif ENABLE_NTSC
+	col = col2 = get_blurred_pixel( vTexCoord );
 #else
 	curve_x = curve_distance( dist.x, params.SHARPNESS_H );
 
@@ -214,7 +331,7 @@ void main( PS_IN fragment, out PS_OUT result )
 #endif
 
 	col = lerp( col, col2, curve_distance( dist.y, params.SHARPNESS_V ) );
-	col = pow( col, _float3( params.GAMMA_INPUT / ( params.DILATION + 1.0 ) ) );
+	col = pow( col, _float3( params.GAMMA_INPUT ) ); /// ( params.DILATION + 1.0 ) ) );
 
 	float luma        = dot( float3( 0.2126, 0.7152, 0.0722 ), col );
 	float bright      = ( max( col.r, max( col.g, col.b ) ) + luma ) * 0.5;

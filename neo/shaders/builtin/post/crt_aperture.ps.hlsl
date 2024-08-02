@@ -78,6 +78,7 @@ struct Params
 	float SCANLINE_SIZE_MAX;
 	float SCANLINE_SHAPE;
 	float SCANLINE_OFFSET;
+	float SCANLINE_STRENGTH;
 	float GAMMA_INPUT;
 	float GAMMA_OUTPUT;
 	float BRIGHTNESS;
@@ -186,7 +187,7 @@ float3 get_scanline_weight( float x, float3 col, Params params )
 	float3 x_mul = 2.0 / beam;
 	float3 x_offset = x_mul * 0.5;
 
-	return smoothstep( 0.0, 1.0, 1.0 - abs( x * x_mul - x_offset ) ) * x_offset;
+	return smoothstep( 0.0, 1.0, 1.0 - abs( x * x_mul - x_offset ) ) * x_offset * params.SCANLINE_STRENGTH;
 }
 
 float3 get_mask_weight( float x, Params params )
@@ -231,14 +232,15 @@ void main( PS_IN fragment, out PS_OUT result )
 	params.GLOW_WIDTH = 0.5;
 	params.GLOW_HEIGHT = 0.5;
 	params.GLOW_HALATION = 0.1;
-	params.GLOW_DIFFUSION = 0.05;
+	params.GLOW_DIFFUSION = 0.5;
 	params.MASK_COLORS = 2.0;
-	params.MASK_STRENGTH = 0.3;
+	params.MASK_STRENGTH = 0.5;
 	params.MASK_SIZE = 1.0;
 	params.SCANLINE_SIZE_MIN = 0.5;
 	params.SCANLINE_SIZE_MAX = 1.5;
 	params.SCANLINE_SHAPE = 2.5;
 	params.SCANLINE_OFFSET = 1.0;
+	params.SCANLINE_STRENGTH = 1.0;
 	params.GAMMA_INPUT = 2.4;
 	params.GAMMA_OUTPUT = 2.4;
 	params.BRIGHTNESS = 1.5;
