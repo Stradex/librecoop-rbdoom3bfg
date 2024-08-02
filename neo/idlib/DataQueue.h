@@ -107,8 +107,11 @@ bool idDataQueue< maxItems, maxBuffer >::Append( int sequence, const byte* b1, i
 	item.length = b1Len + b2Len;
 	item.sequence = sequence;
 	item.dataOffset = dataLength;
-	memcpy( data + dataLength, b1, b1Len );
-	dataLength += b1Len;
+	if( b1 != NULL)
+	{
+		memcpy( data + dataLength, b1, b1Len );
+		dataLength += b1Len;
+	}
 	if( b2 != NULL )
 	{
 		memcpy( data + dataLength, b2, b2Len );
