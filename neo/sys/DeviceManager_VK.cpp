@@ -50,8 +50,8 @@
 		#endif
 	#endif
 	#if defined( VK_EXT_layer_settings ) || defined( USE_MoltenVK )
-		idCVar r_mvkSynchronousQueueSubmits( "r_mvkSynchronousQueueSubmits", "0", CVAR_BOOL | CVAR_INIT, "Use MoltenVK's synchronous queue submit option." );
-		idCVar r_mvkUseMetalArgumentBuffers( "r_mvkUseMetalArgumentBuffers", "1", CVAR_INTEGER | CVAR_INIT, "Use MoltenVK's Metal argument buffers option (0=Off, 1=On)", 0, 1 );
+		idCVar r_mvkSynchronousQueueSubmits( "r_mvkSynchronousQueueSubmits", "0", CVAR_BOOL | CVAR_INIT | CVAR_NEW, "Use MoltenVK's synchronous queue submit option." );
+		idCVar r_mvkUseMetalArgumentBuffers( "r_mvkUseMetalArgumentBuffers", "1", CVAR_INTEGER | CVAR_INIT | CVAR_NEW, "Use MoltenVK's Metal argument buffers option (0=Off, 1=On)", 0, 1 );
 	#endif
 #endif
 #include <nvrhi/validation.h>
