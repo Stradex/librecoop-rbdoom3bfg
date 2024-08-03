@@ -51,7 +51,7 @@
 	#endif
 	#if defined( VK_EXT_layer_settings ) || defined( USE_MoltenVK )
 		idCVar r_mvkSynchronousQueueSubmits( "r_mvkSynchronousQueueSubmits", "0", CVAR_BOOL | CVAR_INIT, "Use MoltenVK's synchronous queue submit option." );
-		idCVar r_mvkUseMetalArgumentBuffers( "r_mvkUseMetalArgumentBuffers", "2", CVAR_INTEGER | CVAR_INIT, "Use MoltenVK's Metal argument buffers option (0=Off, 1=Always On, 2=On when VK_EXT_descriptor_indexing enabled)", 0, 2 );
+		idCVar r_mvkUseMetalArgumentBuffers( "r_mvkUseMetalArgumentBuffers", "1", CVAR_INTEGER | CVAR_INIT, "Use MoltenVK's Metal argument buffers option (0=Off, 1=On)", 0, 1 );
 	#endif
 #endif
 #include <nvrhi/validation.h>
@@ -1344,10 +1344,10 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 		//	   - Also needed for Vulkan SDK 1.3.268.1 to work around SPIRV-Cross issue for Metal conversion.
 		//	   - See https://github.com/KhronosGroup/MoltenVK/issues/2016 and https://github.com/goki/vgpu/issues/9
 		//	   - Issue solved in Vulkan SDK >= 1.3.275.0, but config uses VK_EXT_layer_settings instead of this code.
-		if( mvkConfig.useMetalArgumentBuffers == MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS_NEVER && r_mvkUseMetalArgumentBuffers.GetInteger() )
+		if( mvkConfig.useMetalArgumentBuffers == 0 && r_mvkUseMetalArgumentBuffers.GetInteger() )
 		{
 			idLib::Printf( "Enabled MoltenVK's Metal argument buffers...\n" );
-			mvkConfig.useMetalArgumentBuffers = MVKUseMetalArgumentBuffers( r_mvkUseMetalArgumentBuffers.GetInteger() );
+			mvkConfig.useMetalArgumentBuffers = decltype(mvkConfig.useMetalArgumentBuffers)( r_mvkUseMetalArgumentBuffers.GetInteger() );
 		}
 
 #if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 6 )
