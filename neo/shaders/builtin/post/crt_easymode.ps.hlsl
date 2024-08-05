@@ -62,10 +62,10 @@ struct PS_OUT
 
 float4 dilate( float4 col )
 {
-#if 1
+#if 0
 	// FIXME
 	//float4 x = lerp( _float4( 1.0 ), col, params.DILATION );
-	float4 x = lerp( _float4( 1.0 ), col, 1.0 );
+	//float4 x = lerp( _float4( 1.0 ), col, 1.0 );
 	return col * x;
 #else
 	return col;
@@ -122,7 +122,290 @@ float2 curve( float2 uv, float curvature )
 	return uv;
 }
 
-#if 1
+#if 0
+
+/*
+	Bicubic Catmull-Rom 5-taps (Fast) - ported by Hyllian - 2024
+
+	Samples a texture with B-Spline filtering, using only 4 texture fetches instead of 16.
+	See http://float3.ca/bicubic-filtering-in-fewer-taps/ for more details
+	Source: https://www.shadertoy.com/view/styXDh
+	http://www.profhua.com/Sub/Article/BicubicFiltering/BicubicFiltering.html
+
+	ATENTION: This code only work using LINEAR filter sampling set on Retroarch!
+
+*/
+
+float3 get_blurred_pixel( float2 vTexCoord, float4 sourceSize )
+{
+	// We're going to sample a a 4x4 grid of texels surrounding the target UV coordinate. We'll do this by rounding
+	// down the sample location to get the exact center of our "starting" texel. The starting texel will be at
+	// location [1, 1] in the grid, where [0, 0] is the top left corner.
+	float2 texSize = sourceSize.xy;// / RESOLUTION_DIVISOR;
+	float2 invTexSize = 1.0 / texSize;
+	float2 iTc = vTexCoord * texSize;
+
+	float2 tc = floor( iTc - _float2( 0.5 ) ) + _float2( 0.5 );
+
+	// Compute the fractional offset from our starting texel to our original sample location, which we'll
+	// feed into the B-Spline function to get our filter weights.
+	float2 f  = iTc - tc;
+	float2 f2 = f * f;
+	float2 f3 = f2 * f;
+
+	float2 of = _float2( 1.0 ) - f;
+	float2 of2 = of * of;
+	float2 of3 = of2 * of;
+
+	float2 w0 = f2 - 0.5 * ( f3 + f );
+	float2 w1 = 1.5 * f3 - 2.5 * f2 + _float2( 1.0 );
+	float2 w3 = 0.5 * ( f3 - f2 );
+	float2 w2 = _float2( 1.0 ) - w0 - w1 - w3;
+
+	float2 Weight[3];
+	float2 Sample[3];
+
+	Weight[0] = w0;
+	Weight[1] = w1 + w2;
+	Weight[2] = w3;
+
+	Sample[0] = tc - _float2( 1.0 );
+	Sample[1] = tc + w2 / Weight[1];
+	Sample[2] = tc + _float2( 2.0 );
+
+	Sample[0] *= invTexSize;
+	Sample[1] *= invTexSize;
+	Sample[2] *= invTexSize;
+
+	float sampleWeight[5];
+	sampleWeight[0] = Weight[1].x * Weight[0].y;
+	sampleWeight[1] = Weight[0].x * Weight[1].y;
+	sampleWeight[2] = Weight[1].x * Weight[1].y;
+	sampleWeight[3] = Weight[2].x * Weight[1].y;
+	sampleWeight[4] = Weight[1].x * Weight[2].y;
+
+	float3 Ct = t_CurrentRender.Sample( s_LinearClamp, float2( Sample[1].x, Sample[0].y ) ).rgb * sampleWeight[0];
+	float3 Cl = t_CurrentRender.Sample( s_LinearClamp, float2( Sample[0].x, Sample[1].y ) ).rgb * sampleWeight[1];
+	float3 Cc = t_CurrentRender.Sample( s_LinearClamp, float2( Sample[1].x, Sample[1].y ) ).rgb * sampleWeight[2];
+	float3 Cr = t_CurrentRender.Sample( s_LinearClamp, float2( Sample[2].x, Sample[1].y ) ).rgb * sampleWeight[3];
+	float3 Cb = t_CurrentRender.Sample( s_LinearClamp, float2( Sample[1].x, Sample[2].y ) ).rgb * sampleWeight[4];
+
+	float WeightMultiplier = 1.0 / ( sampleWeight[0] + sampleWeight[1] + sampleWeight[2] + sampleWeight[3] + sampleWeight[4] );
+
+	return float3( ( Ct + Cl + Cc + Cr + Cb ) * WeightMultiplier );
+}
+
+#elif 1
+
+/*
+	Bicubic B-Spline 4-taps (Fast) - ported by Hyllian - 2024
+
+	The following code is licensed under the MIT license: https://gist.github.com/TheRealMJP/bc503b0b87b643d3505d41eab8b332ae
+
+	Samples a texture with B-Spline filtering, using only 4 texture fetches instead of 16.
+	See http://float3.ca/bicubic-filtering-in-fewer-taps/ for more details
+	Implementation: https://www.shadertoy.com/view/styXDh
+
+	ATENTION: This code only work using LINEAR filter sampling set on Retroarch!
+
+*/
+
+float3 get_blurred_pixel( float2 vTexCoord, float4 sourceSize )
+{
+	// We're going to sample a a 4x4 grid of texels surrounding the target UV coordinate. We'll do this by rounding
+	// down the sample location to get the exact center of our "starting" texel. The starting texel will be at
+	// location [1, 1] in the grid, where [0, 0] is the top left corner.
+	float2 texSize = sourceSize.xy;// / RESOLUTION_DIVISOR;
+	float2 invTexSize = 1.0 / texSize;
+	float2 iTc = vTexCoord * texSize;
+
+	float2 tc = floor( iTc - _float2( 0.5 ) ) + _float2( 0.5 );
+
+	// Compute the fractional offset from our starting texel to our original sample location, which we'll
+	// feed into the B-Spline function to get our filter weights.
+	float2 f  = iTc - tc;
+	float2 f2 = f * f;
+	float2 f3 = f2 * f;
+
+	float2 of  = _float2( 1.0 ) - f;
+	float2 of2 = of * of;
+	float2 of3 = of2 * of;
+
+	float2 w0 = of3 / 6.0 ;
+	float2 w1 = ( _float2( 4.0 ) + 3.*f3 - 6.*f2 ) / 6.0;
+	float2 w2 = ( _float2( 4.0 ) + 3.*of3 - 6.*of2 ) / 6.0;
+	float2 w3 = f3 / 6.0;
+
+	float2 Weight[2];
+	float2 Sample[2];
+
+	Weight[0] = w0 + w1;
+	Weight[1] = w2 + w3;
+
+	Sample[0] = tc - ( _float2( 1.0 ) - w1 / Weight[0] );
+	Sample[1] = tc + _float2( 1.0 )  + w3 / Weight[1];
+
+	Sample[0] *= invTexSize;
+	Sample[1] *= invTexSize;
+
+	float sampleWeight[4];
+	sampleWeight[0] = Weight[0].x * Weight[0].y;
+	sampleWeight[1] = Weight[1].x * Weight[0].y;
+	sampleWeight[2] = Weight[0].x * Weight[1].y;
+	sampleWeight[3] = Weight[1].x * Weight[1].y;
+
+	float3 Ctl = t_CurrentRender.Sample( s_LinearClamp, float2( Sample[0].x, Sample[0].y ) ).rgb * sampleWeight[0];
+	float3 Ctr = t_CurrentRender.Sample( s_LinearClamp, float2( Sample[1].x, Sample[0].y ) ).rgb * sampleWeight[1];
+	float3 Cbl = t_CurrentRender.Sample( s_LinearClamp, float2( Sample[0].x, Sample[1].y ) ).rgb * sampleWeight[2];
+	float3 Cbr = t_CurrentRender.Sample( s_LinearClamp, float2( Sample[1].x, Sample[1].y ) ).rgb * sampleWeight[3];
+
+	return float3( Ctl + Ctr + Cbl + Cbr );
+}
+
+#elif 1
+
+/*
+   Hyllian's jinc windowed-jinc 2-lobe with anti-ringing Shader
+
+   Copyright (C) 2011-2014 Hyllian/Jararaca - sergiogdb@gmail.com
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 2
+   of the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+*/
+
+/*
+   This is an approximation of Jinc(x)*Jinc(x*r1/r2) for x < 2.5,
+   where r1 and r2 are the first two zeros of jinc function.
+   For a jinc 2-lobe best approximation, use A=0.5 and B=0.825.
+*/
+
+// A=0.5, B=0.825 is the best jinc approximation for x<2.5. if B=1.0, it's a lanczos filter.
+// Increase A to get more blur. Decrease it to get a sharper picture.
+// B = 0.825 to get rid of dithering. Increase B to get a fine sharpness, though dithering returns.
+
+/*
+#pragma parameter JINC2_WINDOW_SINC "Window Sinc Param" 0.44 0.0 1.0 0.01
+#define JINC2_WINDOW_SINC params.JINC2_WINDOW_SINC
+#pragma parameter JINC2_SINC "Sinc Param" 0.82 0.0 1.0 0.01
+#define JINC2_SINC params.JINC2_SINC
+#pragma parameter JINC2_AR_STRENGTH "Anti-ringing Strength" 0.5 0.0 1.0 0.1
+#define JINC2_AR_STRENGTH params.JINC2_AR_STRENGTH
+*/
+
+#define JINC2_WINDOW_SINC rpDiffuseModifier.x
+#define JINC2_SINC rpDiffuseModifier.y
+#define JINC2_AR_STRENGTH rpDiffuseModifier.z
+
+
+#define halfpi  1.5707963267948966192313216916398
+#define pi    3.1415926535897932384626433832795
+#define wa    (JINC2_WINDOW_SINC*pi)
+#define wb    (JINC2_SINC*pi)
+
+// Calculates the distance between two points
+float d( float2 pt1, float2 pt2 )
+{
+	float2 v = pt2 - pt1;
+	return sqrt( dot( v, v ) );
+}
+
+float3 min4( float3 a, float3 b, float3 c, float3 d )
+{
+	return min( a, min( b, min( c, d ) ) );
+}
+
+float3 max4( float3 a, float3 b, float3 c, float3 d )
+{
+	return max( a, max( b, max( c, d ) ) );
+}
+
+float4 resampler( float4 x )
+{
+	float4 res;
+	res.x = ( x.x == 0.0 ) ?  wa * wb  :  sin( x.x * wa ) * sin( x.x * wb ) / ( x.x * x.x );
+	res.y = ( x.y == 0.0 ) ?  wa * wb  :  sin( x.y * wa ) * sin( x.y * wb ) / ( x.y * x.y );
+	res.z = ( x.z == 0.0 ) ?  wa * wb  :  sin( x.z * wa ) * sin( x.z * wb ) / ( x.z * x.z );
+	res.w = ( x.w == 0.0 ) ?  wa * wb  :  sin( x.w * wa ) * sin( x.w * wb ) / ( x.w * x.w );
+	return res;
+}
+
+float3 get_blurred_pixel( float2 vTexCoord, float4 sourceSize )
+{
+	float3 color;
+	float4x4 weights;
+
+	//sourceSize.xy /= RESOLUTION_DIVISOR;
+
+	float2 dx = float2( 4.0, 0.0 );
+	float2 dy = float2( 0.0, 4.0 );
+
+	float2 pc = vTexCoord * ( sourceSize.xy ) * _float2( 1.0001 );
+
+	float2 tc = ( floor( pc - float2( 0.5, 0.5 ) ) + float2( 0.5, 0.5 ) );
+
+	weights[0] = resampler( float4( d( pc, tc    - dx    - dy ), d( pc, tc           - dy ), d( pc, tc    + dx    - dy ), d( pc, tc + 2.0 * dx    - dy ) ) );
+	weights[1] = resampler( float4( d( pc, tc    - dx ), d( pc, tc ), d( pc, tc    + dx ), d( pc, tc + 2.0 * dx ) ) );
+	weights[2] = resampler( float4( d( pc, tc    - dx    + dy ), d( pc, tc           + dy ), d( pc, tc    + dx    + dy ), d( pc, tc + 2.0 * dx    + dy ) ) );
+	weights[3] = resampler( float4( d( pc, tc    - dx + 2.0 * dy ), d( pc, tc       + 2.0 * dy ), d( pc, tc    + dx + 2.0 * dy ), d( pc, tc + 2.0 * dx + 2.0 * dy ) ) );
+
+	//sourceSize /= RESOLUTION_DIVISOR;
+	dx = dx * sourceSize.zw;
+	dy = dy * sourceSize.zw;
+	tc = tc * sourceSize.zw;
+
+	// reading the texels
+
+	float3 c00 = t_CurrentRender.Sample( s_LinearClamp, tc    - dx    - dy ).xyz;
+	float3 c10 = t_CurrentRender.Sample( s_LinearClamp, tc           - dy ).xyz;
+	float3 c20 = t_CurrentRender.Sample( s_LinearClamp, tc    + dx    - dy ).xyz;
+	float3 c30 = t_CurrentRender.Sample( s_LinearClamp, tc + 2.0 * dx    - dy ).xyz;
+	float3 c01 = t_CurrentRender.Sample( s_LinearClamp, tc    - dx ).xyz;
+	float3 c11 = t_CurrentRender.Sample( s_LinearClamp, tc ).xyz;
+	float3 c21 = t_CurrentRender.Sample( s_LinearClamp, tc    + dx ).xyz;
+	float3 c31 = t_CurrentRender.Sample( s_LinearClamp, tc + 2.0 * dx ).xyz;
+	float3 c02 = t_CurrentRender.Sample( s_LinearClamp, tc    - dx    + dy ).xyz;
+	float3 c12 = t_CurrentRender.Sample( s_LinearClamp, tc           + dy ).xyz;
+	float3 c22 = t_CurrentRender.Sample( s_LinearClamp, tc    + dx    + dy ).xyz;
+	float3 c32 = t_CurrentRender.Sample( s_LinearClamp, tc + 2.0 * dx    + dy ).xyz;
+	float3 c03 = t_CurrentRender.Sample( s_LinearClamp, tc    - dx + 2.0 * dy ).xyz;
+	float3 c13 = t_CurrentRender.Sample( s_LinearClamp, tc       + 2.0 * dy ).xyz;
+	float3 c23 = t_CurrentRender.Sample( s_LinearClamp, tc    + dx + 2.0 * dy ).xyz;
+	float3 c33 = t_CurrentRender.Sample( s_LinearClamp, tc + 2.0 * dx + 2.0 * dy ).xyz;
+
+	// get min/max samples
+	float3 min_sample = min4( c11, c21, c12, c22 );
+	float3 max_sample = max4( c11, c21, c12, c22 );
+
+	color = mul( weights[0], ( float4x3( c00, c10, c20, c30 ) ) ).rgb;
+	color += mul( weights[1], ( float4x3( c01, c11, c21, c31 ) ) ).rgb;
+	color += mul( weights[2], ( float4x3( c02, c12, c22, c32 ) ) ).rgb;
+	color += mul( weights[3], ( float4x3( c03, c13, c23, c33 ) ) ).rgb;
+
+	color = color / ( dot( mul( weights, _float4( 1.0 ) ), _float4( 1.0 ) ) );
+
+	// anti-ringing
+	float3 aux = color;
+	color = clamp( color, min_sample, max_sample );
+
+	color = lerp( aux, color, JINC2_AR_STRENGTH );
+
+	return color;
+}
+
+#else
+
 float3 rgb2yiq( float3 c )
 {
 	return float3(
@@ -145,7 +428,7 @@ float2 circle( float start, float points, float p )
 {
 	float rad = ( 3.141592 * 2.0 * ( 1.0 / points ) ) * ( p + start );
 	//return float2(sin(rad), cos(rad));
-	return float2( -( .3 + rad ), cos( rad ) );
+	return float2( -( 0.1 + rad ), cos( rad ) );
 
 }
 
@@ -199,9 +482,7 @@ float3 blur( float2 uv, float f, float d )
 	return  float3( clr.xyz ) * b;
 }
 
-
-
-float3 get_blurred_pixel( float2 uv )
+float3 get_blurred_pixel( float2 uv, float4 unused )
 {
 	float d = 0.0;
 	float s = 0.0;
@@ -232,6 +513,7 @@ float3 get_blurred_pixel( float2 uv )
 
 	return fragColor;
 }
+
 #endif
 
 
@@ -242,7 +524,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	struct Params
 	{
 		float BRIGHT_BOOST;
-		float DILATION;
+		//float DILATION;
 		float GAMMA_INPUT;
 		float GAMMA_OUTPUT;
 		float MASK_SIZE;
@@ -261,15 +543,15 @@ void main( PS_IN fragment, out PS_OUT result )
 	};
 
 	Params params;
-	params.BRIGHT_BOOST = 1.5;
-	params.DILATION = 1.0;
+	params.BRIGHT_BOOST = 1.2;
+	//params.DILATION = 1.0;
 	params.GAMMA_INPUT = 2.4;
 	params.GAMMA_OUTPUT = 2.5;
 	params.MASK_SIZE = 1.0;
-	params.MASK_STAGGER = 0.0;
-	params.MASK_STRENGTH = 0.4;
+	params.MASK_STRENGTH = 0.8;
+	params.MASK_STAGGER = 3.0;
 	params.MASK_DOT_HEIGHT = 1.0;
-	params.MASK_DOT_WIDTH = 1.0;
+	params.MASK_DOT_WIDTH = 2.0;
 	params.SCANLINE_CUTOFF = 400.0;
 	params.SCANLINE_BEAM_WIDTH_MAX = 1.5;
 	params.SCANLINE_BEAM_WIDTH_MIN = 1.5;
@@ -279,18 +561,11 @@ void main( PS_IN fragment, out PS_OUT result )
 	params.SHARPNESS_H = 0.5;
 	params.SHARPNESS_V = 1.0;
 
-
 	float4 outputSize;
 	outputSize.xy = rpWindowCoord.zw;
 	outputSize.zw = float2( 1.0, 1.0 ) / rpWindowCoord.zw;
 
-#if 1
-	float4 sourceSize = outputSize;
-#else
-	float4 sourceSize;
-	sourceSize.xy = rpWindowCoord.zw / float2( 4, 4.4 ); //RESOLUTION_DIVISOR;
-	sourceSize.zw = float2( 1.0, 1.0 ) / sourceSize.xy;
-#endif
+	float4 sourceSize = rpScreenCorrectionFactor;
 
 	float2 vTexCoord = fragment.texcoord0.xy;
 
@@ -322,7 +597,8 @@ void main( PS_IN fragment, out PS_OUT result )
 	col2 = filter_lanczos( coeffs, get_color_matrix( tex_co + dy, dx ) );
 
 #elif ENABLE_NTSC
-	col = col2 = get_blurred_pixel( vTexCoord );
+	//col = col2 = get_blurred_pixel( vTexCoord );
+	col = col2 = get_blurred_pixel( vTexCoord, sourceSize );
 #else
 	curve_x = curve_distance( dist.x, params.SHARPNESS_H );
 
@@ -337,7 +613,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float bright      = ( max( col.r, max( col.g, col.b ) ) + luma ) * 0.5;
 	float scan_bright = clamp( bright, params.SCANLINE_BRIGHT_MIN, params.SCANLINE_BRIGHT_MAX );
 	float scan_beam   = clamp( bright * params.SCANLINE_BEAM_WIDTH_MAX, params.SCANLINE_BEAM_WIDTH_MIN, params.SCANLINE_BEAM_WIDTH_MAX );
-	float scan_weight = 1.0 - pow( cos( vTexCoord.y * 2.0 * PI * sourceSize.y / RESOLUTION_DIVISOR ) * 0.5 + 0.5, scan_beam ) * params.SCANLINE_STRENGTH;
+	float scan_weight = 1.0 - pow( cos( vTexCoord.y * 2.0 * PI * sourceSize.y /*/ RESOLUTION_DIVISOR*/ ) * 0.5 + 0.5, scan_beam ) * params.SCANLINE_STRENGTH;
 
 	float mask   = 1.0 - params.MASK_STRENGTH;
 	float2 mod_fac = floor( vTexCoord * outputSize.xy * sourceSize.xy / ( sourceSize.xy * float2( params.MASK_SIZE, params.MASK_DOT_HEIGHT * params.MASK_SIZE ) ) );
@@ -364,6 +640,11 @@ void main( PS_IN fragment, out PS_OUT result )
 	}
 #endif
 
+#if 0
+	result.color = float4( col2, 1.0 );
+	return;
+#endif
+
 	col2 = col.rgb;
 	col *= _float3( scan_weight );
 	col  = lerp( col, col2, scan_bright );
@@ -375,4 +656,6 @@ void main( PS_IN fragment, out PS_OUT result )
 	//col = float3( scan_bright, scan_beam, scan_weight );
 
 	result.color = float4( col * params.BRIGHT_BOOST, 1.0 );
+
+
 }

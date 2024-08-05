@@ -2474,7 +2474,7 @@ int idRenderSystemLocal::GetVirtualWidth() const
 	//	return SCREEN_WIDTH;
 	//}
 // jmarshall end
-	return glConfig.nativeScreenWidth;
+	return glConfig.nativeScreenWidth / 2;
 }
 
 /*
@@ -2490,7 +2490,7 @@ int idRenderSystemLocal::GetVirtualHeight() const
 	//	return SCREEN_HEIGHT;
 	//}
 // jmarshall end
-	return glConfig.nativeScreenHeight;
+	return glConfig.nativeScreenHeight / 2;
 }
 
 /*

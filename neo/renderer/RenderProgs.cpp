@@ -340,6 +340,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 							 .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) );	// _blueNoise
 
 	bindingLayouts[BINDING_LAYOUT_POST_PROCESS_FINAL] = { device->createBindingLayout( ppFxBindingLayout ), samplerTwoBindingLayout };
+	bindingLayouts[BINDING_LAYOUT_POST_PROCESS_CRT] = { device->createBindingLayout( ppFxBindingLayout ), samplerTwoBindingLayout };
 
 	auto ppFxBindingLayout2 = nvrhi::BindingLayoutDesc()
 							  .setVisibility( nvrhi::ShaderType::All )
@@ -537,9 +538,9 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		{ BUILTIN_POSTPROCESS_RETRO_NES, "builtin/post/retro_nes", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS_FINAL },
 		{ BUILTIN_POSTPROCESS_RETRO_GENESIS, "builtin/post/retro_genesis", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS_FINAL },
 		{ BUILTIN_POSTPROCESS_RETRO_PSX, "builtin/post/retro_ps1", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS_FINAL },
-		{ BUILTIN_CRT_MATTIAS, "builtin/post/crt_mattias", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS_FINAL },
-		{ BUILTIN_CRT_NUPIXIE, "builtin/post/crt_newpixie", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS_FINAL },
-		{ BUILTIN_CRT_EASYMODE, "builtin/post/crt_easymode", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS_FINAL },
+		{ BUILTIN_CRT_MATTIAS, "builtin/post/crt_mattias", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS_CRT },
+		{ BUILTIN_CRT_NUPIXIE, "builtin/post/crt_newpixie", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS_CRT },
+		{ BUILTIN_CRT_EASYMODE, "builtin/post/crt_easymode", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS_FINAL }, // FINAL for linear filtering
 
 		{ BUILTIN_SCREEN, "builtin/post/screen", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
 		{ BUILTIN_TONEMAP, "builtin/post/tonemap", "", { { "BRIGHTPASS", "0" }, { "HDR_DEBUG", "0"} }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },

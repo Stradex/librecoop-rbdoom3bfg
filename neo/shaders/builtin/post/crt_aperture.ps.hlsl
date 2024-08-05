@@ -35,7 +35,7 @@
 Texture2D t_CurrentRender	: register( t0 VK_DESCRIPTOR_SET( 0 ) );
 Texture2D t_BlueNoise		: register( t1 VK_DESCRIPTOR_SET( 0 ) );
 
-SamplerState s_LinearClamp	: register(s0 VK_DESCRIPTOR_SET( 1 ) );
+SamplerState s_NearestClamp	: register(s0 VK_DESCRIPTOR_SET( 1 ) );
 SamplerState s_LinearWrap	: register(s1 VK_DESCRIPTOR_SET( 1 ) ); // blue noise 256
 
 
@@ -51,7 +51,7 @@ struct PS_OUT
 };
 // *INDENT-ON*
 
-#define TEX2D(c) dilate(t_CurrentRender.Sample( s_LinearClamp, c ).rgb)
+#define TEX2D(c) dilate(t_CurrentRender.Sample( s_NearestClamp, c ).rgb)
 #define FIX(c) max(abs(c), 1e-5)
 
 // Set to 0 to use linear filter and gain speed
@@ -210,16 +210,6 @@ float3 get_mask_weight( float x, Params params )
 
 
 
-float2 curve( float2 uv, float curvature )
-{
-	uv = ( uv - 0.5 ) * curvature;
-	uv *= 1.1;
-	uv.x *= 1.0 + pow( ( abs( uv.y ) / 5.0 ), 2.0 );
-	uv.y *= 1.0 + pow( ( abs( uv.x ) / 4.0 ), 2.0 );
-	uv  = ( uv / curvature ) + 0.5;
-	uv =  uv * 0.92 + 0.04;
-	return uv;
-}
 
 void main( PS_IN fragment, out PS_OUT result )
 {

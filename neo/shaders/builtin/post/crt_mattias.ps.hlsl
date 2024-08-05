@@ -34,7 +34,7 @@ SOFTWARE.
 Texture2D t_CurrentRender	: register( t0 VK_DESCRIPTOR_SET( 0 ) );
 Texture2D t_BlueNoise		: register( t1 VK_DESCRIPTOR_SET( 0 ) );
 
-SamplerState s_LinearClamp	: register(s0 VK_DESCRIPTOR_SET( 1 ) );
+SamplerState s_NearestClamp	: register(s0 VK_DESCRIPTOR_SET( 1 ) );
 SamplerState s_LinearWrap	: register(s1 VK_DESCRIPTOR_SET( 1 ) ); // blue noise 256
 
 struct PS_IN
@@ -78,15 +78,15 @@ void main( PS_IN fragment, out PS_OUT result )
 	float x = 0.0; //sin( 0.3 * iTime + uv.y * 21.0 ) * sin( 0.7 * iTime + uv.y * 29.0 ) * sin( 0.3 + 0.33 * iTime + uv.y * 31.0 ) * 0.0017;
 
 	float3 col;
-	col.r = t_CurrentRender.Sample( s_LinearClamp, float2( x + uv.x + 0.001, uv.y + 0.001 ) ).x + 0.05;
-	col.g = t_CurrentRender.Sample( s_LinearClamp, float2( x + uv.x + 0.000, uv.y - 0.002 ) ).y + 0.05;
-	col.b = t_CurrentRender.Sample( s_LinearClamp, float2( x + uv.x - 0.002, uv.y + 0.000 ) ).z + 0.05;
+	col.r = t_CurrentRender.Sample( s_NearestClamp, float2( x + uv.x + 0.001, uv.y + 0.001 ) ).x + 0.05;
+	col.g = t_CurrentRender.Sample( s_NearestClamp, float2( x + uv.x + 0.000, uv.y - 0.002 ) ).y + 0.05;
+	col.b = t_CurrentRender.Sample( s_NearestClamp, float2( x + uv.x - 0.002, uv.y + 0.000 ) ).z + 0.05;
 
 	/* Ghosting */
 #if 1
-	col.r += 0.08 * t_CurrentRender.Sample( s_LinearClamp, 0.75 * float2( x + 0.025, -0.027 ) + float2( uv.x + 0.001, uv.y + 0.001 ) ).x;
-	col.g += 0.05 * t_CurrentRender.Sample( s_LinearClamp, 0.75 * float2( x + -0.022, -0.02 ) + float2( uv.x + 0.000, uv.y - 0.002 ) ).y;
-	col.b += 0.08 * t_CurrentRender.Sample( s_LinearClamp, 0.75 * float2( x + -0.02, -0.018 ) + float2( uv.x - 0.002, uv.y + 0.000 ) ).z;
+	col.r += 0.08 * t_CurrentRender.Sample( s_NearestClamp, 0.75 * float2( x + 0.025, -0.027 ) + float2( uv.x + 0.001, uv.y + 0.001 ) ).x;
+	col.g += 0.05 * t_CurrentRender.Sample( s_NearestClamp, 0.75 * float2( x + -0.022, -0.02 ) + float2( uv.x + 0.000, uv.y - 0.002 ) ).y;
+	col.b += 0.08 * t_CurrentRender.Sample( s_NearestClamp, 0.75 * float2( x + -0.02, -0.018 ) + float2( uv.x - 0.002, uv.y + 0.000 ) ).z;
 #endif
 
 	/* Level adjustment (curves) */

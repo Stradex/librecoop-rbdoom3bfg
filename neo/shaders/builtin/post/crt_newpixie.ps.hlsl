@@ -34,7 +34,7 @@ SOFTWARE.
 Texture2D t_CurrentRender	: register( t0 VK_DESCRIPTOR_SET( 0 ) );
 Texture2D t_BlueNoise		: register( t1 VK_DESCRIPTOR_SET( 0 ) );
 
-SamplerState s_LinearClamp	: register(s0 VK_DESCRIPTOR_SET( 1 ) );
+SamplerState s_NearestClamp	: register(s0 VK_DESCRIPTOR_SET( 1 ) );
 SamplerState s_LinearWrap	: register(s1 VK_DESCRIPTOR_SET( 1 ) ); // blue noise 256
 
 struct PS_IN
@@ -54,10 +54,10 @@ float3 tsample( Texture2D tex, float2 tc, float offs, float2 resolution )
 {
 #if 1
 	// DON'T : this really messes everything up tc = tc * float2( 1.025, 0.92 ) + float2( -0.0125, 0.04 );
-	float3 s = pow( abs( tex.Sample( s_LinearClamp, float2( tc.x, tc.y ) ).rgb ), _float3( 2.2 ) );
+	float3 s = pow( abs( tex.Sample( s_NearestClamp, float2( tc.x, tc.y ) ).rgb ), _float3( 2.2 ) );
 	return s * _float3( 1.25 );
 #else
-	float3 s = tex.Sample( s_LinearClamp, float2( tc.x, tc.y ) ).rgb;
+	float3 s = tex.Sample( s_NearestClamp, float2( tc.x, tc.y ) ).rgb;
 	return s;
 #endif
 }
