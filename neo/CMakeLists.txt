@@ -1534,6 +1534,7 @@ else()
 
 	# SRS - disable certain gcc/clang warnings for select third-party source libraries, consider updating versions in the future?
 	set_source_files_properties(
+			${ZLIB_SOURCES}
 			${MINIZIP_SOURCES}
 			PROPERTIES
 			COMPILE_FLAGS "-Wno-stringop-overread -Wno-deprecated-non-prototype"
