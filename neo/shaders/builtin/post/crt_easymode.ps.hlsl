@@ -122,7 +122,7 @@ float2 curve( float2 uv, float curvature )
 	return uv;
 }
 
-#if 0
+#if 1
 
 /*
 	Bicubic Catmull-Rom 5-taps (Fast) - ported by Hyllian - 2024
@@ -195,7 +195,7 @@ float3 get_blurred_pixel( float2 vTexCoord, float4 sourceSize )
 	return float3( ( Ct + Cl + Cc + Cr + Cb ) * WeightMultiplier );
 }
 
-#elif 1
+#elif 0
 
 /*
 	Bicubic B-Spline 4-taps (Fast) - ported by Hyllian - 2024
@@ -262,7 +262,7 @@ float3 get_blurred_pixel( float2 vTexCoord, float4 sourceSize )
 	return float3( Ctl + Ctr + Cbl + Cbr );
 }
 
-#elif 1
+#elif 0
 
 /*
    Hyllian's jinc windowed-jinc 2-lobe with anti-ringing Shader

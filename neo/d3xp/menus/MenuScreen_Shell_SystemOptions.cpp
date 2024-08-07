@@ -627,8 +627,8 @@ void idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::AdjustFi
 		}
 		case SYSTEM_FIELD_CRT_POSTFX:
 		{
-			static const int numValues = 3;
-			static const int values[numValues] = { 0, 1, 2 };
+			static const int numValues = 4;
+			static const int values[numValues] = { 0, 1, 2, 3 };
 			r_useCRTPostFX.SetInteger( AdjustOption( r_useCRTPostFX.GetInteger(), values, numValues, adjustAmount ) );
 			break;
 		}
@@ -830,9 +830,9 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
 			static const char* values[numValues] =
 			{
 				"#str_swf_disabled",
-				"Mattias CRT",
-				"Newpixie CRT",
-				"Zfast CRT",
+				"Mattias",
+				"Newpixie",
+				"Easymode",
 			};
 
 			return values[ r_useCRTPostFX.GetInteger() ];

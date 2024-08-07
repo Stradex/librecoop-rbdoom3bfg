@@ -6459,7 +6459,7 @@ void idRenderBackend::PostProcess( const void* data )
 
 void idRenderBackend::CRTPostProcess()
 {
-#define CRT_QUARTER_RES 1
+#define CRT_QUARTER_RES 0
 
 	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
 	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
@@ -6481,12 +6481,23 @@ void idRenderBackend::CRTPostProcess()
 	GL_Viewport( 0, 0, screenWidth, screenHeight );
 	GL_Scissor( 0, 0, screenWidth, screenHeight );
 
+#if CRT_QUARTER_RES
+#if defined(USE_DOOMCLASSIC)
+	bool quarterRes = r_useCRTPostFX.GetInteger() == 3 && ( !game->Shell_IsActive() && !game->IsPDAOpen() || ( !console->Active() && ( common->GetCurrentGame() == DOOM_CLASSIC || common->GetCurrentGame() == DOOM2_CLASSIC ) ) );
+#else
+	bool quarterRes = false; //r_useCRTPostFX.GetInteger() == 3 && ( !game->Shell_IsActive() && !game->IsPDAOpen() && !console->Active() );
+#endif
+#else
+	bool quarterRes = false;
+#endif
+
+
 	if( r_useCRTPostFX.GetInteger() > 0 )
 	{
 		OPTICK_GPU_EVENT( "Render_CRTPostFX" );
 
 #if CRT_QUARTER_RES
-		if( r_useCRTPostFX.GetInteger() == 3 )
+		if( quarterRes )
 		{
 			// downscale to retro resolution
 			BlitParameters blitParms;
@@ -6509,8 +6520,6 @@ void idRenderBackend::CRTPostProcess()
 			blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
 			commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
-			renderProgManager.BindShader_CrtEasyMode();
-
 			GL_SelectTexture( 0 );
 			globalImages->smaaBlendImage->Bind();
 		}
@@ -6530,25 +6539,21 @@ void idRenderBackend::CRTPostProcess()
 		}
 		else
 		{
-			BlitParameters blitParms;
-			blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
-			blitParms.targetFramebuffer = globalFramebuffers.smaaBlendFBO->GetApiObject();
-
-			blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
-			commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
-
 			renderProgManager.BindShader_CrtEasyMode();
 		}
 
 		// screen power of two correction factor
 		idVec4 sourceSizeParam;
-#if CRT_QUARTER_RES
-		sourceSizeParam.x = renderSystem->GetWidth() / 4;
-		sourceSizeParam.y = renderSystem->GetHeight() / 4;
-#else
-		sourceSizeParam.x = screenWidth;
-		sourceSizeParam.y = screenHeight;
-#endif
+		if( quarterRes )
+		{
+			sourceSizeParam.x = renderSystem->GetWidth() / 4;
+			sourceSizeParam.y = renderSystem->GetHeight() / 4;
+		}
+		else
+		{
+			sourceSizeParam.x = screenWidth;
+			sourceSizeParam.y = screenHeight;
+		}
 		sourceSizeParam.z = 1.0f / sourceSizeParam.x;
 		sourceSizeParam.w = 1.0f / sourceSizeParam.y;
 
@@ -6580,9 +6585,9 @@ void idRenderBackend::CRTPostProcess()
 
 		// JINC2 interpolation settings
 		idVec4 jincParms;
-		jincParms.x = 0.44;
-		jincParms.y = 0.82;
-		jincParms.z = 0.5;
+		jincParms.x = 0.44f;
+		jincParms.y = 0.82f;
+		jincParms.z = 0.5f;
 		jincParms.w = 0;
 
 		SetFragmentParm( RENDERPARM_DIFFUSEMODIFIER, jincParms.ToFloatPtr() );
