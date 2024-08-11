@@ -1347,7 +1347,7 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 		if( mvkConfig.useMetalArgumentBuffers == 0 && r_mvkUseMetalArgumentBuffers.GetInteger() )
 		{
 			idLib::Printf( "Enabled MoltenVK's Metal argument buffers...\n" );
-			mvkConfig.useMetalArgumentBuffers = decltype(mvkConfig.useMetalArgumentBuffers)( r_mvkUseMetalArgumentBuffers.GetInteger() );
+			mvkConfig.useMetalArgumentBuffers = decltype( mvkConfig.useMetalArgumentBuffers )( r_mvkUseMetalArgumentBuffers.GetInteger() );
 		}
 
 #if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 6 )
