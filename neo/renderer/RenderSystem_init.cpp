@@ -305,6 +305,7 @@ idCVar r_retroDitherScale( "r_retroDitherScale", "0.3", CVAR_RENDERER | CVAR_FLO
 idCVar r_renderMode( "r_renderMode", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "0 = Doom, 1 = Commodore 64, 2 = Commodore 64 Highres, 3 = Amstrad CPC 6128, 4 = Amstrad CPC 6128 Highres, 5 = Gameboy, 6 = Gameboy Highres, 7 = NES, 8 = NES Highres, 9 = Sega Genesis, 10 = Sega Genesis Highres, 11 = Sony PSX", 0, 11 );
 
 idCVar r_psxVertexJitter( "r_psxVertexJitter", "0.5", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "", 0.0f, 0.75f );
+idCVar r_psxAffineTextures( "r_psxAffineTextures", "1", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
 // RB end
 
 const char* fileExten[4] = { "tga", "png", "jpg", "exr" };

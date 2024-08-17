@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2016 Robert Beckebans
+Copyright (C) 2016-2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -47,7 +47,7 @@ struct VS_IN
 struct VS_OUT
 {
 	float4 position		: SV_Position;
-	float2 texcoord0	: TEXCOORD0_centroid;
+	float3 texcoord0	: TEXCOORD0_centroid;
 	float3 texcoord1	: TEXCOORD1_centroid;
 	float3 texcoord2	: TEXCOORD2_centroid;
 	float3 texcoord3	: TEXCOORD3_centroid;
@@ -135,6 +135,21 @@ void main( VS_IN vertex, out VS_OUT result )
 	// textures 0 takes the base coordinates by the texture matrix
 	result.texcoord0.x = dot4( vertex.texcoord.xy, rpBumpMatrixS );
 	result.texcoord0.y = dot4( vertex.texcoord.xy, rpBumpMatrixT );
+
+	//# textures 1 takes the base coordinates by the texture matrix
+	result.texcoord1.x = dot4( vertex.texcoord.xy, rpSpecularMatrixS );
+	result.texcoord1.y = dot4( vertex.texcoord.xy, rpSpecularMatrixT );
+
+	// PSX affine texture mapping
+	if( rpPSXDistortions.z > 0.0 )
+	{
+		float distance = length( rpLocalViewOrigin - modelPosition );
+		float warp =  psxAffineWarp( distance );
+
+		result.texcoord0.z = warp;
+		result.texcoord0.xy *= warp;
+		result.texcoord1.xy *= warp;
+	}
 
 	//float4 toEye = rpLocalViewOrigin - modelPosition;
 	//result.texcoord1.x = dot3( toEye, rpModelMatrixX );

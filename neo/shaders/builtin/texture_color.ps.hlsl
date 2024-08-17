@@ -35,7 +35,7 @@ SamplerState s_Sampler		: register( s0 VK_DESCRIPTOR_SET( 2 ) );
 
 struct PS_IN {
 	float4 position		: SV_POSITION;
-	float2 texcoord0	: TEXCOORD0_centroid;
+	float3 texcoord0	: TEXCOORD0_centroid;
 	float4 color		: COLOR0;
 };
 
@@ -46,7 +46,15 @@ struct PS_OUT {
 
 void main( in PS_IN fragment, out PS_OUT result )
 {
-	float4 color = t_BaseColor.Sample( s_Sampler, fragment.texcoord0 ) * fragment.color;
+	float2 uv = fragment.texcoord0.xy;
+
+	// PSX affine texture mapping
+	if( rpPSXDistortions.z > 0.0 )
+	{
+		uv /= fragment.texcoord0.z;
+	}
+
+	float4 color = t_BaseColor.Sample( s_Sampler, uv ) * fragment.color;
 	clip( color.a - rpAlphaTest.x );
 	result.color = sRGBAToLinearRGBA( color );
 }

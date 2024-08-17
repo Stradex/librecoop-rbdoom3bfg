@@ -5595,7 +5595,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 
 			parm[0] = r_psxVertexJitter.GetFloat() * w;
 			parm[1] = r_psxVertexJitter.GetFloat() * h;
-			parm[2] = 0;
+			parm[2] = r_psxAffineTextures.GetFloat();
 			parm[3] = 0;
 		}
 		else

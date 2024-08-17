@@ -1284,6 +1284,7 @@ extern idCVar r_renderMode;
 extern idCVar image_pixelLook;
 
 extern idCVar r_psxVertexJitter;
+extern idCVar r_psxAffineTextures;
 // RB end
 
 /*
