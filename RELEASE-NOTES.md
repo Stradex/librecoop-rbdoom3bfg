@@ -18,6 +18,38 @@ _______________________________________
 TBD - RBDOOM-3-BFG 1.6.0
 _______________________________
 
+
+## .plan - August 17, 2024
+
+This update improves the PSX render mode to be more faithful to the original output of the PS1.
+It emulates the lack of floating point rasterizer hardware and affine texture mapping.
+
+Besides that there is a new 4 Color CGA mode and new NES render mode with 55 colors.
+
+There is also a third advanced CRT shader that is a nice alternative if you prefer the look of a TV shadow mask.
+
+Changelog:
+
+* Fixed corpse burn effect of demons
+
+* PSX affine texture mapping
+
+* Ported advanced CRT shader by whkrmrgks0
+
+* Added 4 color CGA shader
+
+* Added NES render modes
+
+* Store world normals in gbuffer
+
+* Some experiments similar to Obra Dinn and fixed old SSAO
+
+* Made PSX vertex jitter resolution independent
+
+* Implemented typical PSX style vertex jittering
+
+
+
 <img src="https://i.imgur.com/vIPuu3x.png">
 
 # RBDOOM-3-BFG 1.6.0 adds Retro Rendering Support and Better Modding Support
