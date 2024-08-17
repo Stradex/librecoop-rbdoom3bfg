@@ -832,7 +832,7 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
 				"#str_swf_disabled",
 				"Mattias",
 				"Newpixie",
-				"Easymode",
+				"Advanced",
 			};
 
 			return values[ r_useCRTPostFX.GetInteger() ];
