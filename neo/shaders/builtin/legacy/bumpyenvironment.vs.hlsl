@@ -173,5 +173,7 @@ void main( VS_IN vertex, out VS_OUT result )
 
 #endif
 
+	result.position.xyz = psxVertexJitter( result.position );
+
 	result.color = rpColor;
 }

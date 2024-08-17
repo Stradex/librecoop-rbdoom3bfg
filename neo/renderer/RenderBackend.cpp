@@ -5116,6 +5116,11 @@ void idRenderBackend::DrawScreenSpaceAmbientOcclusion( const viewDef_t* _viewDef
 
 	SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToCameraRenderMatrix[0], 4 );
 
+	// RB: we need to rotate the normals of the gbuffer from world space to view space
+	idRenderMatrix viewMatrix;
+	idRenderMatrix::Transpose( *( idRenderMatrix* ) viewDef->worldSpace.modelViewMatrix, viewMatrix );
+	SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, viewMatrix[0], 4 );
+
 	const float jitterSampleScale = 1.0f;
 
 	float jitterTexScale[4];
@@ -5578,6 +5583,30 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		float projMatrixTranspose[16];
 		R_MatrixTranspose( viewDef->projectionMatrix, projMatrixTranspose );
 		SetVertexParms( RENDERPARM_PROJMATRIX_X, projMatrixTranspose, 4 );
+
+		// PSX jitter parms
+		if( ( r_renderMode.GetInteger() == RENDERMODE_PSX ) && ( _viewDef->viewEntitys && !_viewDef->is2Dgui ) )
+		{
+			int	w = viewDef->viewport.x2 - viewDef->viewport.x1 + 1;
+			int	h = viewDef->viewport.y2 - viewDef->viewport.y1 + 1;
+
+			w /= 4;
+			h /= 4;
+
+			parm[0] = r_psxVertexJitter.GetFloat() * w;
+			parm[1] = r_psxVertexJitter.GetFloat() * h;
+			parm[2] = r_psxAffineTextures.GetFloat();
+			parm[3] = 0;
+		}
+		else
+		{
+			parm[0] = 0;
+			parm[1] = 0;
+			parm[2] = 0;
+			parm[3] = 0;
+		}
+
+		SetVertexParm( RENDERPARM_PSX_DISTORTIONS, parm );
 	}
 
 	//-------------------------------------------------
@@ -6227,17 +6256,121 @@ void idRenderBackend::PostProcess( const void* data )
 		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
+		globalFramebuffers.smaaBlendFBO->Bind();
+
+		//GL_Viewport( 0, 0, screenWidth, screenHeight );
+		//GL_Scissor( 0, 0, screenWidth, screenHeight );
+
+		if( r_renderMode.GetInteger() == RENDERMODE_CPC || r_renderMode.GetInteger() == RENDERMODE_CPC_HIGHRES )
+		{
+			// clear the alpha buffer and draw only the hands + weapon into it so
+			// we can avoid blurring them
+			renderLog.OpenBlock( "Render_HandsAlpha" );
+
+			GL_State( GLS_COLORMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS |  GLS_CULL_TWOSIDED );
+			GL_Color( 0, 0, 0, 1 );
+
+			renderProgManager.BindShader_Color();
+
+			currentSpace = NULL;
+
+			// draw shader over entire screen
+			RB_SetMVP( renderMatrix_identity );
+
+			DrawElementsWithCounters( &unitSquareSurface );
+
+			// draw the hands + weapon with alpha 0
+			GL_Color( 0, 0, 0, 0 );
+
+			drawSurf_t** drawSurfs = ( drawSurf_t** )&viewDef->drawSurfs[0];
+			for( int surfNum = 0; surfNum < viewDef->numDrawSurfs; surfNum++ )
+			{
+				const drawSurf_t* surf = drawSurfs[ surfNum ];
+
+				if( !surf->space->weaponDepthHack && !surf->space->skipMotionBlur && !surf->material->HasSubview() )
+				{
+					// Apply motion blur to this object
+					continue;
+				}
+
+				const idMaterial* shader = surf->material;
+				if( shader->Coverage() == MC_TRANSLUCENT )
+				{
+					// muzzle flash, etc
+					continue;
+				}
+
+				// set mvp matrix
+				if( surf->space != currentSpace )
+				{
+					RB_SetMVP( surf->space->mvp );
+					currentSpace = surf->space;
+				}
+
+				// this could just be a color, but we don't have a skinned color-only prog
+				if( surf->jointCache )
+				{
+					renderProgManager.BindShader_TextureVertexColorSkinned();
+				}
+				else
+				{
+					renderProgManager.BindShader_TextureVertexColor();
+				}
+
+				// draw it solid
+				DrawElementsWithCounters( surf );
+			}
+
+			renderLog.CloseBlock();
+		}
+
+		GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS |  GLS_CULL_TWOSIDED );
+
 		GL_SelectTexture( 0 );
 		globalImages->smaaBlendImage->Bind();
-
-		globalFramebuffers.ldrFBO->Bind();
 
 		GL_SelectTexture( 1 );
 		globalImages->blueNoiseImage256->Bind();
 
+		GL_SelectTexture( 2 );
+		globalImages->gbufferNormalsRoughnessImage->Bind();
+
+		GL_SelectTexture( 3 );
+		if( r_useHierarchicalDepthBuffer.GetBool() )
+		{
+			// build hierarchical depth buffer
+			renderLog.OpenBlock( "Render_HiZ" );
+
+			commandList->clearTextureFloat( globalImages->hierarchicalZbufferImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 1.f ) );
+
+			commonPasses.BlitTexture(
+				commandList,
+				globalFramebuffers.csDepthFBO[0]->GetApiObject(),
+				globalImages->currentDepthImage->GetTextureHandle(),
+				&bindingCache );
+
+			hiZGenPass->Dispatch( commandList, MAX_HIERARCHICAL_ZBUFFERS );
+
+			renderLog.CloseBlock();
+
+			globalImages->hierarchicalZbufferImage->Bind();
+		}
+		else
+		{
+			globalImages->currentDepthImage->Bind();
+		}
+
+		globalFramebuffers.ldrFBO->Bind();
+
 		float jitterTexScale[4] = {};
 
-		if( r_renderMode.GetInteger() == RENDERMODE_C64 || r_renderMode.GetInteger() == RENDERMODE_C64_HIGHRES )
+		if( r_renderMode.GetInteger() == RENDERMODE_2BIT || r_renderMode.GetInteger() == RENDERMODE_2BIT_HIGHRES )
+		{
+			jitterTexScale[0] = r_renderMode.GetInteger() == RENDERMODE_2BIT_HIGHRES ? 2.0 : 1.0;
+
+			renderProgManager.BindShader_PostProcess_Retro2Bit();
+		}
+		else if( r_renderMode.GetInteger() == RENDERMODE_C64 || r_renderMode.GetInteger() == RENDERMODE_C64_HIGHRES )
 		{
 			jitterTexScale[0] = r_renderMode.GetInteger() == RENDERMODE_C64_HIGHRES ? 2.0 : 1.0;
 
@@ -6248,6 +6381,12 @@ void idRenderBackend::PostProcess( const void* data )
 			jitterTexScale[0] = r_renderMode.GetInteger() == RENDERMODE_CPC_HIGHRES ? 2.0 : 1.0;
 
 			renderProgManager.BindShader_PostProcess_RetroCPC();
+		}
+		else if( r_renderMode.GetInteger() == RENDERMODE_NES || r_renderMode.GetInteger() == RENDERMODE_NES_HIGHRES )
+		{
+			jitterTexScale[0] = r_renderMode.GetInteger() == RENDERMODE_NES_HIGHRES ? 2.0 : 1.0;
+
+			renderProgManager.BindShader_PostProcess_RetroNES();
 		}
 		else if( r_renderMode.GetInteger() == RENDERMODE_GENESIS || r_renderMode.GetInteger() == RENDERMODE_GENESIS_HIGHRES )
 		{
@@ -6284,6 +6423,9 @@ void idRenderBackend::PostProcess( const void* data )
 
 		SetFragmentParm( RENDERPARM_JITTERTEXOFFSET, jitterTexOffset ); // rpJitterTexOffset
 
+		//SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToCameraRenderMatrix[0], 4 );
+		SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToWorldRenderMatrix[0], 4 );
+
 		// Draw
 		DrawElementsWithCounters( &unitSquareSurface );
 	}
@@ -6317,7 +6459,8 @@ void idRenderBackend::PostProcess( const void* data )
 
 void idRenderBackend::CRTPostProcess()
 {
-#if 1
+#define CRT_QUARTER_RES 0
+
 	nvrhi::ObjectType commandObject = nvrhi::ObjectTypes::D3D12_GraphicsCommandList;
 	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
 	{
@@ -6338,19 +6481,48 @@ void idRenderBackend::CRTPostProcess()
 	GL_Viewport( 0, 0, screenWidth, screenHeight );
 	GL_Scissor( 0, 0, screenWidth, screenHeight );
 
+#if CRT_QUARTER_RES
+#if defined(USE_DOOMCLASSIC)
+	bool quarterRes = r_useCRTPostFX.GetInteger() == 3 && ( !game->Shell_IsActive() && !game->IsPDAOpen() || ( !console->Active() && ( common->GetCurrentGame() == DOOM_CLASSIC || common->GetCurrentGame() == DOOM2_CLASSIC ) ) );
+#else
+	bool quarterRes = false; //r_useCRTPostFX.GetInteger() == 3 && ( !game->Shell_IsActive() && !game->IsPDAOpen() && !console->Active() );
+#endif
+#else
+	bool quarterRes = false;
+#endif
+
+
 	if( r_useCRTPostFX.GetInteger() > 0 )
 	{
 		OPTICK_GPU_EVENT( "Render_CRTPostFX" );
 
-		BlitParameters blitParms;
-		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
-		blitParms.targetFramebuffer = globalFramebuffers.smaaBlendFBO->GetApiObject();
+#if CRT_QUARTER_RES
+		if( quarterRes )
+		{
+			// downscale to retro resolution
+			BlitParameters blitParms;
+			blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+			blitParms.targetFramebuffer = globalFramebuffers.bloomRenderFBO[0]->GetApiObject();
 
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
-		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+			blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth() / 4, renderSystem->GetHeight() / 4 );
+			commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
-		GL_SelectTexture( 0 );
-		globalImages->smaaBlendImage->Bind();
+			GL_SelectTexture( 0 );
+			globalImages->bloomRenderImage[0]->Bind();
+		}
+		else
+#endif
+		{
+			BlitParameters blitParms;
+			blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+			blitParms.targetFramebuffer = globalFramebuffers.smaaBlendFBO->GetApiObject();
+
+			blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+			commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+
+			GL_SelectTexture( 0 );
+			globalImages->smaaBlendImage->Bind();
+		}
 
 		globalFramebuffers.ldrFBO->Bind();
 
@@ -6361,10 +6533,31 @@ void idRenderBackend::CRTPostProcess()
 		{
 			renderProgManager.BindShader_CrtMattias();
 		}
-		else
+		else if( r_useCRTPostFX.GetInteger() == 2 )
 		{
 			renderProgManager.BindShader_CrtNewPixie();
 		}
+		else
+		{
+			renderProgManager.BindShader_CrtEasyMode();
+		}
+
+		// screen power of two correction factor
+		idVec4 sourceSizeParam;
+		if( quarterRes )
+		{
+			sourceSizeParam.x = renderSystem->GetWidth() / 4;
+			sourceSizeParam.y = renderSystem->GetHeight() / 4;
+		}
+		else
+		{
+			sourceSizeParam.x = screenWidth;
+			sourceSizeParam.y = screenHeight;
+		}
+		sourceSizeParam.z = 1.0f / sourceSizeParam.x;
+		sourceSizeParam.w = 1.0f / sourceSizeParam.y;
+
+		SetFragmentParm( RENDERPARM_SCREENCORRECTIONFACTOR, sourceSizeParam.ToFloatPtr() ); // rpScreenCorrectionFactor
 
 		float windowCoordParm[4];
 		windowCoordParm[0] = r_crtCurvature.GetFloat();
@@ -6390,6 +6583,15 @@ void idRenderBackend::CRTPostProcess()
 
 		SetFragmentParm( RENDERPARM_JITTERTEXOFFSET, jitterTexOffset ); // rpJitterTexOffset
 
+		// JINC2 interpolation settings
+		idVec4 jincParms;
+		jincParms.x = 0.44f;
+		jincParms.y = 0.82f;
+		jincParms.z = 0.5f;
+		jincParms.w = 0;
+
+		SetFragmentParm( RENDERPARM_DIFFUSEMODIFIER, jincParms.ToFloatPtr() );
+
 		// Draw
 		DrawElementsWithCounters( &unitSquareSurface );
 	}
@@ -6413,5 +6615,4 @@ void idRenderBackend::CRTPostProcess()
 
 	renderLog.CloseBlock();
 	renderLog.CloseMainBlock();
-#endif
 }

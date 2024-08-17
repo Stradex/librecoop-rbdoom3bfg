@@ -160,18 +160,21 @@ float3 reconstructNonUnitCSFaceNormal( float3 C )
 	return n;
 }
 
-float3 reconstructCSPosition( float2 S, float z )
+float3 reconstructCSPosition( float2 S, float depth )
 {
-	float4 P;
-	P.z = z;// * 2.0 - 1.0;
-	P.xy = ( S * rpWindowCoord.xy ) * 2.0 - 1.0;
-	P.w = 1.0;
+	// derive clip space from the depth buffer and screen position
+	float2 uv = S * rpWindowCoord.xy;
+	float3 ndc = float3( uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth );
+	float clipW = -rpProjectionMatrixZ.w / ( -rpProjectionMatrixZ.z - ndc.z );
 
+	float4 clip = float4( ndc * clipW, clipW );
+
+	// camera space position
 	float4 csP;
-	csP.x = dot4( P, rpModelMatrixX );
-	csP.y = dot4( P, rpModelMatrixY );
-	csP.z = dot4( P, rpModelMatrixZ );
-	csP.w = dot4( P, rpModelMatrixW );
+	csP.x = dot4( rpModelMatrixX, clip );
+	csP.y = dot4( rpModelMatrixY, clip );
+	csP.z = dot4( rpModelMatrixZ, clip );
+	csP.w = dot4( rpModelMatrixW, clip );
 
 	csP.xyz /= csP.w;
 
@@ -358,7 +361,15 @@ void main( PS_IN fragment, out PS_OUT result )
 	visibility = 0.0;
 
 #if 1
-	float3 n_C = sampleNormal( t_NormalRoughness, ssP, 0 );
+	float3 n_W = sampleNormal( t_NormalRoughness, ssP, 0 );
+
+	// rotate n_W from world space into view space
+	float3 n_C;
+	n_C.x = dot3( rpModelViewMatrixX, n_W );
+	n_C.y = dot3( rpModelViewMatrixY, n_W );
+	n_C.z = dot3( rpModelViewMatrixZ, n_W );
+
+	n_C = normalize( n_C );
 
 	if( length( n_C ) < 0.01 )
 	{
@@ -388,7 +399,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	}
 #endif
 
-#if 1
+#if 0
 	float randomPatternRotationAngle = BlueNoise( float2( ssP.xy ), 10.0 ) * 10.0;
 	//float randomPatternRotationAngle = InterleavedGradientNoise( ssP.xy ) * 10.0;
 #else

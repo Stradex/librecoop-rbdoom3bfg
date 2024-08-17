@@ -42,21 +42,14 @@ struct VS_IN
 
 struct VS_OUT {
 	float4 position : SV_Position;
-	float3 texcoord0 : TEXCOORD0_centroid;
-	float4 color : COLOR0;
+	float2 texcoord0 : TEXCOORD0_centroid;
 };
 // *INDENT-ON*
 
 void main( VS_IN vertex, out VS_OUT result )
 {
-	result.position.x = dot4( vertex.position, rpMVPmatrixX );
-	result.position.y = dot4( vertex.position, rpMVPmatrixY );
-	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
-	result.position.w = dot4( vertex.position, rpMVPmatrixW );
+	result.position = vertex.position;
+	result.position.y = -result.position.y;
 
-	result.position.xyz = psxVertexJitter( result.position );
-
-	result.texcoord0 = vertex.position.xyz - rpLocalViewOrigin.xyz;
-
-	result.color = ( swizzleColor( vertex.color ) * rpVertexColorModulate ) + rpVertexColorAdd;
+	result.texcoord0 =  vertex.texcoord;
 }

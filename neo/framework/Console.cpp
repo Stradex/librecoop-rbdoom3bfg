@@ -443,13 +443,34 @@ float idConsoleLocal::DrawFPS( float y )
 			aaMode = aaValues[ r_antiAliasing.GetInteger() ];
 		}
 
-		idStr resolutionText;
-		resolutionScale.GetConsoleText( resolutionText );
+		static const int rrNumValues = 12;
+		static const char* rrValues[rrNumValues] =
+		{
+			"Doom",
+			"2-bit",
+			"2-bit Hi",
+			"C64",
+			"C64 Hi",
+			"CPC",
+			"CPC Hi",
+			"NES",
+			"NES Hi",
+			"Sega MD",
+			"Sega MD Hi",
+			"Sony PSX",
+		};
+
+		compile_time_assert( rrNumValues == ( RENDERMODE_PSX + 1 ) );
+
+		const char* retroRenderMode = rrValues[ r_renderMode.GetInteger() ];
+
+		//idStr resolutionText;
+		//resolutionScale.GetConsoleText( resolutionText );
 
 		int width = renderSystem->GetWidth();
 		int height = renderSystem->GetHeight();
 
-		ImGui::TextColored( colorCyan, "API: %s, AA[%i, %i]: %s, %s", API, width, height, aaMode, resolutionText.c_str() );
+		ImGui::TextColored( colorCyan, "API: %s, AA[%i, %i]: %s, R: %s", API, width, height, aaMode, retroRenderMode );
 
 		ImGui::TextColored( colorGold, "Device: %s", deviceManager->GetRendererString() );
 		ImGui::TextColored( colorPastelMagenta, "VRAM Usage: %llu MB", commonLocal.GetRendererGpuMemoryMB() );

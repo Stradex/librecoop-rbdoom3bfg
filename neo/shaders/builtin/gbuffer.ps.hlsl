@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2016 Robert Beckebans
+Copyright (C) 2016-2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -37,7 +37,7 @@ SamplerState s_Sampler		: register( s0 VK_DESCRIPTOR_SET( 2 ) );
 struct PS_IN
 {
 	float4 position		: SV_Position;
-	float2 texcoord0	: TEXCOORD0_centroid;
+	float3 texcoord0	: TEXCOORD0_centroid;
 	float3 texcoord1	: TEXCOORD1_centroid;
 	float3 texcoord2	: TEXCOORD2_centroid;
 	float3 texcoord3	: TEXCOORD3_centroid;
@@ -53,33 +53,30 @@ struct PS_OUT
 
 void main( PS_IN fragment, out PS_OUT result )
 {
-	float4 bump = t_NormalMap.Sample( s_Sampler, fragment.texcoord0 ) * 2.0f - 1.0f;
+	float2 bumpUV = fragment.texcoord0.xy;
+	float2 specUV = fragment.texcoord1.xy;
 
-	// RB begin
+	// PSX affine texture mapping
+	if( rpPSXDistortions.z > 0.0 )
+	{
+		bumpUV /= fragment.texcoord0.z;
+		specUV /= fragment.texcoord0.z;
+	}
+
+	float4 bump = t_NormalMap.Sample( s_Sampler, bumpUV ) * 2.0f - 1.0f;
+
+	// TODO sample roughness and put it into the alpha channel
+
 	float3 localNormal;
-#if USE_NORMAL_FMT_RGB8
-	localNormal = float3( bump.rg, 0.0f );
-#else
 	localNormal = float3( bump.wy, 0.0f );
-#endif
-	// RB end
 	localNormal.z = sqrt( 1.0f - dot3( localNormal, localNormal ) );
 
 	float3 globalNormal;
 
-#if 1
-	// rotate normal into view space
+	// rotate normal into world space
 	globalNormal.x = dot3( localNormal, fragment.texcoord2 );
 	globalNormal.y = dot3( localNormal, fragment.texcoord3 );
 	globalNormal.z = dot3( localNormal, fragment.texcoord4 );
-#else
-	// only the normal in view space
-	globalNormal.x = fragment.texcoord2.z;
-	globalNormal.y = fragment.texcoord3.z;
-	globalNormal.z = fragment.texcoord4.z;
-	//globalNormal.z = fragment.texcoord4.z * -0.001; //sqrt( abs( dot( globalNormal.xy, globalNormal.xy ) - 0.25 ) );
-	globalNormal = normalize( globalNormal );
-#endif
 
 	// RB: rpColor is white and only used to generate the _fa_ uniform array
 	result.color.rgb = ( globalNormal.xyz * 0.5 + 0.5 ) * fragment.color.rgb;// * rpColor;

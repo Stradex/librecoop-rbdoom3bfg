@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2021 Robert Beckebans
+Copyright (C) 2013-2024 Robert Beckebans
 Copyright (C) 2020 Panos Karabelas
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -102,11 +102,23 @@ float2 VogelDiskSample( float sampleIndex, float samplesCount, float phi )
 
 void main( PS_IN fragment, out PS_OUT result )
 {
-	float4 bumpMap =		t_Normal.Sample( s_Material, fragment.texcoord1.xy );
+	float2 baseUV = fragment.texcoord4.xy;
+	float2 bumpUV = fragment.texcoord1.xy;
+	float2 specUV = fragment.texcoord5.xy;
+
+	// PSX affine texture mapping
+	if( rpPSXDistortions.z > 0.0 )
+	{
+		baseUV /= fragment.texcoord1.z;
+		bumpUV /= fragment.texcoord1.z;
+		specUV /= fragment.texcoord1.z;
+	}
+
+	float4 bumpMap =		t_Normal.Sample( s_Material, bumpUV );
 	float4 lightFalloff =	idtex2Dproj( s_Lighting, t_LightFalloff, fragment.texcoord2 );
 	float4 lightProj =		idtex2Dproj( s_Lighting, t_LightProjection, fragment.texcoord3 );
-	float4 YCoCG =			t_BaseColor.Sample( s_Material, fragment.texcoord4.xy );
-	float4 specMapSRGB =	t_Specular.Sample( s_Material, fragment.texcoord5.xy );
+	float4 YCoCG =			t_BaseColor.Sample( s_Material, baseUV );
+	float4 specMapSRGB =	t_Specular.Sample( s_Material, specUV );
 	float4 specMap =		sRGBAToLinearRGBA( specMapSRGB );
 
 	float3 lightVector = normalize( fragment.texcoord0.xyz );

@@ -151,6 +151,9 @@ enum renderParm_t
 	RENDERPARM_GLOBALLIGHTORIGIN,
 	RENDERPARM_JITTERTEXSCALE,
 	RENDERPARM_JITTERTEXOFFSET,
+
+	RENDERPARM_PSX_DISTORTIONS,
+
 	RENDERPARM_CASCADEDISTANCES,
 
 	RENDERPARM_SHADOW_MATRIX_0_X,	// rpShadowMatrices[6 * 4]
@@ -366,12 +369,15 @@ enum
 	BUILTIN_WOBBLESKY,
 	BUILTIN_POSTPROCESS,
 	// RB begin
+	BUILTIN_POSTPROCESS_RETRO_2BIT,		// CGA, Gameboy, cool for Gamejams
 	BUILTIN_POSTPROCESS_RETRO_C64,		// Commodore 64
 	BUILTIN_POSTPROCESS_RETRO_CPC,		// Amstrad 6128
+	BUILTIN_POSTPROCESS_RETRO_NES,		// NES
 	BUILTIN_POSTPROCESS_RETRO_GENESIS,	// Sega Genesis / Megadrive
 	BUILTIN_POSTPROCESS_RETRO_PSX,		// Sony Playstation 1
 	BUILTIN_CRT_MATTIAS,
 	BUILTIN_CRT_NUPIXIE,
+	BUILTIN_CRT_EASYMODE,
 	BUILTIN_SCREEN,
 	BUILTIN_TONEMAP,
 	BUILTIN_BRIGHTPASS,
@@ -833,6 +839,16 @@ public:
 		BindShader_Builtin( BUILTIN_POSTPROCESS_RETRO_CPC );
 	}
 
+	void	BindShader_PostProcess_Retro2Bit()
+	{
+		BindShader_Builtin( BUILTIN_POSTPROCESS_RETRO_2BIT );
+	}
+
+	void	BindShader_PostProcess_RetroNES()
+	{
+		BindShader_Builtin( BUILTIN_POSTPROCESS_RETRO_NES );
+	}
+
 	void	BindShader_PostProcess_RetroGenesis()
 	{
 		BindShader_Builtin( BUILTIN_POSTPROCESS_RETRO_GENESIS );
@@ -851,6 +867,11 @@ public:
 	void	BindShader_CrtNewPixie()
 	{
 		BindShader_Builtin( BUILTIN_CRT_NUPIXIE );
+	}
+
+	void	BindShader_CrtEasyMode()
+	{
+		BindShader_Builtin( BUILTIN_CRT_EASYMODE );
 	}
 
 	void	BindShader_Screen()

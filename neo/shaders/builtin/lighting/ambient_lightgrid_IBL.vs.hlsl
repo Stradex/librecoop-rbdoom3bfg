@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2015 Robert Beckebans
+Copyright (C) 2021-2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -29,13 +29,11 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "global_inc.hlsl"
 
-
 // *INDENT-OFF*
 #if USE_GPU_SKINNING
 StructuredBuffer<float4> matrices: register(t11);
 #endif
 
-// *INDENT-OFF*
 struct VS_IN
 {
 	float4 position	: POSITION;
@@ -46,7 +44,7 @@ struct VS_IN
 	float4 color2	: COLOR1;
 };
 
-struct VS_OUT 
+struct VS_OUT
 {
 	float4 position		: SV_Position;
 	float4 texcoord0	: TEXCOORD0_centroid;
@@ -135,6 +133,8 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
 	result.position.w = dot4( modelPosition, rpMVPmatrixW );
 
+	result.position.xyz = psxVertexJitter( result.position );
+
 	float4 defaultTexCoord = float4( 0.0f, 0.5f, 0.0f, 1.0f );
 
 	//--------------------------------------------------------------
@@ -154,6 +154,18 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.texcoord2 = defaultTexCoord;
 	result.texcoord2.x = dot4( vertex.texcoord.xy, rpSpecularMatrixS );
 	result.texcoord2.y = dot4( vertex.texcoord.xy, rpSpecularMatrixT );
+
+	// PSX affine texture mapping
+	if( rpPSXDistortions.z > 0.0 )
+	{
+		float distance = length( rpLocalViewOrigin - modelPosition );
+		float warp =  psxAffineWarp( distance );
+
+		result.texcoord0.z = warp;
+		result.texcoord0.xy *= warp;
+		result.texcoord1.xy *= warp;
+		result.texcoord2.xy *= warp;
+	}
 
 	//# calculate normalized vector to viewer in R1
 	//result.texcoord3 = modelPosition;

@@ -94,9 +94,12 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
 	result.position.w = dot4( modelPosition, rpMVPmatrixW );
 #else
+
 	result.position.x = dot4( vertex.position, rpMVPmatrixX );
 	result.position.y = dot4( vertex.position, rpMVPmatrixY );
 	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
 	result.position.w = dot4( vertex.position, rpMVPmatrixW );
 #endif
+
+	result.position.xyz = psxVertexJitter( result.position );
 }

@@ -271,7 +271,11 @@ void SsaoPass::Render(
 		// RB: TODO: only need for DIRECTIONAL_OCCLUSION
 		// we don't store the view matrix separatly yet
 		//ssaoConstants.matViewToWorld = viewDef->worldSpace;
-		//idRenderMatrix::Inverse( ssaoConstants.matViewToWorld, ssaoConstants.matWorldToView );
+
+		// TODO would be nicer and faster to have idRenderMatrix::Copy
+		idRenderMatrix tmp;
+		idRenderMatrix::Transpose( *( idRenderMatrix* ) viewDef->worldSpace.modelViewMatrix, tmp );
+		idRenderMatrix::Transpose( tmp, ssaoConstants.matWorldToView );
 
 		ssaoConstants.clipToView = idVec2(
 									   viewDef->projectionMatrix[2 * 4 + 3] / viewDef->projectionMatrix[0 * 4 + 0],

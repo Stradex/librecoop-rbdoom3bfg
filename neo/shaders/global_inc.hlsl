@@ -107,6 +107,7 @@ cbuffer globals : register( b0 VK_DESCRIPTOR_SET( 0 ) )
 	float4 rpGlobalLightOrigin;
 	float4 rpJitterTexScale;
 	float4 rpJitterTexOffset;
+	float4 rpPSXDistortions;
 	float4 rpCascadeDistances;
 
 	float4 rpShadowMatrices[6 * 4];
@@ -489,6 +490,43 @@ static int2 textureSize( Texture2D<float> buffer, int mipLevel )
 static float2 vposToScreenPosTexCoord( float2 vpos )
 {
 	return vpos.xy * rpWindowCoord.xy;
+}
+
+// a very useful resource with many examples about the PS1 look:
+// https://www.david-colson.com/2021/11/30/ps1-style-renderer.html
+
+// emulate rasterization with fixed point math
+static float3 psxVertexJitter( float4 clipPos )
+{
+	float jitterScale = rpPSXDistortions.x;
+	if( jitterScale > 0.0 )
+	{
+		// snap to vertex to a pixel position on a lower grid
+		float3 vertex = clipPos.xyz / clipPos.w;
+
+		//float2 resolution = float2( 320, 240 ) * ( 1.0 - jitterScale );
+		//float2 resolution = float2( 160, 120 );
+		float2 resolution = float2( rpPSXDistortions.x, rpPSXDistortions.y );
+
+		// depth independent snapping
+		float w = dot4( rpProjectionMatrixW,  float4( vertex.xyz, 1.0 ) );
+		vertex.xy = round( vertex.xy / w * resolution ) / resolution * w;
+
+		//vertex.xy = floor( vertex.xy / 4.0 ) * 4.0;
+		//vertex.xy = round( vertex.xy * resolution ) / resolution;
+		//vertex.xyz = round( vertex.xyz * resolution.x ) / resolution.x;
+
+		vertex *= clipPos.w;
+
+		return vertex;
+	}
+
+	return clipPos.xyz;
+}
+
+static float psxAffineWarp( float distance )
+{
+	return log10( distance ) / 2.0;
 }
 
 #define BRANCH

@@ -51,7 +51,7 @@ struct PS_OUT
 
 
 #define RESOLUTION_DIVISOR 4.0
-#define NUM_COLORS 16
+#define NUM_COLORS 55
 
 
 float3 Average( float3 pal[NUM_COLORS] )
@@ -106,120 +106,139 @@ float3 LinearSearch( float3 c, float3 pal[NUM_COLORS] )
 	return pal[index];
 }
 
-/*
-float3 GetClosest( float3 val1, float3 val2, float3 target )
-{
-	if( distance( target, val1 ) >= distance( val2, target ) )
-	{
-		return val2;
-	}
-	else
-	{
-		return val1;
-	}
-}
-
-// find nearest palette color using Euclidean disntance and binary search
-// this requires an already sorted palette as input
-float3 BinarySearch( float3 target, float3 pal[NUM_COLORS] )
-{
-	float targetY = PhotoLuma( target );
-
-	// left-side case
-	if( targetY <= PhotoLuma( pal[0] ) )
-	{
-		return pal[0];
-	}
-
-	// right-side case
-	if( targetY >= PhotoLuma( pal[NUM_COLORS - 1] ) )
-	{
-		return pal[NUM_COLORS - 1];
-	}
-
-	int i = 0, j = NUM_COLORS, mid = 0;
-	while( i < j )
-	{
-		mid = ( i + j ) / 2;
-
-		if( distance( pal[mid], target ) < 0.01 )
-		{
-			return pal[mid];
-		}
-
-		// if target is less than array element, then search in left
-		if( targetY < PhotoLuma( pal[mid] ) )
-		{
-			// if target is greater than previous
-			// to mid, return closest of two
-			if( mid > 0 && targetY > PhotoLuma( pal[mid - 1] ) )
-			{
-				return GetClosest( pal[mid - 1], pal[mid], target );
-			}
-			j = mid;
-		}
-		else
-		{
-			if( mid < ( NUM_COLORS - 1 ) && targetY < PhotoLuma( pal[mid + 1] ) )
-			{
-				return GetClosest( pal[mid], pal[mid + 1], target );
-			}
-			i = mid + 1;
-		}
-	}
-
-	// only single element left after search
-	return pal[mid];
-}
-*/
-
 
 #define RGB(r, g, b) float3(float(r)/255.0, float(g)/255.0, float(b)/255.0)
 
 void main( PS_IN fragment, out PS_OUT result )
 {
-	// C64 colors http://unusedino.de/ec64/technical/misc/vic656x/colors/
 #if 0
-	const float3 palette[NUM_COLORS] =
+
+	// NES 1
+	// https://lospec.com/palette-list/nintendo-entertainment-system
+
+	const float3 palette[NUM_COLORS] = // 55
 	{
 		RGB( 0, 0, 0 ),
-		RGB( 255, 255, 255 ),
-		RGB( 116, 67, 53 ),
-		RGB( 124, 172, 186 ),
-		RGB( 123, 72, 144 ),
-		RGB( 100, 151, 79 ),
-		RGB( 64, 50, 133 ),
-		RGB( 191, 205, 122 ),
-		RGB( 123, 91, 47 ),
-		RGB( 79, 69, 0 ),
-		RGB( 163, 114, 101 ),
-		RGB( 80, 80, 80 ),
+		RGB( 252, 252, 252 ),
+		RGB( 248, 248, 248 ),
+		RGB( 188, 188, 188 ),
+		RGB( 124, 124, 124 ),
+		RGB( 164, 228, 252 ),
+		RGB( 60, 188, 252 ),
+		RGB( 0, 120, 248 ),
+		RGB( 0, 0, 252 ),
+		RGB( 184, 184, 248 ),
+		RGB( 104, 136, 252 ),
+		RGB( 0, 88, 248 ),
+		RGB( 0, 0, 188 ),
+		RGB( 216, 184, 248 ),
+		RGB( 152, 120, 248 ),
+		RGB( 104, 68, 252 ),
+		RGB( 68, 40, 188 ),
+		RGB( 248, 184, 248 ),
+		RGB( 248, 120, 248 ),
+		RGB( 216, 0, 204 ),
+		RGB( 148, 0, 132 ),
+		RGB( 248, 164, 192 ),
+		RGB( 248, 88, 152 ),
+		RGB( 228, 0, 88 ),
+		RGB( 168, 0, 32 ),
+		RGB( 240, 208, 176 ),
+		RGB( 248, 120, 88 ),
+		RGB( 248, 56, 0 ),
+		RGB( 168, 16, 0 ),
+		RGB( 252, 224, 168 ),
+		RGB( 252, 160, 68 ),
+		RGB( 228, 92, 16 ),
+		RGB( 136, 20, 0 ),
+		RGB( 248, 216, 120 ),
+		RGB( 248, 184, 0 ),
+		RGB( 172, 124, 0 ),
+		RGB( 80, 48, 0 ),
+		RGB( 216, 248, 120 ),
+		RGB( 184, 248, 24 ),
+		RGB( 0, 184, 0 ),
+		RGB( 0, 120, 0 ),
+		RGB( 184, 248, 184 ),
+		RGB( 88, 216, 84 ),
+		RGB( 0, 168, 0 ),
+		RGB( 0, 104, 0 ),
+		RGB( 184, 248, 216 ),
+		RGB( 88, 248, 152 ),
+		RGB( 0, 168, 68 ),
+		RGB( 0, 88, 0 ),
+		RGB( 0, 252, 252 ),
+		RGB( 0, 232, 216 ),
+		RGB( 0, 136, 136 ),
+		RGB( 0, 64, 88 ),
+		RGB( 248, 216, 248 ),
 		RGB( 120, 120, 120 ),
-		RGB( 164, 215, 142 ),
-		RGB( 120, 106, 189 ),
-		RGB( 159, 159, 150 ),
 	};
+
 #else
-	// gamma corrected version
-	const float3 palette[NUM_COLORS] =
+
+	// NES Advanced
+	// https://lospec.com/palette-list/nes-advanced
+
+	const float3 palette[NUM_COLORS] = // 55
 	{
-		RGB( 0, 0, 0 ),			// black
-		RGB( 255, 255, 255 ),	// white
-		RGB( 104, 55,  43 ),	// red
-		RGB( 112, 164, 178 ),	// cyan
-		RGB( 111, 61,  134 ),	// purple
-		RGB( 88,  141, 67 ),	// green
-		RGB( 53,  40,  121 ),	// blue
-		RGB( 184, 199, 111 ),	// yellow
-		RGB( 111, 79,  37 ),	// orange
-		RGB( 67,  57,  0 ),		// brown
-		RGB( 154, 103, 89 ),	// light red
-		RGB( 68,  68,  68 ),	// dark grey
-		RGB( 108, 108, 108 ),	// grey
-		RGB( 154, 210, 132 ),	// light green
-		RGB( 108, 94,  181 ),	// light blue
-		RGB( 149, 149, 149 ),	// light grey
+		RGB( 0, 0, 0 ),
+		RGB( 38, 35, 47 ),
+		RGB( 49, 64, 71 ),
+		RGB( 89, 109, 98 ),
+		RGB( 146, 156, 116 ),
+		RGB( 200, 197, 163 ),
+		RGB( 252, 252, 252 ),
+		RGB( 27, 55, 127 ),
+		RGB( 20, 122, 191 ),
+		RGB( 64, 175, 221 ),
+		RGB( 178, 219, 244 ),
+		RGB( 24, 22, 103 ),
+		RGB( 59, 44, 150 ),
+		RGB( 112, 106, 225 ),
+		RGB( 143, 149, 238 ),
+		RGB( 68, 10, 65 ),
+		RGB( 129, 37, 147 ),
+		RGB( 204, 75, 185 ),
+		RGB( 236, 153, 219 ),
+		RGB( 63, 0, 17 ),
+		RGB( 179, 28, 53 ),
+		RGB( 239, 32, 100 ),
+		RGB( 242, 98, 130 ),
+		RGB( 150, 8, 17 ),
+		RGB( 232, 24, 19 ),
+		RGB( 167, 93, 105 ),
+		RGB( 236, 158, 164 ),
+		RGB( 86, 13, 4 ),
+		RGB( 196, 54, 17 ),
+		RGB( 226, 106, 18 ),
+		RGB( 240, 175, 102 ),
+		RGB( 42, 26, 20 ),
+		RGB( 93, 52, 42 ),
+		RGB( 166, 110, 70 ),
+		RGB( 223, 156, 110 ),
+		RGB( 142, 78, 17 ),
+		RGB( 216, 149, 17 ),
+		RGB( 234, 209, 30 ),
+		RGB( 245, 235, 107 ),
+		RGB( 47, 84, 28 ),
+		RGB( 90, 131, 27 ),
+		RGB( 162, 187, 30 ),
+		RGB( 198, 223, 107 ),
+		RGB( 15, 69, 15 ),
+		RGB( 0, 139, 18 ),
+		RGB( 11, 203, 18 ),
+		RGB( 62, 243, 63 ),
+		RGB( 17, 81, 83 ),
+		RGB( 12, 133, 99 ),
+		RGB( 4, 191, 121 ),
+		RGB( 106, 230, 170 ),
+		RGB( 38, 39, 38 ),
+		RGB( 81, 79, 76 ),
+		RGB( 136, 126, 131 ),
+		RGB( 179, 170, 192 ),
 	};
+
 #endif
 
 	float2 uv = ( fragment.texcoord0 );
@@ -278,12 +297,10 @@ void main( PS_IN fragment, out PS_OUT result )
 	}
 #endif
 
-	//color.rgb += float3( dither, dither, dither ) * quantizationPeriod;
 	color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
 
 	// find closest color match from C64 color palette
 	color = LinearSearch( color.rgb, palette );
-	//color = float4( BinarySearch( color.rgb, palette ), 1.0 );
 
 	result.color = float4( color, 1.0 );
 }

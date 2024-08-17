@@ -55,6 +55,8 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
 	result.position.w = dot4( vertex.position, rpMVPmatrixW );
 
+	result.position.xyz = psxVertexJitter( result.position );
+
 	float3 t0 = vertex.position.xyz - rpLocalViewOrigin.xyz;
 	result.texcoord0.x = dot3( t0, rpWobbleSkyX );
 	result.texcoord0.y = dot3( t0, rpWobbleSkyY );

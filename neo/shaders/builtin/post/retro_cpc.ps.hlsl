@@ -33,9 +33,11 @@ If you have questions concerning this license or the applicable additional terms
 // *INDENT-OFF*
 Texture2D t_BaseColor	: register( t0 VK_DESCRIPTOR_SET( 0 ) );
 Texture2D t_BlueNoise	: register( t1 VK_DESCRIPTOR_SET( 0 ) );
+Texture2D t_Normals		: register( t2 VK_DESCRIPTOR_SET( 0 ) );
+Texture2D t_Depth		: register( t3 VK_DESCRIPTOR_SET( 0 ) );
 
-SamplerState samp0		: register(s0 VK_DESCRIPTOR_SET( 1 ) );
-SamplerState samp1		: register(s1 VK_DESCRIPTOR_SET( 1 ) ); // blue noise 256
+SamplerState s_LinearClamp	: register(s0 VK_DESCRIPTOR_SET( 1 ) );
+SamplerState s_LinearWrap	: register(s1 VK_DESCRIPTOR_SET( 1 ) ); // blue noise 256
 
 struct PS_IN
 {
@@ -53,17 +55,6 @@ struct PS_OUT
 #define RESOLUTION_DIVISOR 4.0
 #define NUM_COLORS 32 // original 27
 
-/*
-float LinearTweak1( float c )
-{
-	return ( c <= 0.04045 ) ? c / 12.92 : pow( ( c + 0.055 ) / 1.055, 1.4 );
-}
-
-float3 LinearTweak3( float3 c )
-{
-	return float3( Linear1( c.r ), Linear1( c.g ), Linear1( c.b ) );
-}
-*/
 
 float3 Average( float3 pal[NUM_COLORS] )
 {
@@ -119,12 +110,84 @@ float3 LinearSearch( float3 c, float3 pal[NUM_COLORS] )
 
 #define RGB(r, g, b) float3(float(r)/255.0, float(g)/255.0, float(b)/255.0)
 
+// http://www.cse.cuhk.edu.hk/~ttwong/papers/spheremap/spheremap.html
+float3 healpix( float3 p )
+{
+	float a = atan2( p.z, p.x ) * 0.63662;
+	float h = 3.0 * abs( p.y );
+	float h2 = 0.75 * p.y;
+	float2 uv = float2( a + h2, a - h2 );
+	h2 = sqrt( 3.0 - h );
+	float a2 = h2 * frac( a );
+	uv = lerp( uv, float2( -h2 + a2, a2 ), step( 2.0, h ) );
 
+#if 1
+	return float3( uv, 1.0 );
+#else
+	float3 col = spheretex( uv );
+	col.x = a * 0.5;
+
+	return HSVToRGB( float3( col.x, 0.8, col.z ) );
+#endif
+}
+
+// can be either view space or world space depending on rpModelMatrix
+float3 ReconstructPosition( float2 S, float depth )
+{
+	// derive clip space from the depth buffer and screen position
+	float2 uv = S * rpWindowCoord.xy;
+	float3 ndc = float3( uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth );
+	float clipW = -rpProjectionMatrixZ.w / ( -rpProjectionMatrixZ.z - ndc.z );
+
+	float4 clip = float4( ndc * clipW, clipW );
+
+	// camera space position
+	float4 csP;
+	csP.x = dot4( rpModelMatrixX, clip );
+	csP.y = dot4( rpModelMatrixY, clip );
+	csP.z = dot4( rpModelMatrixZ, clip );
+	csP.w = dot4( rpModelMatrixW, clip );
+
+	csP.xyz /= csP.w;
+
+	return csP.xyz;
+}
+
+float3 GetPosition( int2 ssP )
+{
+	float depth = texelFetch( t_Depth, ssP, 0 ).r;
+
+	// offset to pixel center
+	float3 P = ReconstructPosition( float2( ssP ) + _float2( 0.5 ), depth );
+
+	return P;
+}
+
+float BlueNoise( float2 n, float x )
+{
+	float noise = t_BlueNoise.Sample( s_LinearWrap, n.xy * rpJitterTexOffset.xy ).r;
+
+	noise = frac( noise + c_goldenRatioConjugate * rpJitterTexOffset.z * x );
+
+	noise = RemapNoiseTriErp( noise );
+	noise = noise * 2.0 - 0.5;
+
+	return noise;
+}
+
+float3 ditherRGB( float2 fragPos, float3 quantDeviation )
+{
+	float2 uvDither = fragPos / ( RESOLUTION_DIVISOR / rpJitterTexScale.x );
+	float dither = DitherArray8x8( uvDither ) - 0.5;
+
+	return float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
+}
 
 void main( PS_IN fragment, out PS_OUT result )
 {
 #if 0
 	// Amstrad CPC colors https://www.cpcwiki.eu/index.php/CPC_Palette
+	// those are the original colors but they are too saturated and kinda suck
 	const float3 palette[NUM_COLORS] =
 	{
 		RGB( 0, 0, 0 ),			// black
@@ -155,10 +218,18 @@ void main( PS_IN fragment, out PS_OUT result )
 		RGB( 255, 255, 128 ),	// pastel yellow
 		RGB( 255, 255, 255 ),	// bright white
 
-#if 1
+#if 0
 		RGB( 16, 16, 16 ),		// black
 		RGB( 0, 28, 28 ),		// dark cyan
 		RGB( 112, 164, 178 ) * 1.3,	// cyan
+
+#else
+		// https://lospec.com/palette-list/2bit-demichrome
+		RGB( 33, 30, 32 ),
+		RGB( 85, 85, 104 ),
+		RGB( 160, 160, 139 ),
+		RGB( 233, 239, 236 ),
+
 #endif
 	};
 
@@ -204,70 +275,8 @@ void main( PS_IN fragment, out PS_OUT result )
 
 #elif 0
 
-	// NES 1
-	// https://lospec.com/palette-list/nintendo-entertainment-system
-
-	const float3 palette[NUM_COLORS] = // 55
-	{
-		RGB( 0, 0, 0 ),
-		RGB( 252, 252, 252 ),
-		RGB( 248, 248, 248 ),
-		RGB( 188, 188, 188 ),
-		RGB( 124, 124, 124 ),
-		RGB( 164, 228, 252 ),
-		RGB( 60, 188, 252 ),
-		RGB( 0, 120, 248 ),
-		RGB( 0, 0, 252 ),
-		RGB( 184, 184, 248 ),
-		RGB( 104, 136, 252 ),
-		RGB( 0, 88, 248 ),
-		RGB( 0, 0, 188 ),
-		RGB( 216, 184, 248 ),
-		RGB( 152, 120, 248 ),
-		RGB( 104, 68, 252 ),
-		RGB( 68, 40, 188 ),
-		RGB( 248, 184, 248 ),
-		RGB( 248, 120, 248 ),
-		RGB( 216, 0, 204 ),
-		RGB( 148, 0, 132 ),
-		RGB( 248, 164, 192 ),
-		RGB( 248, 88, 152 ),
-		RGB( 228, 0, 88 ),
-		RGB( 168, 0, 32 ),
-		RGB( 240, 208, 176 ),
-		RGB( 248, 120, 88 ),
-		RGB( 248, 56, 0 ),
-		RGB( 168, 16, 0 ),
-		RGB( 252, 224, 168 ),
-		RGB( 252, 160, 68 ),
-		RGB( 228, 92, 16 ),
-		RGB( 136, 20, 0 ),
-		RGB( 248, 216, 120 ),
-		RGB( 248, 184, 0 ),
-		RGB( 172, 124, 0 ),
-		RGB( 80, 48, 0 ),
-		RGB( 216, 248, 120 ),
-		RGB( 184, 248, 24 ),
-		RGB( 0, 184, 0 ),
-		RGB( 0, 120, 0 ),
-		RGB( 184, 248, 184 ),
-		RGB( 88, 216, 84 ),
-		RGB( 0, 168, 0 ),
-		RGB( 0, 104, 0 ),
-		RGB( 184, 248, 216 ),
-		RGB( 88, 248, 152 ),
-		RGB( 0, 168, 68 ),
-		RGB( 0, 88, 0 ),
-		RGB( 0, 252, 252 ),
-		RGB( 0, 232, 216 ),
-		RGB( 0, 136, 136 ),
-		RGB( 0, 64, 88 ),
-		RGB( 248, 216, 248 ),
-		RGB( 120, 120, 120 ),
-	};
-
-#elif 0
-
+	// Atari STE
+	// https://lospec.com/palette-list/astron-ste32
 	const float3 palette[NUM_COLORS] = // 32
 	{
 		RGB( 0, 0, 0 ),
@@ -306,16 +315,31 @@ void main( PS_IN fragment, out PS_OUT result )
 
 #elif 0
 
-	// Gameboy
-	const float3 palette[NUM_COLORS] = // 4
+	// Sega Genesis Evangelion
+	// https://lospec.com/palette-list/sega-genesis-evangelion
+
+	const float3 palette[NUM_COLORS] = // 17
 	{
-		RGB( 27, 42, 9 ),
-		RGB( 14, 69, 11 ),
-		RGB( 73, 107, 34 ),
-		RGB( 154, 158, 63 ),
+		RGB( 207, 201, 179 ),
+		RGB( 163, 180, 158 ),
+		RGB( 100, 166, 174 ),
+		RGB( 101, 112, 141 ),
+		RGB( 52, 54, 36 ),
+		RGB( 37, 34, 70 ),
+		RGB( 39, 28, 21 ),
+		RGB( 20, 14, 11 ),
+		RGB( 0, 0, 0 ),
+		RGB( 202, 168, 87 ),
+		RGB( 190, 136, 51 ),
+		RGB( 171, 85, 92 ),
+		RGB( 186, 47, 74 ),
+		RGB( 131, 25, 97 ),
+		RGB( 102, 52, 143 ),
+		RGB( 203, 216, 246 ),
+		RGB( 140, 197, 79 ),
 	};
 
-#else
+#elif 0
 
 	// https://lospec.com/palette-list/existential-demo
 	const float3 palette[NUM_COLORS] = // 8
@@ -330,6 +354,29 @@ void main( PS_IN fragment, out PS_OUT result )
 		RGB( 46, 43, 18 ),
 	};
 
+#elif 0
+
+	// Hollow
+	// https://lospec.com/palette-list/hollow
+	const float3 palette[NUM_COLORS] = // 4
+	{
+		RGB( 15, 15, 27 ),
+		RGB( 86, 90, 117 ),
+		RGB( 198, 183, 190 ),
+		RGB( 250, 251, 246 ),
+	};
+
+#else
+
+	// https://lospec.com/palette-list/2bit-demichrome
+	const float3 palette[NUM_COLORS] = // 4
+	{
+		RGB( 33, 30, 32 ),
+		RGB( 85, 85, 104 ),
+		RGB( 160, 160, 139 ),
+		RGB( 233, 239, 236 ),
+	};
+
 #endif
 
 	float2 uv = ( fragment.texcoord0 );
@@ -339,7 +386,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float3 quantDeviation = Deviation( palette );
 
 	// get pixellated base color
-	float3 color = t_BaseColor.Sample( samp0, uvPixelated * rpWindowCoord.xy ).rgb;
+	float4 color = t_BaseColor.Sample( s_LinearClamp, uvPixelated * rpWindowCoord.xy );
 
 	float2 uvDither = uvPixelated;
 	//if( rpJitterTexScale.x > 1.0 )
@@ -351,35 +398,41 @@ void main( PS_IN fragment, out PS_OUT result )
 #if 0
 	if( uv.y < 0.0625 )
 	{
-		color = HSVToRGB( float3( uv.x, 1.0, uv.y * 16.0 ) );
+		color.rgb = HSVToRGB( float3( uv.x, 1.0, uv.y * 16.0 ) );
 
-		result.color = float4( color, 1.0 );
+		result.color = float4( color.rgb, 1.0 );
 		return;
 	}
 	else if( uv.y < 0.125 )
 	{
 		// quantized
-		color = HSVToRGB( float3( uv.x, 1.0, ( uv.y - 0.0625 ) * 16.0 ) );
-		color = LinearSearch( color, palette );
+		color.rgb = HSVToRGB( float3( uv.x, 1.0, ( uv.y - 0.0625 ) * 16.0 ) );
+		color.rgb = LinearSearch( color.rgb, palette );
 
-		result.color = float4( color, 1.0 );
+		result.color = float4( color.rgb, 1.0 );
 		return;
 	}
 	else if( uv.y < 0.1875 )
 	{
 		// dithered quantized
-		color = HSVToRGB( float3( uv.x, 1.0, ( uv.y - 0.125 ) * 16.0 ) );
+		color.rgb = HSVToRGB( float3( uv.x, 1.0, ( uv.y - 0.125 ) * 16.0 ) );
 
 		color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
-		color = LinearSearch( color, palette );
+		color.rgb = LinearSearch( color.rgb, palette );
 
-		result.color = float4( color, 1.0 );
+		result.color = float4( color.rgb, 1.0 );
 		return;
 	}
 	else if( uv.y < 0.25 )
 	{
-		color = _float3( uv.x );
-		color = floor( color * NUM_COLORS ) * ( 1.0 / ( NUM_COLORS - 1.0 ) );
+		color.rgb = _float3( uv.x );
+		color.rgb = floor( color.rgb * NUM_COLORS ) * ( 1.0 / ( NUM_COLORS - 1.0 ) );
+
+		color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
+		color.rgb = LinearSearch( color.rgb, palette );
+
+		result.color = float4( color.rgb, 1.0 );
+		return;
 	}
 #endif
 
@@ -387,7 +440,155 @@ void main( PS_IN fragment, out PS_OUT result )
 	color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
 
 	// find closest color match from CPC color palette
-	color = LinearSearch( color.rgb, palette );
+	color.rgb = LinearSearch( color.rgb, palette );
 
-	result.color = float4( color, 1.0 );
+#if 0
+
+	//
+	// similar to Obra Dinn
+	//
+
+	// don't post process the hands, which were drawn with alpha = 0
+	if( color.a == 0.0 )
+	{
+		result.color = float4( color.rgb, 1.0 );
+		return;
+	}
+
+
+	// triplanar mapping based on reconstructed depth buffer
+
+	int2 ssP = int2( fragment.position.xy );
+	float3 C = GetPosition( ssP );
+	//float3 n_C = t_Normals.Sample( s_LinearClamp, uv ).rgb;
+	float3 n_C = ( ( 2.0 * t_Normals.Sample( s_LinearClamp, uv ).rgb ) - 1.0 );
+
+	//result.color = float4( n_C * 0.5 + 0.5, 1.0 );
+	//return;
+
+	// triplanar UVs
+	float3 worldPos = C;
+
+	float2 uvX = worldPos.zy; // x facing plane
+	float2 uvY = worldPos.xz; // y facing plane
+	float2 uvZ = worldPos.xy; // z facing plane
+
+#if 1
+	uvX = abs( uvX );// + 1.0;
+	uvY = abs( uvY );// + 1.0;
+	uvZ = abs( uvZ );// + 1.0;
+#endif
+
+#if 1
+	uvX *= 4.0;
+	uvY *= 4.0;
+	uvZ *= 4.0;
+#endif
+
+#if 0
+	uvX = round( float2( uvX.x, uvX.y ) );
+	uvY = round( float2( uvY.x, uvY.y ) );
+	uvZ = round( float2( uvZ.x, uvZ.y ) );
+#endif
+
+	// offset UVs to prevent obvious mirroring
+	//uvY += 0.33;
+	//uvZ += 0.67;
+
+	float3 worldNormal = normalize( abs( n_C ) );
+	//float3 worldNormal = normalize( n_C );
+
+	float3 triblend = saturate( pow( worldNormal, 4.0 ) );
+	triblend /= max( dot( triblend, float3( 1, 1, 1 ) ), 0.0001 );
+
+#if 1
+	// change from simple triplanar blending to cubic projection
+	// which handles diagonal geometry way better
+	if( ( abs( worldNormal.x ) > abs( worldNormal.y ) ) && ( abs( worldNormal.x ) > abs( worldNormal.z ) ) )
+	{
+		triblend = float3( 1, 0, 0 ); // X axis
+	}
+	else if( ( abs( worldNormal.z ) > abs( worldNormal.x ) ) && ( abs( worldNormal.z ) > abs( worldNormal.y ) ) )
+	{
+		triblend = float3( 0, 0, 1 ); // Z axis
+
+	}
+	else
+	{
+		triblend = float3( 0, 1, 0 ); // Y axis
+	}
+#endif
+
+#if 0
+	// preview blend
+	result.color = float4( triblend.xyz, 1.0 );
+	return;
+#endif
+
+	float3 axisSign = sign( n_C );
+
+#if 0
+	uvX.x *= axisSign.x;
+	uvY.x *= axisSign.y;
+	uvZ.x *= -axisSign.z;
+#endif
+
+	// FIXME get pixellated base color or not
+	//float2 pixelatedUVX = floor( uvX / RESOLUTION_DIVISOR ) * RESOLUTION_DIVISOR;
+	//float2 pixelatedUVY = floor( uvY / RESOLUTION_DIVISOR ) * RESOLUTION_DIVISOR;
+	//float2 pixelatedUVZ = floor( uvZ / RESOLUTION_DIVISOR ) * RESOLUTION_DIVISOR;
+
+	//float3 pixelatedColor = colX * triblend.x + colY * triblend.y + colZ * triblend.z;
+	//
+	//float2 uvPixelated = floor( fragment.position.xy / RESOLUTION_DIVISOR ) * RESOLUTION_DIVISOR;
+
+	color.rgb = t_BaseColor.Sample( s_LinearClamp, uvPixelated * rpWindowCoord.xy ).rgb;
+	//color = t_BaseColor.Sample( s_LinearClamp, uv ).rgb;
+
+	float3 colX = ditherRGB( uvX, quantDeviation ) * 1.0;
+	float3 colY = ditherRGB( uvY, quantDeviation ) * 1.0;
+	float3 colZ = ditherRGB( uvZ, quantDeviation ) * 1.0;
+
+	float3 dither3D = colX * triblend.x + colY * triblend.y + colZ * triblend.z;
+	color.rgb += dither3D;
+
+	// find closest color match from CPC color palette
+	color.rgb = LinearSearch( color.rgb, palette );
+
+#if 0
+	float2 uvC = cubeProject( abs( worldPos ) );
+	color.rgb = _float3( DitherArray8x8( uvC ) - 0.5 );
+#endif
+
+#if 0
+	colX = _float3( DitherArray8x8( uvX ) - 0.5 );
+	colY = _float3( DitherArray8x8( uvY ) - 0.5 );
+	colZ = _float3( DitherArray8x8( uvZ ) - 0.5 );
+
+	dither3D = colX * triblend.x + colY * triblend.y + colZ * triblend.z;
+	color.rgb = dither3D;
+#endif
+
+#if 0
+	colX =  float3( uvZ * 0.5 + 0.5, 0.0 );
+	colY = _float3( 0 );
+	colZ = _float3( 0 );
+
+	dither3D = colX * triblend.x + colY * triblend.y + colZ * triblend.z;
+	color.rgb = dither3D;
+#endif
+
+#if 0
+	color = _float3( uvZ.x * 0.5 + 0.5 );
+	color = dither3D;
+	color = floor( color * NUM_COLORS ) * ( 1.0 / ( NUM_COLORS - 1.0 ) );
+	color.rgb += dither3D;
+	//color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
+	color = LinearSearch( color, palette );
+#endif
+
+#endif // cubic mapping
+
+	//color.rgb = float3( suv.xy * 0.5 + 0.5, 1.0 );
+	result.color = float4( color.rgb, 1.0 );
 }

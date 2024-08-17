@@ -55,6 +55,8 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
 	result.position.w = dot4( vertex.position, rpMVPmatrixW );
 
+	result.position.xyz = psxVertexJitter( result.position );
+
 	float4 tc0;
 	tc0.x = dot4( vertex.position, rpTexGen0S );
 	tc0.y = dot4( vertex.position, rpTexGen0T );

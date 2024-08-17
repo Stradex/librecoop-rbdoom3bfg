@@ -51,7 +51,7 @@ struct PS_OUT
 
 
 #define RESOLUTION_DIVISOR 4.0
-#define NUM_COLORS 16
+#define NUM_COLORS 4
 
 
 float3 Average( float3 pal[NUM_COLORS] )
@@ -106,120 +106,69 @@ float3 LinearSearch( float3 c, float3 pal[NUM_COLORS] )
 	return pal[index];
 }
 
-/*
-float3 GetClosest( float3 val1, float3 val2, float3 target )
-{
-	if( distance( target, val1 ) >= distance( val2, target ) )
-	{
-		return val2;
-	}
-	else
-	{
-		return val1;
-	}
-}
-
-// find nearest palette color using Euclidean disntance and binary search
-// this requires an already sorted palette as input
-float3 BinarySearch( float3 target, float3 pal[NUM_COLORS] )
-{
-	float targetY = PhotoLuma( target );
-
-	// left-side case
-	if( targetY <= PhotoLuma( pal[0] ) )
-	{
-		return pal[0];
-	}
-
-	// right-side case
-	if( targetY >= PhotoLuma( pal[NUM_COLORS - 1] ) )
-	{
-		return pal[NUM_COLORS - 1];
-	}
-
-	int i = 0, j = NUM_COLORS, mid = 0;
-	while( i < j )
-	{
-		mid = ( i + j ) / 2;
-
-		if( distance( pal[mid], target ) < 0.01 )
-		{
-			return pal[mid];
-		}
-
-		// if target is less than array element, then search in left
-		if( targetY < PhotoLuma( pal[mid] ) )
-		{
-			// if target is greater than previous
-			// to mid, return closest of two
-			if( mid > 0 && targetY > PhotoLuma( pal[mid - 1] ) )
-			{
-				return GetClosest( pal[mid - 1], pal[mid], target );
-			}
-			j = mid;
-		}
-		else
-		{
-			if( mid < ( NUM_COLORS - 1 ) && targetY < PhotoLuma( pal[mid + 1] ) )
-			{
-				return GetClosest( pal[mid], pal[mid + 1], target );
-			}
-			i = mid + 1;
-		}
-	}
-
-	// only single element left after search
-	return pal[mid];
-}
-*/
-
 
 #define RGB(r, g, b) float3(float(r)/255.0, float(g)/255.0, float(b)/255.0)
 
 void main( PS_IN fragment, out PS_OUT result )
 {
-	// C64 colors http://unusedino.de/ec64/technical/misc/vic656x/colors/
 #if 0
-	const float3 palette[NUM_COLORS] =
+
+	// Gameboy
+	const float3 palette[NUM_COLORS] = // 4
 	{
-		RGB( 0, 0, 0 ),
-		RGB( 255, 255, 255 ),
-		RGB( 116, 67, 53 ),
-		RGB( 124, 172, 186 ),
-		RGB( 123, 72, 144 ),
-		RGB( 100, 151, 79 ),
-		RGB( 64, 50, 133 ),
-		RGB( 191, 205, 122 ),
-		RGB( 123, 91, 47 ),
-		RGB( 79, 69, 0 ),
-		RGB( 163, 114, 101 ),
-		RGB( 80, 80, 80 ),
-		RGB( 120, 120, 120 ),
-		RGB( 164, 215, 142 ),
-		RGB( 120, 106, 189 ),
-		RGB( 159, 159, 150 ),
+		RGB( 27, 42, 9 ),
+		RGB( 14, 69, 11 ),
+		RGB( 73, 107, 34 ),
+		RGB( 154, 158, 63 ),
 	};
+
+#elif 0
+
+	// Moonlight GB
+	// https://lospec.com/palette-list/moonlight-gb
+	const float3 palette[NUM_COLORS] = // 4
+	{
+		RGB( 15, 5, 45 ),
+		RGB( 32, 54, 113 ),
+		RGB( 54, 134, 143 ),
+		RGB( 95, 199, 93 ),
+	};
+
+#elif 1
+
+	// CGA
+	// https://lospec.com/palette-list/cga-mibend4
+	const float3 palette[NUM_COLORS] = // 4
+	{
+		RGB( 41, 31, 35 ),
+		RGB( 189, 80, 47 ),
+		RGB( 52, 209, 175 ),
+		RGB( 247, 236, 185 ),
+	};
+
+#elif 0
+
+	// Hollow
+	// https://lospec.com/palette-list/hollow
+	const float3 palette[NUM_COLORS] = // 4
+	{
+		RGB( 15, 15, 27 ),
+		RGB( 86, 90, 117 ),
+		RGB( 198, 183, 190 ),
+		RGB( 250, 251, 246 ),
+	};
+
 #else
-	// gamma corrected version
-	const float3 palette[NUM_COLORS] =
+
+	// https://lospec.com/palette-list/2bit-demichrome
+	const float3 palette[NUM_COLORS] = // 4
 	{
-		RGB( 0, 0, 0 ),			// black
-		RGB( 255, 255, 255 ),	// white
-		RGB( 104, 55,  43 ),	// red
-		RGB( 112, 164, 178 ),	// cyan
-		RGB( 111, 61,  134 ),	// purple
-		RGB( 88,  141, 67 ),	// green
-		RGB( 53,  40,  121 ),	// blue
-		RGB( 184, 199, 111 ),	// yellow
-		RGB( 111, 79,  37 ),	// orange
-		RGB( 67,  57,  0 ),		// brown
-		RGB( 154, 103, 89 ),	// light red
-		RGB( 68,  68,  68 ),	// dark grey
-		RGB( 108, 108, 108 ),	// grey
-		RGB( 154, 210, 132 ),	// light green
-		RGB( 108, 94,  181 ),	// light blue
-		RGB( 149, 149, 149 ),	// light grey
+		RGB( 33, 30, 32 ),
+		RGB( 85, 85, 104 ),
+		RGB( 160, 160, 139 ),
+		RGB( 233, 239, 236 ),
 	};
+
 #endif
 
 	float2 uv = ( fragment.texcoord0 );
@@ -278,12 +227,10 @@ void main( PS_IN fragment, out PS_OUT result )
 	}
 #endif
 
-	//color.rgb += float3( dither, dither, dither ) * quantizationPeriod;
 	color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
 
 	// find closest color match from C64 color palette
 	color = LinearSearch( color.rgb, palette );
-	//color = float4( BinarySearch( color.rgb, palette ), 1.0 );
 
 	result.color = float4( color, 1.0 );
 }

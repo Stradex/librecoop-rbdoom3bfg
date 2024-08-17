@@ -221,9 +221,9 @@ void main( uint3 globalId : SV_DispatchThreadID )
 	float3 pixelNormal = t_Normals[pixelPos].xyz;
 #endif
 
-	// RB: pixelNormal is already in view space but it has to be negated to look correct which is weird
+	// RB: pixelNormal has to be negated to look correct which is weird
 	pixelNormal = -normalize( pixelNormal * 2.0 - 1.0 );
-	//pixelNormal = normalize( mul( float4( pixelNormal, 0 ), g_Ssao.matWorldToView ).xyz );
+	pixelNormal = normalize( mul( float4( pixelNormal, 0 ), g_Ssao.matWorldToView ).xyz );
 
 	float2 pixelClipPos = WindowToClip( pixelPos );
 	float3 pixelViewPos = ViewDepthToViewPos( pixelClipPos.xy, pixelViewDepth );
