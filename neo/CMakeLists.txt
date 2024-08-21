@@ -1670,9 +1670,9 @@ endif()
 
 # needs to come after nvrhi_d3d11 etc. for link order
 target_link_libraries(RBDoom3BFG nvrhi)
-target_link_libraries(RBDoom3BFG ShaderMakeBlob)
+target_link_libraries(RBDoom3BFG ShaderMakeBlob MaskedOcclusionCulling)
 
 add_subdirectory(shaders)
 add_dependencies(Shaders ShaderMake)
-add_dependencies(RBDoom3BFG Shaders)
+add_dependencies(RBDoom3BFG Shaders MaskedOcclusionCulling)
 

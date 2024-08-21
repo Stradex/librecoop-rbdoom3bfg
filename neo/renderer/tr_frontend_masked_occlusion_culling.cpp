@@ -114,9 +114,6 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 	// we will add all interaction surfs here, to be chained to the lights in later serial code
 	vEntity->drawSurfs = NULL;
 
-	// RB
-	vEntity->useLightGrid = false;
-
 	// globals we really should pass in...
 	const viewDef_t* viewDef = tr.viewDef;
 
@@ -424,28 +421,35 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 		{
 			// TODO render to masked occlusion buffer
 
-			/*
-			// make sure we have an ambient cache and all necessary normals / tangents
-			if( !vertexCache.CacheIsCurrent( tri->indexCache ) )
+#if 1
+			// super simple bruteforce
+			idVec4 triVerts[3];
+			unsigned int triIndices[] = { 0, 1, 2 };
+
+			tr.pc.c_mocIndexes += tri->numIndexes;
+			tr.pc.c_mocVerts += tri->numIndexes;
+
+			for( int i = 0, face = 0; i < tri->numIndexes; i += 3, face++ )
 			{
-				tri->indexCache = vertexCache.AllocIndex( tri->indexes, tri->numIndexes );
+				const idDrawVert& v0 = tri->verts[tri->indexes[i + 0]];
+				const idDrawVert& v1 = tri->verts[tri->indexes[i + 1]];
+				const idDrawVert& v2 = tri->verts[tri->indexes[i + 2]];
+
+				// transform to clip space
+				vEntity->mvp.TransformPoint( idVec4( v0.xyz.x, v0.xyz.y, v0.xyz.z, 1 ), triVerts[0] );
+				vEntity->mvp.TransformPoint( idVec4( v1.xyz.x, v1.xyz.y, v1.xyz.z, 1 ), triVerts[1] );
+				vEntity->mvp.TransformPoint( idVec4( v2.xyz.x, v2.xyz.y, v2.xyz.z, 1 ), triVerts[2] );
+
+				// tri->indexes is unsigned short instead of uint
+				//triIndices[0] = tri->indexes[i + 0];
+				//triIndices[1] = tri->indexes[i + 1];
+				//triIndices[2] = tri->indexes[i + 2];
+
+				tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_CCW );
 			}
 
-			if( !vertexCache.CacheIsCurrent( tri->ambientCache ) )
-			{
-				// we are going to use it for drawing, so make sure we have the tangents and normals
-				if( shader->ReceivesLighting() && !tri->tangentsCalculated )
-				{
-					assert( tri->staticModelWithJoints == NULL );
-					R_DeriveTangents( tri );
-
-					// RB: this was hit by parametric particle models ..
-					//assert( false );	// this should no longer be hit
-					// RB end
-				}
-				tri->ambientCache = vertexCache.AllocVertex( tri->verts, tri->numVerts );
-			}
-			*/
+			// TODO write faster alternative
+#endif
 
 			/*
 			// add the surface for drawing
@@ -517,9 +521,18 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 R_FillMaskedOcclusionBufferWithModels
 ===================
 */
-void R_FillMaskedOcclusionBufferWithModels()
+void R_FillMaskedOcclusionBufferWithModels( viewDef_t* viewDef )
 {
 	SCOPED_PROFILE_EVENT( "R_FillMaskedOcclusionBufferWithModels" );
+
+	const int viewWidth = viewDef->viewport.x2 - viewDef->viewport.x1 + 1;
+	const int viewHeight = viewDef->viewport.y2 - viewDef->viewport.y1 + 1;
+
+	const float zNear = ( viewDef->renderView.cramZNear ) ? ( r_znear.GetFloat() * 0.25f ) : r_znear.GetFloat();
+
+	tr.maskedOcclusionCulling->SetResolution( viewWidth, viewHeight );
+	tr.maskedOcclusionCulling->SetNearClipPlane( zNear );
+	tr.maskedOcclusionCulling->ClearBuffer();
 
 	tr.viewDef->viewEntitys = R_SortViewEntities( tr.viewDef->viewEntitys );
 
@@ -548,10 +561,56 @@ void R_FillMaskedOcclusionBufferWithModels()
 			// skip after rendering BSP area models
 			if( !model->IsStaticWorldModel() )
 			{
-				break;
+				continue;
 			}
 
 			R_RenderSingleModel( vEntity );
 		}
 	}
+}
+
+static void TonemapDepth( float* depth, unsigned char* image, int w, int h )
+{
+	// Find min/max w coordinate (discard cleared pixels)
+	float minW = FLT_MAX, maxW = 0.0f;
+	for( int i = 0; i < w * h; ++i )
+	{
+		if( depth[i] > 0.0f )
+		{
+			minW = std::min( minW, depth[i] );
+			maxW = std::max( maxW, depth[i] );
+		}
+	}
+
+	// Tonemap depth values
+	for( int i = 0; i < w * h; ++i )
+	{
+		int intensity = 0;
+		if( depth[i] > 0 )
+		{
+			intensity = ( unsigned char )( 223.0 * ( depth[i] - minW ) / ( maxW - minW ) + 32.0 );
+		}
+
+		image[i * 3 + 0] = intensity;
+		image[i * 3 + 1] = intensity;
+		image[i * 3 + 2] = intensity;
+	}
+}
+
+CONSOLE_COMMAND( maskShot, "Dumping masked occlusion culling buffer", NULL )
+{
+	unsigned int width, height;
+
+	tr.maskedOcclusionCulling->GetResolution( width, height );
+
+	// compute a per pixel depth buffer from the hierarchical depth buffer, used for visualization
+	float* perPixelZBuffer = new float[width * height];
+	tr.maskedOcclusionCulling->ComputePixelDepthBuffer( perPixelZBuffer, false );
+
+	// Tonemap the image
+	unsigned char* image = new unsigned char[width * height * 3];
+	TonemapDepth( perPixelZBuffer, image, width, height );
+
+	R_WritePNG( "occlusion_buffer.png", image, 3, width, height, "fs_basepath" );
+	delete[] image;
 }

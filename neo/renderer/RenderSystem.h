@@ -126,6 +126,11 @@ struct performanceCounters_t
 	int		c_lightReferences;
 	int		c_guiSurfs;
 
+	int		c_mocVerts;
+	int		c_mocIndexes;
+	int		c_mocTests;
+	int		c_mocCulls;
+
 	uint64	frontEndMicroSec;	// sum of time in all RE_RenderScene's in a frame
 };
 

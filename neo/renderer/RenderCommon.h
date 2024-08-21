@@ -64,6 +64,7 @@ SURFACES
 #include "ModelOverlay.h"
 #include "Interaction.h"
 
+class MaskedOcclusionCulling; // RB
 class idRenderWorldLocal;
 struct viewEntity_t;
 struct viewLight_t;
@@ -1044,6 +1045,10 @@ public:
 
 	idRenderBackend			backend;
 
+	MaskedOcclusionCulling*	maskedOcclusionCulling;
+	idVec4					maskZeroOneCubeVerts[8];
+	unsigned int			maskZeroOneCubeIndexes[36];
+
 private:
 	bool					bInitialized;
 	bool					omitSwapBuffers;
@@ -1554,7 +1559,7 @@ TR_FRONTEND_MASKED_OCCLUSION_CULLING
 ============================================================
 */
 
-void R_FillMaskedOcclusionBufferWithModels();
+void R_FillMaskedOcclusionBufferWithModels( viewDef_t* viewDef );
 
 /*
 =============================================================

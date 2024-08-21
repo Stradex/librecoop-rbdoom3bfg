@@ -33,6 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "imgui.h"
+#include "../libs/moc/MaskedOcclusionCulling.h"
 
 #include "RenderCommon.h"
 
@@ -51,8 +52,6 @@ If you have questions concerning this license or the applicable additional terms
 #ifdef BUGFIXEDSCREENSHOTRESOLUTION
 	#include "../framework/Common_local.h"
 #endif
-
-//#include "idlib/HandleManager.h"
 
 
 // DeviceContext bypasses RenderSystem to work directly with this
@@ -1935,6 +1934,87 @@ static srfTriangles_t* R_MakeZeroOneCubeTris()
 }
 
 // RB begin
+static void R_MakeZeroOneCubeTrisForMaskedOcclusionCulling()
+{
+	//idDrawVert* verts = tri->verts;
+
+	const float low = 0.0f;
+	const float high = 1.0f;
+
+	idVec3 center( 0.0f );
+	idVec3 mx( low, 0.0f, 0.0f );
+	idVec3 px( high, 0.0f, 0.0f );
+	idVec3 my( 0.0f,  low, 0.0f );
+	idVec3 py( 0.0f, high, 0.0f );
+	idVec3 mz( 0.0f, 0.0f,  low );
+	idVec3 pz( 0.0f, 0.0f, high );
+
+	idVec4* verts = tr.maskZeroOneCubeVerts;
+
+	verts[0].ToVec3() = center + mx + my + mz;
+	verts[1].ToVec3() = center + px + my + mz;
+	verts[2].ToVec3() = center + px + py + mz;
+	verts[3].ToVec3() = center + mx + py + mz;
+	verts[4].ToVec3() = center + mx + my + pz;
+	verts[5].ToVec3() = center + px + my + pz;
+	verts[6].ToVec3() = center + px + py + pz;
+	verts[7].ToVec3() = center + mx + py + pz;
+
+	verts[0].w = 1;
+	verts[1].w = 1;
+	verts[2].w = 1;
+	verts[3].w = 1;
+	verts[4].w = 1;
+	verts[5].w = 1;
+	verts[6].w = 1;
+	verts[7].w = 1;
+
+	unsigned int* indexes = tr.maskZeroOneCubeIndexes;
+
+	// bottom
+	indexes[ 0 * 3 + 0] = 2;
+	indexes[ 0 * 3 + 1] = 3;
+	indexes[ 0 * 3 + 2] = 0;
+	indexes[ 1 * 3 + 0] = 1;
+	indexes[ 1 * 3 + 1] = 2;
+	indexes[ 1 * 3 + 2] = 0;
+	// back
+	indexes[ 2 * 3 + 0] = 5;
+	indexes[ 2 * 3 + 1] = 1;
+	indexes[ 2 * 3 + 2] = 0;
+	indexes[ 3 * 3 + 0] = 4;
+	indexes[ 3 * 3 + 1] = 5;
+	indexes[ 3 * 3 + 2] = 0;
+	// left
+	indexes[ 4 * 3 + 0] = 7;
+	indexes[ 4 * 3 + 1] = 4;
+	indexes[ 4 * 3 + 2] = 0;
+	indexes[ 5 * 3 + 0] = 3;
+	indexes[ 5 * 3 + 1] = 7;
+	indexes[ 5 * 3 + 2] = 0;
+	// right
+	indexes[ 6 * 3 + 0] = 1;
+	indexes[ 6 * 3 + 1] = 5;
+	indexes[ 6 * 3 + 2] = 6;
+	indexes[ 7 * 3 + 0] = 2;
+	indexes[ 7 * 3 + 1] = 1;
+	indexes[ 7 * 3 + 2] = 6;
+	// front
+	indexes[ 8 * 3 + 0] = 3;
+	indexes[ 8 * 3 + 1] = 2;
+	indexes[ 8 * 3 + 2] = 6;
+	indexes[ 9 * 3 + 0] = 7;
+	indexes[ 9 * 3 + 1] = 3;
+	indexes[ 9 * 3 + 2] = 6;
+	// top
+	indexes[10 * 3 + 0] = 4;
+	indexes[10 * 3 + 1] = 7;
+	indexes[10 * 3 + 2] = 6;
+	indexes[11 * 3 + 0] = 5;
+	indexes[11 * 3 + 1] = 4;
+	indexes[11 * 3 + 2] = 6;
+}
+
 static srfTriangles_t* R_MakeZeroOneSphereTris()
 {
 	srfTriangles_t* tri = ( srfTriangles_t* )Mem_ClearedAlloc( sizeof( *tri ), TAG_RENDER_TOOLS );
@@ -2169,6 +2249,12 @@ void idRenderSystemLocal::Init()
 		// avoid GL_BlockingSwapBuffers
 		omitSwapBuffers = true;
 	}
+
+	// Flush denorms to zero to avoid performance issues with small values
+	_mm_setcsr( _mm_getcsr() | 0x8040 );
+
+	maskedOcclusionCulling = MaskedOcclusionCulling::Create();
+	R_MakeZeroOneCubeTrisForMaskedOcclusionCulling();
 
 	// make sure the command buffers are ready to accept the first screen update
 	SwapCommandBuffers( NULL, NULL, NULL, NULL, NULL, NULL );

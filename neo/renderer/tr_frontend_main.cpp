@@ -646,7 +646,7 @@ void R_RenderView( viewDef_t* parms )
 	tr.frontEndJobList->Wait();
 
 	// RB: render worldspawn geometry to the software culling buffer
-	R_FillMaskedOcclusionBufferWithModels();
+	R_FillMaskedOcclusionBufferWithModels( tr.viewDef );
 
 	// make sure that interactions exist for all light / entity combinations that are visible
 	// add any pre-generated light shadows, and calculate the light shader values

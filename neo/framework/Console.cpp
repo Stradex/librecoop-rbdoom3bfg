@@ -350,7 +350,7 @@ float idConsoleLocal::DrawFPS( float y )
 		if( com_showFPS.GetInteger() > 2 )
 		{
 			statsWindowWidth += 230;
-			statsWindowHeight += 120;
+			statsWindowHeight += 135;
 		}
 
 		ImVec2 pos;
@@ -500,6 +500,12 @@ float idConsoleLocal::DrawFPS( float y )
 
 			//ImGui::Text( "Cull: %i box in %i box out\n",
 			//					commonLocal.stats_frontend.c_box_cull_in, commonLocal.stats_frontend.c_box_cull_out );
+
+			ImGui::TextColored( colorLtGrey, "MASKCULL: tests:%-3i culls:%i maskVerts:%i maskTris:%i",
+								commonLocal.stats_frontend.c_mocTests,
+								commonLocal.stats_frontend.c_mocCulls,
+								commonLocal.stats_frontend.c_mocVerts,
+								commonLocal.stats_frontend.c_mocIndexes );
 
 			ImGui::TextColored( colorLtGrey, "ADDMODEL: callback:%-2i createInteractions:%i createShadowVolumes:%i",
 								commonLocal.stats_frontend.c_entityDefCallbacks,

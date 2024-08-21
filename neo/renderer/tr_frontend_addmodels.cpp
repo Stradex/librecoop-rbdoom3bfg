@@ -30,6 +30,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
+#include "../libs/moc/MaskedOcclusionCulling.h"
+
 #include "RenderCommon.h"
 #include "Model_local.h"
 
@@ -667,7 +669,92 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 		// than the entire entity reference bounds
 		// If the entire model wasn't visible, there is no need to check the
 		// individual surfaces.
-		const bool surfaceDirectlyVisible = modelIsVisible && !idRenderMatrix::CullBoundsToMVP( vEntity->mvp, tri->bounds );
+		bool surfaceDirectlyVisible = modelIsVisible && !idRenderMatrix::CullBoundsToMVP( vEntity->mvp, tri->bounds );
+
+#if 0
+		// RB: test surface visibility by drawing the triangles of the bounds
+		if( tr.maskedOcclusionCulling != NULL )
+		{
+			idRenderMatrix modelRenderMatrix;
+			idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelRenderMatrix );
+
+			idRenderMatrix inverseBaseModelProject;
+			idRenderMatrix::OffsetScaleForBounds( modelRenderMatrix, tri->bounds, inverseBaseModelProject );
+
+			idRenderMatrix invProjectMVPMatrix;
+			idRenderMatrix::Multiply( viewDef->worldSpace.mvp, inverseBaseModelProject, invProjectMVPMatrix );
+
+			idRenderMatrix invProjectMVPMatrix2;
+			idRenderMatrix::Transpose( invProjectMVPMatrix, invProjectMVPMatrix2 );
+
+			// query the triangle
+			MaskedOcclusionCulling::CullingResult result;
+			result = tr.maskedOcclusionCulling->TestTriangles( ( float* )tr.maskZeroOneCubeVerts, tr.maskZeroOneCubeIndexes, 36, ( float* )&invProjectMVPMatrix2[0][0], MaskedOcclusionCulling::BACKFACE_CCW );
+			if( result == MaskedOcclusionCulling::OCCLUDED )
+			{
+				surfaceDirectlyVisible = false;
+				tr.pc.c_mocCulls += 1;
+			}
+		}
+#elif 1
+		{
+			idVec4 triVerts[3];
+			unsigned int triIndices[] = { 0, 1, 2 };
+
+			tr.pc.c_mocIndexes += tri->numIndexes;
+			tr.pc.c_mocVerts += tri->numIndexes;
+
+			tr.pc.c_mocTests += 1;
+
+			bool maskVisible = false;
+			for( int i = 0, face = 0; i < tri->numIndexes; i += 3, face++ )
+			{
+				const idDrawVert& v0 = tri->verts[tri->indexes[i + 0]];
+				const idDrawVert& v1 = tri->verts[tri->indexes[i + 1]];
+				const idDrawVert& v2 = tri->verts[tri->indexes[i + 2]];
+
+				// transform to clip space
+				vEntity->mvp.TransformPoint( idVec4( v0.xyz.x, v0.xyz.y, v0.xyz.z, 1 ), triVerts[0] );
+				vEntity->mvp.TransformPoint( idVec4( v1.xyz.x, v1.xyz.y, v1.xyz.z, 1 ), triVerts[1] );
+				vEntity->mvp.TransformPoint( idVec4( v2.xyz.x, v2.xyz.y, v2.xyz.z, 1 ), triVerts[2] );
+
+				MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_CCW );
+				if( result == MaskedOcclusionCulling::VISIBLE )
+				{
+					maskVisible = true;
+				}
+			}
+
+			if( !maskVisible )
+			{
+				tr.pc.c_mocCulls += 1;
+				surfaceDirectlyVisible = false;
+			}
+		}
+#else
+		{
+			idVec4 triVerts[3];
+			unsigned int triIndices[] = { 0, 1, 2 };
+
+			tr.pc.c_mocIndexes += tri->numIndexes;
+			tr.pc.c_mocVerts += tri->numIndexes;
+
+			for( int i = 0, face = 0; i < tri->numIndexes; i += 3, face++ )
+			{
+				const idDrawVert& v0 = tri->verts[tri->indexes[i + 0]];
+				const idDrawVert& v1 = tri->verts[tri->indexes[i + 1]];
+				const idDrawVert& v2 = tri->verts[tri->indexes[i + 2]];
+
+				// transform to clip space
+				vEntity->mvp.TransformPoint( idVec4( v0.xyz.x, v0.xyz.y, v0.xyz.z, 1 ), triVerts[0] );
+				vEntity->mvp.TransformPoint( idVec4( v1.xyz.x, v1.xyz.y, v1.xyz.z, 1 ), triVerts[1] );
+				vEntity->mvp.TransformPoint( idVec4( v2.xyz.x, v2.xyz.y, v2.xyz.z, 1 ), triVerts[2] );
+
+				tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_CCW );
+			}
+		}
+#endif
+
 
 		// RB: added check wether GPU skinning is available at all
 		const bool gpuSkinned = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() );
