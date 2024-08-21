@@ -266,6 +266,7 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 	idRenderMatrix viewMat;
 	idRenderMatrix::Transpose( *( idRenderMatrix* )vEntity->modelViewMatrix, viewMat );
 	idRenderMatrix::Multiply( viewDef->projectionRenderMatrix, viewMat, vEntity->mvp );
+	idRenderMatrix::Multiply( viewDef->unjitteredProjectionRenderMatrix, viewMat, vEntity->unjitteredMVP );
 	if( renderEntity->weaponDepthHack )
 	{
 		idRenderMatrix::ApplyDepthHack( vEntity->mvp );
@@ -436,9 +437,9 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 				const idDrawVert& v2 = tri->verts[tri->indexes[i + 2]];
 
 				// transform to clip space
-				vEntity->mvp.TransformPoint( idVec4( v0.xyz.x, v0.xyz.y, v0.xyz.z, 1 ), triVerts[0] );
-				vEntity->mvp.TransformPoint( idVec4( v1.xyz.x, v1.xyz.y, v1.xyz.z, 1 ), triVerts[1] );
-				vEntity->mvp.TransformPoint( idVec4( v2.xyz.x, v2.xyz.y, v2.xyz.z, 1 ), triVerts[2] );
+				vEntity->unjitteredMVP.TransformPoint( idVec4( v0.xyz.x, v0.xyz.y, v0.xyz.z, 1 ), triVerts[0] );
+				vEntity->unjitteredMVP.TransformPoint( idVec4( v1.xyz.x, v1.xyz.y, v1.xyz.z, 1 ), triVerts[1] );
+				vEntity->unjitteredMVP.TransformPoint( idVec4( v2.xyz.x, v2.xyz.y, v2.xyz.z, 1 ), triVerts[2] );
 
 				// tri->indexes is unsigned short instead of uint
 				//triIndices[0] = tri->indexes[i + 0];
