@@ -522,7 +522,7 @@ void R_WritePNG( const char* filename, const byte* data, int bytesPerPixel, int 
 		common->Error( "R_WritePNG( %s ): bytesPerPixel = %i not supported", filename, bytesPerPixel );
 	}
 
-	idFileLocal file( fileSystem->OpenFileWrite( filename, "fs_basepath" ) );
+	idFileLocal file( fileSystem->OpenFileWrite( filename, basePath ) );
 	if( file == NULL )
 	{
 		common->Printf( "R_WritePNG: Failed to open %s\n", filename );
