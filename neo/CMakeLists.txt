@@ -428,6 +428,8 @@ if(NOT APPLE)
 	add_subdirectory(tools/compilers)
 endif()
 
+add_subdirectory(libs/moc)
+
 file(GLOB NATVIS_SOURCES .natvis)
 
 file(GLOB AAS_INCLUDES aas/*.h)

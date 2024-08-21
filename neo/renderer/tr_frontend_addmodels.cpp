@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2014-2016 Robert Beckebans
+Copyright (C) 2014-2024 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -46,64 +46,7 @@ idCVar r_lodMaterialDistance( "r_lodMaterialDistance", "500", CVAR_RENDERER | CV
 
 static const float CHECK_BOUNDS_EPSILON = 1.0f;
 
-/*
-==================
-R_SortViewEntities
-==================
-*/
-viewEntity_t* R_SortViewEntities( viewEntity_t* vEntities )
-{
-	SCOPED_PROFILE_EVENT( "R_SortViewEntities" );
 
-	// We want to avoid having a single AddModel for something complex be
-	// the last thing processed and hurt the parallel occupancy, so
-	// sort dynamic models first, _area models second, then everything else.
-	viewEntity_t* dynamics = NULL;
-	viewEntity_t* areas = NULL;
-	viewEntity_t* others = NULL;
-	for( viewEntity_t* vEntity = vEntities; vEntity != NULL; )
-	{
-		viewEntity_t* next = vEntity->next;
-		const idRenderModel* model = vEntity->entityDef->parms.hModel;
-		if( model->IsDynamicModel() != DM_STATIC )
-		{
-			vEntity->next = dynamics;
-			dynamics = vEntity;
-		}
-		else if( model->IsStaticWorldModel() )
-		{
-			vEntity->next = areas;
-			areas = vEntity;
-		}
-		else
-		{
-			vEntity->next = others;
-			others = vEntity;
-		}
-		vEntity = next;
-	}
-
-	// concatenate the lists
-	viewEntity_t* all = others;
-
-	for( viewEntity_t* vEntity = areas; vEntity != NULL; )
-	{
-		viewEntity_t* next = vEntity->next;
-		vEntity->next = all;
-		all = vEntity;
-		vEntity = next;
-	}
-
-	for( viewEntity_t* vEntity = dynamics; vEntity != NULL; )
-	{
-		viewEntity_t* next = vEntity->next;
-		vEntity->next = all;
-		all = vEntity;
-		vEntity = next;
-	}
-
-	return all;
-}
 
 /*
 ==================
@@ -1115,7 +1058,8 @@ void R_AddModels()
 {
 	SCOPED_PROFILE_EVENT( "R_AddModels" );
 
-	tr.viewDef->viewEntitys = R_SortViewEntities( tr.viewDef->viewEntitys );
+	// RB: already done in R_FillMaskedOcclusionBufferWithModels
+	// tr.viewDef->viewEntitys = R_SortViewEntities( tr.viewDef->viewEntitys );
 
 	//-------------------------------------------------
 	// Go through each view entity that is either visible to the view, or to

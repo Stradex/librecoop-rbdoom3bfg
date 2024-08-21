@@ -645,6 +645,9 @@ void R_RenderView( viewDef_t* parms )
 	// wait for any shadow volume jobs from the previous frame to finish
 	tr.frontEndJobList->Wait();
 
+	// RB: render worldspawn geometry to the software culling buffer
+	R_FillMaskedOcclusionBufferWithModels();
+
 	// make sure that interactions exist for all light / entity combinations that are visible
 	// add any pre-generated light shadows, and calculate the light shader values
 	R_AddLights();
