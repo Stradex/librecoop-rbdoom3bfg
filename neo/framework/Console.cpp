@@ -350,7 +350,7 @@ float idConsoleLocal::DrawFPS( float y )
 		if( com_showFPS.GetInteger() > 2 )
 		{
 			statsWindowWidth += 230;
-			statsWindowHeight += 135;
+			statsWindowHeight += 140;
 		}
 
 		ImVec2 pos;

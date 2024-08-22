@@ -1046,8 +1046,8 @@ public:
 	idRenderBackend			backend;
 
 	MaskedOcclusionCulling*	maskedOcclusionCulling;
-	idVec4					maskZeroOneCubeVerts[8];
-	unsigned int			maskZeroOneCubeIndexes[36];
+	idVec4					maskedZeroOneCubeVerts[8];
+	unsigned int			maskedZeroOneCubeIndexes[36];
 
 private:
 	bool					bInitialized;
@@ -1204,9 +1204,9 @@ extern idCVar r_debugRenderToTexture;
 extern idCVar stereoRender_enable;
 extern idCVar stereoRender_deGhost;			// subtract from opposite eye to reduce ghosting
 
+// RB begin
 extern idCVar r_useGPUSkinning;
 
-// RB begin
 extern idCVar r_shadowMapAtlasSize;
 extern idCVar r_shadowMapFrustumFOV;
 extern idCVar r_shadowMapSingleSide;
@@ -1266,6 +1266,8 @@ extern idCVar r_useFilmicPostFX;
 extern idCVar r_useCRTPostFX;
 extern idCVar r_crtCurvature;
 extern idCVar r_crtVignette;
+
+extern idCVar r_useMaskedOcclusionCulling;
 
 enum RenderMode
 {

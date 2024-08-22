@@ -411,45 +411,92 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 
 		// RB: added check wether GPU skinning is available at all
 		const bool gpuSkinned = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() );
-		// RB end
 
 		//--------------------------
 		// base drawing surface
 		//--------------------------
 		const float* shaderRegisters = NULL;
 		drawSurf_t* baseDrawSurf = NULL;
-		if( surfaceDirectlyVisible && shader->IsDrawn() )
+		if( surfaceDirectlyVisible && shader->IsDrawn() && shader->Coverage() == MC_OPAQUE && !renderEntity->weaponDepthHack && renderEntity->modelDepthHack == 0.0f )
 		{
-			// TODO render to masked occlusion buffer
+			// render to masked occlusion buffer
+
+			//if( model->IsStaticWorldModel() )
+			{
+				// super simple bruteforce
+				idVec4 triVerts[3];
+				unsigned int triIndices[] = { 0, 1, 2 };
+
+				tr.pc.c_mocIndexes += tri->numIndexes;
+				tr.pc.c_mocVerts += tri->numIndexes;
+
+				for( int i = 0, face = 0; i < tri->numIndexes; i += 3, face++ )
+				{
+					const idDrawVert& v0 = tri->verts[tri->indexes[i + 0]];
+					const idDrawVert& v1 = tri->verts[tri->indexes[i + 1]];
+					const idDrawVert& v2 = tri->verts[tri->indexes[i + 2]];
+
+					// transform to clip space
+					vEntity->unjitteredMVP.TransformPoint( idVec4( v0.xyz.x, v0.xyz.y, v0.xyz.z, 1 ), triVerts[0] );
+					vEntity->unjitteredMVP.TransformPoint( idVec4( v1.xyz.x, v1.xyz.y, v1.xyz.z, 1 ), triVerts[1] );
+					vEntity->unjitteredMVP.TransformPoint( idVec4( v2.xyz.x, v2.xyz.y, v2.xyz.z, 1 ), triVerts[2] );
+
+					// tri->indexes is unsigned short instead of uint
+					//triIndices[0] = tri->indexes[i + 0];
+					//triIndices[1] = tri->indexes[i + 1];
+					//triIndices[2] = tri->indexes[i + 2];
+
+					tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_CCW );
+				}
+			}
+#if 0
+			else
+			{
+				idVec4 triVerts[3];
+				unsigned int triIndices[] = { 0, 1, 2 };
+
+				tr.pc.c_mocIndexes += 36;
+				tr.pc.c_mocVerts += 8;
+
+				idRenderMatrix modelRenderMatrix;
+				idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelRenderMatrix );
+
+				const float size = 16.0f;
+				idBounds debugBounds( idVec3( -size ), idVec3( size ) );
+				//debugBounds = vEntity->entityDef->localReferenceBounds;
+				debugBounds = tri->bounds;
+
+				idRenderMatrix inverseBaseModelProject;
+				idRenderMatrix::OffsetScaleForBounds( modelRenderMatrix, debugBounds, inverseBaseModelProject );
+
+				idRenderMatrix invProjectMVPMatrix;
+				idRenderMatrix::Multiply( viewDef->worldSpace.unjitteredMVP, inverseBaseModelProject, invProjectMVPMatrix );
 
 #if 1
-			// super simple bruteforce
-			idVec4 triVerts[3];
-			unsigned int triIndices[] = { 0, 1, 2 };
+				idVec4* verts = tr.maskedZeroOneCubeVerts;
+				unsigned int* indexes = tr.maskedZeroOneCubeIndexes;
+				for( int i = 0, face = 0; i < 36; i += 3, face++ )
+				{
+					const idVec4& v0 = verts[indexes[i + 0]];
+					const idVec4& v1 = verts[indexes[i + 1]];
+					const idVec4& v2 = verts[indexes[i + 2]];
 
-			tr.pc.c_mocIndexes += tri->numIndexes;
-			tr.pc.c_mocVerts += tri->numIndexes;
+					// transform to clip space
+					invProjectMVPMatrix.TransformPoint( v0, triVerts[0] );
+					invProjectMVPMatrix.TransformPoint( v1, triVerts[1] );
+					invProjectMVPMatrix.TransformPoint( v2, triVerts[2] );
 
-			for( int i = 0, face = 0; i < tri->numIndexes; i += 3, face++ )
-			{
-				const idDrawVert& v0 = tri->verts[tri->indexes[i + 0]];
-				const idDrawVert& v1 = tri->verts[tri->indexes[i + 1]];
-				const idDrawVert& v2 = tri->verts[tri->indexes[i + 2]];
+					tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_CCW );
+				}
+#else
 
-				// transform to clip space
-				vEntity->unjitteredMVP.TransformPoint( idVec4( v0.xyz.x, v0.xyz.y, v0.xyz.z, 1 ), triVerts[0] );
-				vEntity->unjitteredMVP.TransformPoint( idVec4( v1.xyz.x, v1.xyz.y, v1.xyz.z, 1 ), triVerts[1] );
-				vEntity->unjitteredMVP.TransformPoint( idVec4( v2.xyz.x, v2.xyz.y, v2.xyz.z, 1 ), triVerts[2] );
+				// TODO get faster alternative working
+				idRenderMatrix invProjectMVPMatrix2;
+				idRenderMatrix::Transpose( invProjectMVPMatrix, invProjectMVPMatrix2 );
 
-				// tri->indexes is unsigned short instead of uint
-				//triIndices[0] = tri->indexes[i + 0];
-				//triIndices[1] = tri->indexes[i + 1];
-				//triIndices[2] = tri->indexes[i + 2];
-
-				tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_CCW );
+				tr.maskedOcclusionCulling->RenderTriangles( ( float* )tr.maskedZeroOneCubeVerts, tr.maskedZeroOneCubeIndexes, 12, ( float* )&invProjectMVPMatrix2[0][0], MaskedOcclusionCulling::BACKFACE_NONE, MaskedOcclusionCulling::CLIP_PLANE_ALL, MaskedOcclusionCulling::VertexLayout( 16, 4, 8 ) );
+#endif
 			}
-
-			// TODO write faster alternative
 #endif
 
 			/*
@@ -526,6 +573,11 @@ void R_FillMaskedOcclusionBufferWithModels( viewDef_t* viewDef )
 {
 	SCOPED_PROFILE_EVENT( "R_FillMaskedOcclusionBufferWithModels" );
 
+	if( !r_useMaskedOcclusionCulling.GetBool() )
+	{
+		return;
+	}
+
 	const int viewWidth = viewDef->viewport.x2 - viewDef->viewport.x1 + 1;
 	const int viewHeight = viewDef->viewport.y2 - viewDef->viewport.y1 + 1;
 
@@ -562,7 +614,7 @@ void R_FillMaskedOcclusionBufferWithModels( viewDef_t* viewDef )
 			// skip after rendering BSP area models
 			if( !model->IsStaticWorldModel() )
 			{
-				continue;
+				//continue;
 			}
 
 			R_RenderSingleModel( vEntity );
@@ -612,6 +664,6 @@ CONSOLE_COMMAND( maskShot, "Dumping masked occlusion culling buffer", NULL )
 	unsigned char* image = new unsigned char[width * height * 3];
 	TonemapDepth( perPixelZBuffer, image, width, height );
 
-	R_WritePNG( "occlusion_buffer.png", image, 3, width, height, "fs_basepath" );
+	R_WritePNG( "screenshots/soft_occlusion_buffer.png", image, 3, width, height, "fs_basepath" );
 	delete[] image;
 }
