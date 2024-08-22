@@ -418,10 +418,11 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 		const float* shaderRegisters = NULL;
 		drawSurf_t* baseDrawSurf = NULL;
 		if( surfaceDirectlyVisible && shader->IsDrawn() && shader->Coverage() == MC_OPAQUE && !renderEntity->weaponDepthHack && renderEntity->modelDepthHack == 0.0f )
+			//if( surfaceDirectlyVisible && shader->IsDrawn() && !renderEntity->weaponDepthHack && renderEntity->modelDepthHack == 0.0f )
 		{
 			// render to masked occlusion buffer
 
-			//if( model->IsStaticWorldModel() )
+			if( !gpuSkinned ) //model->IsStaticWorldModel() )
 			{
 				// super simple bruteforce
 				idVec4 triVerts[3];
@@ -461,10 +462,20 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 				idRenderMatrix modelRenderMatrix;
 				idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelRenderMatrix );
 
-				const float size = 16.0f;
-				idBounds debugBounds( idVec3( -size ), idVec3( size ) );
-				//debugBounds = vEntity->entityDef->localReferenceBounds;
-				debugBounds = tri->bounds;
+				//const float size = 16.0f;
+				//idBounds debugBounds( idVec3( -size ), idVec3( size ) );
+				idBounds debugBounds;
+#if 0
+				if( gpuSkinned )
+				{
+					//debugBounds = vEntity->entityDef->localReferenceBounds;
+					debugBounds = model->Bounds();
+				}
+				else
+#endif
+				{
+					debugBounds = tri->bounds;
+				}
 
 				idRenderMatrix inverseBaseModelProject;
 				idRenderMatrix::OffsetScaleForBounds( modelRenderMatrix, debugBounds, inverseBaseModelProject );

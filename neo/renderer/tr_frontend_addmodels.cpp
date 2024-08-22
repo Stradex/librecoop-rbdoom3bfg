@@ -693,7 +693,17 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 				const float size = 16.0f;
 				idBounds debugBounds( idVec3( -size ), idVec3( size ) );
 				//debugBounds = vEntity->entityDef->localReferenceBounds;
-				debugBounds = tri->bounds;
+#if 0
+				if( gpuSkinned )
+				{
+					//debugBounds = vEntity->entityDef->localReferenceBounds;
+					debugBounds = model->Bounds();
+				}
+				else
+#endif
+				{
+					debugBounds = tri->bounds;
+				}
 
 				idRenderMatrix inverseBaseModelProject;
 				idRenderMatrix::OffsetScaleForBounds( modelRenderMatrix, debugBounds, inverseBaseModelProject );
@@ -717,7 +727,8 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 					invProjectMVPMatrix.TransformPoint( v1, triVerts[1] );
 					invProjectMVPMatrix.TransformPoint( v2, triVerts[2] );
 
-					MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_CCW );
+					// backface none so objects are still visible where we run into
+					MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
 					if( result == MaskedOcclusionCulling::VISIBLE )
 					{
 						maskVisible = true;
