@@ -371,7 +371,7 @@ void idRenderWorldLocal::AddAreaViewLights( int areaNum, const portalStack_t* ps
 
 		// debug tool to allow viewing of only one light at a time
 		// RB: use this elsewhere in the backend debug drawing code
-#if 0
+#if 1
 		if( r_singleLight.GetInteger() >= 0 && r_singleLight.GetInteger() != light->index )
 		{
 			continue;

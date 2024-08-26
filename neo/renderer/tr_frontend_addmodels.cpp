@@ -686,7 +686,7 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 #if 1
 			if( !model->IsStaticWorldModel() && !renderEntity->weaponDepthHack && renderEntity->modelDepthHack == 0.0f )
 			{
-				idVec4 triVerts[3];
+				idVec4 triVerts[8];
 				unsigned int triIndices[] = { 0, 1, 2 };
 
 				tr.pc.c_mocIndexes += 36;
@@ -719,19 +719,21 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 				tr.pc.c_mocTests += 1;
 
 				bool maskVisible = false;
+
 				// NOTE: unit cube instead of zeroToOne cube
 				idVec4* verts = tr.maskedUnitCubeVerts;
-				unsigned int* indexes = tr.maskedZeroOneCubeIndexes;
-				for( int i = 0, face = 0; i < 36; i += 3, face++ )
+				for( int i = 0; i < 8; i++ )
 				{
-					const idVec4& v0 = verts[indexes[i + 0]];
-					const idVec4& v1 = verts[indexes[i + 1]];
-					const idVec4& v2 = verts[indexes[i + 2]];
-
 					// transform to clip space
-					invProjectMVPMatrix.TransformPoint( v0, triVerts[0] );
-					invProjectMVPMatrix.TransformPoint( v1, triVerts[1] );
-					invProjectMVPMatrix.TransformPoint( v2, triVerts[2] );
+					invProjectMVPMatrix.TransformPoint( verts[i], triVerts[i] );
+				}
+
+				unsigned int* indexes = tr.maskedZeroOneCubeIndexes;
+				for( int i = 0; i < 36; i += 3 )
+				{
+					triIndices[0] = indexes[i + 0];
+					triIndices[1] = indexes[i + 1];
+					triIndices[2] = indexes[i + 2];
 
 					// backface none so objects are still visible where we run into
 					MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_NONE );

@@ -271,10 +271,9 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		// RB: test surface visibility by drawing the triangles of the bounds
 
 		// FIXME spot light projections are too short
-		if( r_useMaskedOcclusionCulling.GetBool() && !viewInsideLight && vLight->pointLight )
+		if( r_useMaskedOcclusionCulling.GetBool() && !viewInsideLight )
 		{
-#if 1
-			idVec4 triVerts[3];
+			idVec4 triVerts[8];
 			unsigned int triIndices[] = { 0, 1, 2 };
 
 			tr.pc.c_mocIndexes += 36;
@@ -285,64 +284,81 @@ static void R_AddSingleLight( viewLight_t* vLight )
 
 			tr.pc.c_mocTests += 1;
 
+			float wmin = idMath::INFINITUM;
 			bool maskVisible = false;
+
 			// NOTE: zeroToOne cube is only for lights and models need the unit cube
 			idVec4* verts = tr.maskedZeroOneCubeVerts;
-			unsigned int* indexes = tr.maskedZeroOneCubeIndexes;
-			for( int i = 0, face = 0; i < 36; i += 3, face++ )
+			for( int i = 0; i < 8; i++ )
 			{
-				const idVec4& v0 = verts[indexes[i + 0]];
-				const idVec4& v1 = verts[indexes[i + 1]];
-				const idVec4& v2 = verts[indexes[i + 2]];
-
 				// transform to clip space
-				invProjectMVPMatrix.TransformPoint( v0, triVerts[0] );
-				invProjectMVPMatrix.TransformPoint( v1, triVerts[1] );
-				invProjectMVPMatrix.TransformPoint( v2, triVerts[2] );
+				invProjectMVPMatrix.TransformPoint( verts[i], triVerts[i] );
+
+				float w = triVerts[i].w;
+				if( i == 0 )
+				{
+					wmin = w;
+				}
+				else if( w < wmin )
+				{
+					wmin = w;
+				}
+			}
+
+			if( vLight->pointLight || vLight->parallel )
+			{
+				unsigned int* indexes = tr.maskedZeroOneCubeIndexes;
+				for( int i = 0; i < 36; i += 3 )
+				{
+					triIndices[0] = indexes[i + 0];
+					triIndices[1] = indexes[i + 1];
+					triIndices[2] = indexes[i + 2];
 
 #if 1
-				// backface none so objects are still visible where we run into
-				MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
-				if( result == MaskedOcclusionCulling::VISIBLE )
-				{
+					// backface none so objects are still visible where we run into
+					MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
+					if( result == MaskedOcclusionCulling::VISIBLE )
+					{
+						maskVisible = true;
+					}
+#else
+					// draw for debugging
+					tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_CW );
 					maskVisible = true;
+#endif
 				}
-#else
-				// draw for debugging
-				tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
-				maskVisible = true;
-#endif
-			}
 
-			if( !maskVisible )
+				if( !maskVisible )
+				{
+					tr.pc.c_mocCulledLights += 1;
+					return;
+				}
+			}
+			else
 			{
-				tr.pc.c_mocCulledLights += 1;
-				return;
+				// scissor test alternative
+
+				// source scissor rectangle has GL convention and starts in the lower left corner
+				// convert to NDC values
+				float x1 = -1.0f + ( float( vLight->scissorRect.x1 ) / screenWidth ) * 2.0f;
+				float x2 = -1.0f + ( float( vLight->scissorRect.x2 ) / screenWidth ) * 2.0f;
+				float y1 = -1.0f + ( float( vLight->scissorRect.y1 ) / screenHeight ) * 2.0f;
+				float y2 = -1.0f + ( float( vLight->scissorRect.y2 ) / screenHeight ) * 2.0f;
+
+				float zmin = vLight->scissorRect.zmin;
+				//zmin = 2.0f * zmin -1.0f;
+				zmin = 1.0 - zmin; // reverse depth
+				float wmin2 = ( 1.0 / zmin );
+				wmin2 *= wmin;
+				wmin2 = Max( wmin2, 0.0f );
+
+				MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestRect( x1, y1, x2, y2, wmin2 );
+				if( result != MaskedOcclusionCulling::VISIBLE )
+				{
+					tr.pc.c_mocCulledLights += 1;
+					return;
+				}
 			}
-#else
-			// scissor test alternative
-			// I would prefer this method however lights become visible again when the distance increases to the occluder surface
-
-			// source scissor rectangle has GL convention and starts in the lower left corner
-			// convert to NDC values
-			float x1 = -1.0f + ( float( vLight->scissorRect.x1 ) / screenWidth ) * 2.0f;
-			float x2 = -1.0f + ( float( vLight->scissorRect.x2 ) / screenWidth ) * 2.0f;
-			float y1 = -1.0f + ( float( vLight->scissorRect.y1 ) / screenHeight ) * 2.0f;
-			float y2 = -1.0f + ( float( vLight->scissorRect.y2 ) / screenHeight ) * 2.0f;
-
-			//float y2 = -1.0f + ( float( screenHeight - vLight->scissorRect.y1 ) / screenHeight ) * 2.0f;
-			//float y1 = -1.0f + ( float( screenHeight - vLight->scissorRect.y2 ) / screenHeight ) * 2.0f;
-
-			double zmin = 1.0 - vLight->scissorRect.zmin; // reverse depth
-			double wmin = 1.0 / zmin;
-
-			MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestRect( x1, y1, x2, y2, wmin );
-			if( result != MaskedOcclusionCulling::VISIBLE )
-			{
-				tr.pc.c_mocCulledLights += 1;
-				return;
-			}
-#endif
 		}
 		// RB end
 
