@@ -675,8 +675,13 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 		// RB: added check wether GPU skinning is available at all
 		const bool gpuSkinned = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() );
 
+		idRenderMatrix cullSurfaceProject;
+		idRenderMatrix::InverseOffsetScaleForBounds( renderMatrix_identity, tri->bounds, cullSurfaceProject );
+
+		const bool viewInsideSurface = !idRenderMatrix::CullPointToMVP( cullSurfaceProject, localViewOrigin, false );
+
 		// RB: test surface visibility by drawing the triangles of the bounds
-		if( r_useMaskedOcclusionCulling.GetBool() )
+		if( r_useMaskedOcclusionCulling.GetBool() && !viewInsideSurface )
 		{
 #if 1
 			if( !model->IsStaticWorldModel() && !renderEntity->weaponDepthHack && renderEntity->modelDepthHack == 0.0f )
@@ -686,9 +691,6 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 
 				tr.pc.c_mocIndexes += 36;
 				tr.pc.c_mocVerts += 8;
-
-				idRenderMatrix modelRenderMatrix;
-				idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelRenderMatrix );
 
 				const float size = 16.0f;
 				idBounds debugBounds( idVec3( -size ), idVec3( size ) );
@@ -705,6 +707,9 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 					debugBounds = tri->bounds;
 				}
 
+				idRenderMatrix modelRenderMatrix;
+				idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelRenderMatrix );
+
 				idRenderMatrix inverseBaseModelProject;
 				idRenderMatrix::OffsetScaleForBounds( modelRenderMatrix, debugBounds, inverseBaseModelProject );
 
@@ -714,7 +719,8 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 				tr.pc.c_mocTests += 1;
 
 				bool maskVisible = false;
-				idVec4* verts = tr.maskedZeroOneCubeVerts;
+				// NOTE: unit cube instead of zeroToOne cube
+				idVec4* verts = tr.maskedUnitCubeVerts;
 				unsigned int* indexes = tr.maskedZeroOneCubeIndexes;
 				for( int i = 0, face = 0; i < 36; i += 3, face++ )
 				{
@@ -737,7 +743,7 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 
 				if( !maskVisible )
 				{
-					tr.pc.c_mocCulls += 1;
+					tr.pc.c_mocCulledSurfaces += 1;
 					surfaceDirectlyVisible = false;
 				}
 			}

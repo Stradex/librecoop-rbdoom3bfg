@@ -1945,7 +1945,7 @@ static srfTriangles_t* R_MakeZeroOneCubeTris()
 // RB begin
 static void R_MakeZeroOneCubeTrisForMaskedOcclusionCulling()
 {
-	const float low = -1.0f;
+	const float low = 0.0f;
 	const float high = 1.0f;
 
 	idVec3 center( 0.0f );
@@ -1957,6 +1957,40 @@ static void R_MakeZeroOneCubeTrisForMaskedOcclusionCulling()
 	idVec3 pz( 0.0f, 0.0f, high );
 
 	idVec4* verts = tr.maskedZeroOneCubeVerts;
+
+	verts[0].ToVec3() = center + mx + my + mz;
+	verts[1].ToVec3() = center + px + my + mz;
+	verts[2].ToVec3() = center + px + py + mz;
+	verts[3].ToVec3() = center + mx + py + mz;
+	verts[4].ToVec3() = center + mx + my + pz;
+	verts[5].ToVec3() = center + px + my + pz;
+	verts[6].ToVec3() = center + px + py + pz;
+	verts[7].ToVec3() = center + mx + py + pz;
+
+	verts[0].w = 1;
+	verts[1].w = 1;
+	verts[2].w = 1;
+	verts[3].w = 1;
+	verts[4].w = 1;
+	verts[5].w = 1;
+	verts[6].w = 1;
+	verts[7].w = 1;
+}
+
+static void R_MakeUnitCubeTrisForMaskedOcclusionCulling()
+{
+	const float low = -1.0f;
+	const float high = 1.0f;
+
+	idVec3 center( 0.0f );
+	idVec3 mx( low, 0.0f, 0.0f );
+	idVec3 px( high, 0.0f, 0.0f );
+	idVec3 my( 0.0f,  low, 0.0f );
+	idVec3 py( 0.0f, high, 0.0f );
+	idVec3 mz( 0.0f, 0.0f,  low );
+	idVec3 pz( 0.0f, 0.0f, high );
+
+	idVec4* verts = tr.maskedUnitCubeVerts;
 
 	verts[0].ToVec3() = center + mx + my + mz;
 	verts[1].ToVec3() = center + px + my + mz;
@@ -2262,6 +2296,7 @@ void idRenderSystemLocal::Init()
 
 	maskedOcclusionCulling = MaskedOcclusionCulling::Create();
 	R_MakeZeroOneCubeTrisForMaskedOcclusionCulling();
+	R_MakeUnitCubeTrisForMaskedOcclusionCulling();
 
 	// make sure the command buffers are ready to accept the first screen update
 	SwapCommandBuffers( NULL, NULL, NULL, NULL, NULL, NULL );

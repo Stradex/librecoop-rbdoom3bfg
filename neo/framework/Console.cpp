@@ -501,9 +501,10 @@ float idConsoleLocal::DrawFPS( float y )
 			//ImGui::Text( "Cull: %i box in %i box out\n",
 			//					commonLocal.stats_frontend.c_box_cull_in, commonLocal.stats_frontend.c_box_cull_out );
 
-			ImGui::TextColored( colorLtGrey, "MASKCULL: tests:%-3i culls:%i maskVerts:%i maskTris:%i",
+			ImGui::TextColored( colorLtGrey, "MASKCULL: tests:%-3i lightCulls:%i surfCulls:%i verts:%i tris:%i",
 								commonLocal.stats_frontend.c_mocTests,
-								commonLocal.stats_frontend.c_mocCulls,
+								commonLocal.stats_frontend.c_mocCulledLights,
+								commonLocal.stats_frontend.c_mocCulledSurfaces,
 								commonLocal.stats_frontend.c_mocVerts,
 								commonLocal.stats_frontend.c_mocIndexes );
 

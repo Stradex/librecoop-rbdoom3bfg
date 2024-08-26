@@ -3,7 +3,6 @@
 #
 set(CMAKE_SUPPRESS_REGENERATION true)
 option(USE_AVX512 "Enable experimental AVX-512 support" OFF)
-set(CMAKE_CONFIGURATION_TYPES Debug Release)
 
 #
 # Lists of all files included in the library

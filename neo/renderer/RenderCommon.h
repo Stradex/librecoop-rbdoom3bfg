@@ -1046,6 +1046,7 @@ public:
 	idRenderBackend			backend;
 
 	MaskedOcclusionCulling*	maskedOcclusionCulling;
+	idVec4					maskedUnitCubeVerts[8];
 	idVec4					maskedZeroOneCubeVerts[8];
 	unsigned int			maskedZeroOneCubeIndexes[36];
 

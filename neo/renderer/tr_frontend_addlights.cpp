@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2014 Robert Beckebans
+Copyright (C) 2013-2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "precompiled.h"
 #pragma hdrstop
+
+#include "../libs/moc/MaskedOcclusionCulling.h"
 
 #include "RenderCommon.h"
 
@@ -263,6 +265,86 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		vLight->scissorRect.Intersect( lightScissorRect );
 		vLight->scissorRect.zmin = projected[0][2];
 		vLight->scissorRect.zmax = projected[1][2];
+
+		const bool viewInsideLight = !idRenderMatrix::CullPointToMVP( light->baseLightProject, viewDef->renderView.vieworg, true );
+
+		// RB: test surface visibility by drawing the triangles of the bounds
+
+		// FIXME spot light projections are too short
+		if( r_useMaskedOcclusionCulling.GetBool() && !viewInsideLight && vLight->pointLight )
+		{
+#if 1
+			idVec4 triVerts[3];
+			unsigned int triIndices[] = { 0, 1, 2 };
+
+			tr.pc.c_mocIndexes += 36;
+			tr.pc.c_mocVerts += 8;
+
+			idRenderMatrix invProjectMVPMatrix;
+			idRenderMatrix::Multiply( viewDef->worldSpace.unjitteredMVP, light->inverseBaseLightProject, invProjectMVPMatrix );
+
+			tr.pc.c_mocTests += 1;
+
+			bool maskVisible = false;
+			// NOTE: zeroToOne cube is only for lights and models need the unit cube
+			idVec4* verts = tr.maskedZeroOneCubeVerts;
+			unsigned int* indexes = tr.maskedZeroOneCubeIndexes;
+			for( int i = 0, face = 0; i < 36; i += 3, face++ )
+			{
+				const idVec4& v0 = verts[indexes[i + 0]];
+				const idVec4& v1 = verts[indexes[i + 1]];
+				const idVec4& v2 = verts[indexes[i + 2]];
+
+				// transform to clip space
+				invProjectMVPMatrix.TransformPoint( v0, triVerts[0] );
+				invProjectMVPMatrix.TransformPoint( v1, triVerts[1] );
+				invProjectMVPMatrix.TransformPoint( v2, triVerts[2] );
+
+#if 1
+				// backface none so objects are still visible where we run into
+				MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
+				if( result == MaskedOcclusionCulling::VISIBLE )
+				{
+					maskVisible = true;
+				}
+#else
+				// draw for debugging
+				tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
+				maskVisible = true;
+#endif
+			}
+
+			if( !maskVisible )
+			{
+				tr.pc.c_mocCulledLights += 1;
+				return;
+			}
+#else
+			// scissor test alternative
+			// I would prefer this method however lights become visible again when the distance increases to the occluder surface
+
+			// source scissor rectangle has GL convention and starts in the lower left corner
+			// convert to NDC values
+			float x1 = -1.0f + ( float( vLight->scissorRect.x1 ) / screenWidth ) * 2.0f;
+			float x2 = -1.0f + ( float( vLight->scissorRect.x2 ) / screenWidth ) * 2.0f;
+			float y1 = -1.0f + ( float( vLight->scissorRect.y1 ) / screenHeight ) * 2.0f;
+			float y2 = -1.0f + ( float( vLight->scissorRect.y2 ) / screenHeight ) * 2.0f;
+
+			//float y2 = -1.0f + ( float( screenHeight - vLight->scissorRect.y1 ) / screenHeight ) * 2.0f;
+			//float y1 = -1.0f + ( float( screenHeight - vLight->scissorRect.y2 ) / screenHeight ) * 2.0f;
+
+			double zmin = 1.0 - vLight->scissorRect.zmin; // reverse depth
+			double wmin = 1.0 / zmin;
+
+			MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestRect( x1, y1, x2, y2, wmin );
+			if( result != MaskedOcclusionCulling::VISIBLE )
+			{
+				tr.pc.c_mocCulledLights += 1;
+				return;
+			}
+#endif
+		}
+		// RB end
 
 		// RB: calculate shadow LOD similar to Q3A .md3 LOD code
 

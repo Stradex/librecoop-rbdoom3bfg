@@ -140,105 +140,8 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 	const bool addInteractions = modelIsVisible && ( !viewDef->isXraySubview || entityDef->parms.xrayIndex == 2 );
 	const int entityIndex = entityDef->index;
 
-	extern idCVar r_lodMaterialDistance;
-
-	//---------------------------
-	// Find which of the visible lights contact this entity
-	//
-	// If the entity doesn't accept light or cast shadows from any surface,
-	// this can be skipped.
-	//
-	// OPTIMIZE: world areas can assume all referenced lights are used
-	//---------------------------
-	int	numContactedLights = 0;
-	static const int MAX_CONTACTED_LIGHTS = 128;
-	viewLight_t* contactedLights[MAX_CONTACTED_LIGHTS];
-	idInteraction* staticInteractions[MAX_CONTACTED_LIGHTS];
-
-	if( renderEntity->hModel == NULL ||
-			renderEntity->hModel->ModelHasInteractingSurfaces() ||
-			renderEntity->hModel->ModelHasShadowCastingSurfaces() )
-	{
-		SCOPED_PROFILE_EVENT( "Find lights" );
-		for( viewLight_t* vLight = viewDef->viewLights; vLight != NULL; vLight = vLight->next )
-		{
-			if( vLight->scissorRect.IsEmpty() )
-			{
-				continue;
-			}
-			if( vLight->entityInteractionState != NULL )
-			{
-				// new code path, everything was done in AddLight
-				if( vLight->entityInteractionState[entityIndex] == viewLight_t::INTERACTION_YES )
-				{
-					contactedLights[numContactedLights] = vLight;
-					staticInteractions[numContactedLights] = world->interactionTable[vLight->lightDef->index * world->interactionTableWidth + entityIndex];
-					if( ++numContactedLights == MAX_CONTACTED_LIGHTS )
-					{
-						break;
-					}
-				}
-				continue;
-			}
-
-			const idRenderLightLocal* lightDef = vLight->lightDef;
-
-			if( !lightDef->globalLightBounds.IntersectsBounds( entityDef->globalReferenceBounds ) )
-			{
-				continue;
-			}
-
-			if( R_CullModelBoundsToLight( lightDef, entityDef->localReferenceBounds, entityDef->modelRenderMatrix ) )
-			{
-				continue;
-			}
-
-			if( !modelIsVisible )
-			{
-				// some lights have their center of projection outside the world
-				if( lightDef->areaNum != -1 )
-				{
-					// if no part of the model is in an area that is connected to
-					// the light center (it is behind a solid, closed door), we can ignore it
-					bool areasConnected = false;
-					for( areaReference_t* ref = entityDef->entityRefs; ref != NULL; ref = ref->ownerNext )
-					{
-						if( world->AreasAreConnected( lightDef->areaNum, ref->area->areaNum, PS_BLOCK_VIEW ) )
-						{
-							areasConnected = true;
-							break;
-						}
-					}
-					if( areasConnected == false )
-					{
-						// can't possibly be seen or shadowed
-						continue;
-					}
-				}
-
-				// check more precisely for shadow visibility
-				idBounds shadowBounds;
-				R_ShadowBounds( entityDef->globalReferenceBounds, lightDef->globalLightBounds, lightDef->globalLightOrigin, shadowBounds );
-
-				// this doesn't say that the shadow can't effect anything, only that it can't
-				// effect anything in the view
-				if( idRenderMatrix::CullBoundsToMVP( viewDef->worldSpace.mvp, shadowBounds ) )
-				{
-					continue;
-				}
-			}
-			contactedLights[numContactedLights] = vLight;
-			staticInteractions[numContactedLights] = world->interactionTable[vLight->lightDef->index * world->interactionTableWidth + entityIndex];
-			if( ++numContactedLights == MAX_CONTACTED_LIGHTS )
-			{
-				break;
-			}
-		}
-	}
-
-	// if we aren't visible and none of the shadows stretch into the view,
-	// we don't need to do anything else
-	if( !modelIsVisible && numContactedLights == 0 )
+	// if we aren't visible we don't need to do anything else
+	if( !modelIsVisible )
 	{
 		return;
 	}
@@ -280,6 +183,8 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 	// an extruded shadow volume, which means we can skip drawing the end caps
 	idVec3 localViewOrigin;
 	R_GlobalPointToLocal( vEntity->modelMatrix, viewDef->renderView.vieworg, localViewOrigin );
+
+	extern idCVar r_lodMaterialDistance;
 
 	//---------------------------
 	// add all the model surfaces
@@ -422,7 +327,8 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 		{
 			// render to masked occlusion buffer
 
-			if( !gpuSkinned ) //model->IsStaticWorldModel() )
+			if( !gpuSkinned )
+				//if( model->IsStaticWorldModel() )
 			{
 				// super simple bruteforce
 				idVec4 triVerts[3];
@@ -484,7 +390,8 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 				idRenderMatrix::Multiply( viewDef->worldSpace.unjitteredMVP, inverseBaseModelProject, invProjectMVPMatrix );
 
 #if 1
-				idVec4* verts = tr.maskedZeroOneCubeVerts;
+				// NOTE: unit cube instead of zeroToOne cube
+				idVec4* verts = tr.maskedUnitCubeVerts;
 				unsigned int* indexes = tr.maskedZeroOneCubeIndexes;
 				for( int i = 0, face = 0; i < 36; i += 3, face++ )
 				{
@@ -671,7 +578,22 @@ CONSOLE_COMMAND( maskShot, "Dumping masked occlusion culling buffer", NULL )
 	float* perPixelZBuffer = new float[width * height];
 	tr.maskedOcclusionCulling->ComputePixelDepthBuffer( perPixelZBuffer, false );
 
-	// Tonemap the image
+	halfFloat_t* halfImage = new halfFloat_t[width * height * 3];
+
+	for( int i = 0; i < ( width * height ); i++ )
+	{
+		float depth = perPixelZBuffer[i];
+		halfFloat_t f16Depth = F32toF16( depth );
+
+		halfImage[ i * 3 + 0 ] = f16Depth;
+		halfImage[ i * 3 + 1 ] = f16Depth;
+		halfImage[ i * 3 + 2 ] = f16Depth;
+	}
+
+	// write raw values
+	R_WriteEXR( "screenshots/soft_occlusion_buffer.exr", halfImage, 3, width, height, "fs_basepath" );
+
+	// tonemap the image
 	unsigned char* image = new unsigned char[width * height * 3];
 	TonemapDepth( perPixelZBuffer, image, width, height );
 
