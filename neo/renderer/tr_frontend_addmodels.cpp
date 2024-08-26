@@ -681,7 +681,7 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 		const bool viewInsideSurface = !idRenderMatrix::CullPointToMVP( cullSurfaceProject, localViewOrigin, false );
 
 		// RB: test surface visibility by drawing the triangles of the bounds
-		if( r_useMaskedOcclusionCulling.GetBool() && !viewInsideSurface )
+		if( r_useMaskedOcclusionCulling.GetBool() && !viewInsideSurface && !viewDef->isMirror && !viewDef->isSubview )
 		{
 #if 1
 			if( !model->IsStaticWorldModel() && !renderEntity->weaponDepthHack && renderEntity->modelDepthHack == 0.0f )

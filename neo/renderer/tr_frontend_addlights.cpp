@@ -271,7 +271,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		// RB: test surface visibility by drawing the triangles of the bounds
 
 		// FIXME spot light projections are too short
-		if( r_useMaskedOcclusionCulling.GetBool() && !viewInsideLight )
+		if( r_useMaskedOcclusionCulling.GetBool() && !viewInsideLight && !viewDef->isMirror && !viewDef->isSubview )
 		{
 			idVec4 triVerts[8];
 			unsigned int triIndices[] = { 0, 1, 2 };
