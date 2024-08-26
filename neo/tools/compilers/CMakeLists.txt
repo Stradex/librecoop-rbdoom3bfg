@@ -268,6 +268,18 @@ if(MSVC)
 		OBJECT_DEPENDS "precompiled.pch"
 		)
 
+	# SRS - disable certain MSVC warnings for select third-party source libraries, consider updating versions in the future?
+	set_source_files_properties(
+			${MC_IMTUI_SOURCES} ${MC_IMGUI_SOURCES}
+			PROPERTIES
+			COMPILE_FLAGS "/wd4005 /wd4244 /wd4305"	# C4005: macro redefinition, C4244: type conversion with possible loss of data, C4305: trucation from double to float
+			)
+	set_source_files_properties(
+			${PDCURSES_SOURCES} ${WINCON_SOURCES}
+			PROPERTIES
+			COMPILE_FLAGS "/wd4244 /wd4267 /wd4996"	# C4244, C4267: type conversion with possible loss of data, C4996: declared deprecated
+			)
+
     add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
 	add_dependencies(rbdmap idlib)
 	target_link_libraries(rbdmap idlib winmm imtui-pdcurses ${ZLIB_LIBRARY})
