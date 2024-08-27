@@ -551,7 +551,7 @@ void R_FillMaskedOcclusionBufferWithModels( viewDef_t* viewDef )
 static void TonemapDepth( float* depth, unsigned char* image, int w, int h )
 {
 	// Find min/max w coordinate (discard cleared pixels)
-	float minW = FLT_MAX, maxW = 0.0f;
+	float minW = idMath::INFINITUM, maxW = 0.0f;
 	for( int i = 0; i < w * h; ++i )
 	{
 		if( depth[i] > 0.0f )

@@ -24,7 +24,8 @@
 	#include "FrameRecorder.h"
 #endif
 
-#if defined(__AVX__) || defined(__AVX2__)
+// RB: only check this on Windows and expect any Linux user to have a CPU newer than 2013
+#if defined(_MSC_VER) && ( defined(__AVX__) || defined(__AVX2__) )
 	// For performance reasons, the MaskedOcclusionCullingAVX2/512.cpp files should be compiled with VEX encoding for SSE instructions (to avoid
 	// AVX-SSE transition penalties, see https://software.intel.com/en-us/articles/avoiding-avx-sse-transition-penalties). However, this file
 	// _must_ be compiled without VEX encoding to allow backwards compatibility. Best practice is to use lowest supported target platform
