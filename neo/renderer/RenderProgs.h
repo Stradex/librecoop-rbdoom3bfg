@@ -989,12 +989,12 @@ public:
 	// the rpEnableSkinning render parm should only be set for vertex programs that use it
 	bool		ShaderHasOptionalSkinning() const
 	{
-#if defined( USE_NVRHI )
+//#if defined( USE_NVRHI )
 		// FIXME
 		return false;
-#else
-		return renderProgs[current].optionalSkinning;
-#endif
+//#else
+//		return renderProgs[current].optionalSkinning;
+//#endif
 	}
 
 	// unbind the currently bound render program
