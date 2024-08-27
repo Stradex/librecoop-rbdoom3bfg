@@ -101,50 +101,49 @@ if(MSVC)
 
     add_library(idlib ${ID_SOURCES_ALL} ${ID_INCLUDES_ALL})
 else()
-	if (USE_PRECOMPILED_HEADERS)
-	foreach( src_file ${ID_PRECOMPILED_SOURCES} )
-		#message(STATUS "-include precompiled.h for ${src_file}")
-		set_source_files_properties(
-			${src_file}
-			PROPERTIES
-			COMPILE_FLAGS "-include ${CMAKE_CURRENT_SOURCE_DIR}/precompiled.h"
-			)
-	endforeach()
-	endif()
 
 	include_directories(.)
-	
-	if (USE_PRECOMPILED_HEADERS)
-	# precompiled magic for GCC/clang, adapted from https://gist.github.com/573926
-	STRING(TOUPPER "CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}" _flags_var_name)
-	SET(_compiler_FLAGS "${${_flags_var_name}} -std=c++${CMAKE_CXX_STANDARD}")
-	GET_DIRECTORY_PROPERTY(_directory_flags INCLUDE_DIRECTORIES)
-	FOREACH(item ${_directory_flags})
-		LIST(APPEND _compiler_FLAGS " -I${item}")
-	ENDFOREACH(item)
-	endif()
 
-	GET_DIRECTORY_PROPERTY(_directory_flags DEFINITIONS)
-	LIST(APPEND _compiler_FLAGS ${_directory_flags})
-	
-	SEPARATE_ARGUMENTS(_compiler_FLAGS)
-	
 	if (USE_PRECOMPILED_HEADERS)
-	if(OPTICK)
-		LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=1)
-	else()
-		LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=0)
-	endif()
-	add_custom_target(precomp_header_idlib ALL
-	                  COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header precompiled.h -o precompiled.h.gch
-	                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	                  COMMENT "Creating idlib/precompiled.h.gch for idlib"
-	                  )
+		foreach( src_file ${ID_PRECOMPILED_SOURCES} )
+			#message(STATUS "-include precompiled.h for ${src_file}")
+			set_source_files_properties(
+				${src_file}
+				PROPERTIES
+				COMPILE_FLAGS "-include ${CMAKE_CURRENT_SOURCE_DIR}/precompiled.h"
+				)
+		endforeach()
+
+		# precompiled magic for GCC/clang, adapted from https://gist.github.com/573926
+		STRING(TOUPPER "CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}" _flags_var_name)
+		SET(_compiler_FLAGS "${${_flags_var_name}} -std=c++${CMAKE_CXX_STANDARD}")
+		GET_DIRECTORY_PROPERTY(_directory_flags INCLUDE_DIRECTORIES)
+		FOREACH(item ${_directory_flags})
+			LIST(APPEND _compiler_FLAGS " -I${item}")
+		ENDFOREACH(item)
+
+		GET_DIRECTORY_PROPERTY(_directory_flags DEFINITIONS)
+		LIST(APPEND _compiler_FLAGS ${_directory_flags})
+
+		SEPARATE_ARGUMENTS(_compiler_FLAGS)
+	
+		if(OPTICK)
+			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=1)
+		else()
+			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=0)
+		endif()
+
+		add_custom_target(precomp_header_idlib ALL
+						COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header precompiled.h -o precompiled.h.gch
+						WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+						COMMENT "Creating idlib/precompiled.h.gch for idlib"
+						)
 	endif()
 	
 	add_library(idlib ${ID_SOURCES_ALL} ${ID_INCLUDES_ALL})
+
 	if (USE_PRECOMPILED_HEADERS)
-	add_dependencies(idlib precomp_header_idlib)
+		add_dependencies(idlib precomp_header_idlib)
 	endif()
 	
 endif()
