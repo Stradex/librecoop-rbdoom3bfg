@@ -29,7 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
-#include "../libs/moc/MaskedOcclusionCulling.h"
+#if defined(USE_INTRINSICS_SSE)
+	#include "../libs/moc/MaskedOcclusionCulling.h"
+#endif
 
 #include "RenderCommon.h"
 #include "Model_local.h"
@@ -109,6 +111,7 @@ and shadows are generated, since dynamic models will typically be lit by
 two or more lights.
 ===================
 */
+#if defined(USE_INTRINSICS_SSE)
 void R_RenderSingleModel( viewEntity_t* vEntity )
 {
 	// we will add all interaction surfs here, to be chained to the lights in later serial code
@@ -322,6 +325,7 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 		//--------------------------
 		const float* shaderRegisters = NULL;
 		drawSurf_t* baseDrawSurf = NULL;
+
 		if( surfaceDirectlyVisible && shader->IsDrawn() && shader->Coverage() == MC_OPAQUE && !renderEntity->weaponDepthHack && renderEntity->modelDepthHack == 0.0f )
 			//if( surfaceDirectlyVisible && shader->IsDrawn() && !renderEntity->weaponDepthHack && renderEntity->modelDepthHack == 0.0f )
 		{
@@ -477,6 +481,7 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 		}
 	}
 }
+#endif
 
 //REGISTER_PARALLEL_JOB( R_AddSingleModel, "R_AddSingleModel" );
 
@@ -491,6 +496,9 @@ void R_FillMaskedOcclusionBufferWithModels( viewDef_t* viewDef )
 {
 	SCOPED_PROFILE_EVENT( "R_FillMaskedOcclusionBufferWithModels" );
 
+	tr.viewDef->viewEntitys = R_SortViewEntities( tr.viewDef->viewEntitys );
+
+#if defined(USE_INTRINSICS_SSE)
 	if( !r_useMaskedOcclusionCulling.GetBool() )
 	{
 		return;
@@ -504,8 +512,6 @@ void R_FillMaskedOcclusionBufferWithModels( viewDef_t* viewDef )
 	tr.maskedOcclusionCulling->SetResolution( viewWidth, viewHeight );
 	tr.maskedOcclusionCulling->SetNearClipPlane( zNear );
 	tr.maskedOcclusionCulling->ClearBuffer();
-
-	tr.viewDef->viewEntitys = R_SortViewEntities( tr.viewDef->viewEntitys );
 
 	//-------------------------------------------------
 	// Go through each view entity that is either visible to the view, or to
@@ -538,8 +544,10 @@ void R_FillMaskedOcclusionBufferWithModels( viewDef_t* viewDef )
 			R_RenderSingleModel( vEntity );
 		}
 	}
+#endif
 }
 
+#if defined(USE_INTRINSICS_SSE)
 static void TonemapDepth( float* depth, unsigned char* image, int w, int h )
 {
 	// Find min/max w coordinate (discard cleared pixels)
@@ -600,3 +608,4 @@ CONSOLE_COMMAND( maskShot, "Dumping masked occlusion culling buffer", NULL )
 	R_WritePNG( "screenshots/soft_occlusion_buffer.png", image, 3, width, height, "fs_basepath" );
 	delete[] image;
 }
+#endif

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.10)
 
 project(RBDoom3BFG)
 
@@ -428,7 +428,10 @@ if(NOT APPLE)
 	add_subdirectory(tools/compilers)
 endif()
 
-add_subdirectory(libs/moc)
+if(USE_INTRINSICS_SSE)
+	add_subdirectory(libs/moc)
+	set(MASKED_OCCLUSION_LIBRARY MaskedOcclusionCulling)
+endif()
 
 file(GLOB NATVIS_SOURCES .natvis)
 
@@ -1670,9 +1673,9 @@ endif()
 
 # needs to come after nvrhi_d3d11 etc. for link order
 target_link_libraries(RBDoom3BFG nvrhi)
-target_link_libraries(RBDoom3BFG ShaderMakeBlob MaskedOcclusionCulling)
+target_link_libraries(RBDoom3BFG ShaderMakeBlob ${MASKED_OCCLUSION_LIBRARY})
 
 add_subdirectory(shaders)
 add_dependencies(Shaders ShaderMake)
-add_dependencies(RBDoom3BFG Shaders MaskedOcclusionCulling)
+add_dependencies(RBDoom3BFG Shaders ${MASKED_OCCLUSION_LIBRARY})
 

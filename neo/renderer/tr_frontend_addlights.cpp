@@ -30,7 +30,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
-#include "../libs/moc/MaskedOcclusionCulling.h"
+#if defined(USE_INTRINSICS_SSE)
+	#include "../libs/moc/MaskedOcclusionCulling.h"
+#endif
 
 #include "RenderCommon.h"
 
@@ -269,6 +271,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		const bool viewInsideLight = !idRenderMatrix::CullPointToMVP( light->baseLightProject, viewDef->renderView.vieworg, true );
 
 		// RB: test surface visibility by drawing the triangles of the bounds
+#if defined(USE_INTRINSICS_SSE)
 
 		// FIXME spot light projections are too short
 		if( r_useMaskedOcclusionCulling.GetBool() && !viewInsideLight && !viewDef->isMirror && !viewDef->isSubview )
@@ -360,6 +363,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 				}
 			}
 		}
+#endif
 		// RB end
 
 		// RB: calculate shadow LOD similar to Q3A .md3 LOD code

@@ -30,7 +30,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
-#include "../libs/moc/MaskedOcclusionCulling.h"
+#if defined(USE_INTRINSICS_SSE)
+	#include "../libs/moc/MaskedOcclusionCulling.h"
+#endif
 
 #include "RenderCommon.h"
 #include "Model_local.h"
@@ -675,6 +677,7 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 		// RB: added check wether GPU skinning is available at all
 		const bool gpuSkinned = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() );
 
+#if defined(USE_INTRINSICS_SSE)
 		idRenderMatrix cullSurfaceProject;
 		idRenderMatrix::InverseOffsetScaleForBounds( renderMatrix_identity, tri->bounds, cullSurfaceProject );
 
@@ -774,7 +777,7 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 			}
 #endif
 		}
-
+#endif // #if defined(USE_INTRINSICS_SSE)
 
 
 
