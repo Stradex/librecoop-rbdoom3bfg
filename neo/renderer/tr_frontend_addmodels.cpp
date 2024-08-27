@@ -677,11 +677,22 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 		// RB: added check wether GPU skinning is available at all
 		const bool gpuSkinned = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() );
 
-#if defined(USE_INTRINSICS_SSE)
-		idRenderMatrix cullSurfaceProject;
-		idRenderMatrix::InverseOffsetScaleForBounds( renderMatrix_identity, tri->bounds, cullSurfaceProject );
+		//const char* shaderName = shader->GetName();
+		//if( idStr::Cmp( shaderName, "textures/rock/sharprock_dark") == 0 )
+		//{
+		//	tr.pc.c_mocTests += 0;
+		//}
 
-		const bool viewInsideSurface = !idRenderMatrix::CullPointToMVP( cullSurfaceProject, localViewOrigin, false );
+#if defined(USE_INTRINSICS_SSE)
+
+		const bool viewInsideSurface = tri->bounds.ContainsPoint( localViewOrigin );
+
+		//if( viewInsideSurface && idStr::Cmp( shaderName, "models/weapons/berserk/fist") != 0 )
+		//{
+		//	tr.pc.c_mocTests += 1;
+		//
+		//	tr.viewDef->renderWorld->DebugBounds( colorCyan, tri->bounds, renderEntity->origin );
+		//}
 
 		// RB: test surface visibility by drawing the triangles of the bounds
 		if( r_useMaskedOcclusionCulling.GetBool() && !viewInsideSurface && !viewDef->isMirror && !viewDef->isSubview )

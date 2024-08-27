@@ -388,6 +388,11 @@ void idRenderBackend::DBG_RenderDrawSurfListWithFunction( drawSurf_t** drawSurfs
 
 			RB_SetMVP( drawSurf->space->mvp );
 		}
+
+		// give every surface a different color
+		//static idVec4 colors[] = { colorRed, colorGreen, colorBlue, colorYellow, colorMagenta, colorCyan, colorWhite, colorPurple };
+		//GL_Color( colors[i & 7] );
+		//GL_Color( colors[drawSurf->ambientCache & 7] );
 #else
 
 		if( drawSurf->space != NULL )  	// is it ever NULL?  Do we need to check?
@@ -423,10 +428,12 @@ void idRenderBackend::DBG_RenderDrawSurfListWithFunction( drawSurf_t** drawSurfs
 
 		if( drawSurf->jointCache )
 		{
+			GL_Color( colorRed );
 			renderProgManager.BindShader_ColorSkinned();
 		}
 		else
 		{
+			GL_Color( colorCyan );
 			renderProgManager.BindShader_Color();
 		}
 		// RB end
