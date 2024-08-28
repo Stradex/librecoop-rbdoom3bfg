@@ -913,9 +913,9 @@ public:
 
 	virtual void			DrawCRTPostFX(); // RB
 
-	virtual const emptyCommand_t* 	SwapCommandBuffers( uint64* frontEndMicroSec, uint64* backEndMicroSec, uint64* shadowMicroSec, uint64* gpuMicroSec, backEndCounters_t* bc, performanceCounters_t* pc );
+	virtual const emptyCommand_t* 	SwapCommandBuffers( uint64* frontEndMicroSec, uint64* backEndMicroSec, uint64* mocMicroSec, uint64* gpuMicroSec, backEndCounters_t* bc, performanceCounters_t* pc );
 
-	virtual void					SwapCommandBuffers_FinishRendering( uint64* frontEndMicroSec, uint64* backEndMicroSec, uint64* shadowMicroSec, uint64* gpuMicroSec, backEndCounters_t* bc, performanceCounters_t* pc );
+	virtual void					SwapCommandBuffers_FinishRendering( uint64* frontEndMicroSec, uint64* backEndMicroSec, uint64* mocMicroSec, uint64* gpuMicroSec, backEndCounters_t* bc, performanceCounters_t* pc );
 	virtual const emptyCommand_t* 	SwapCommandBuffers_FinishCommandBuffers();
 
 	virtual void			RenderCommandBuffers( const emptyCommand_t* commandBuffers );

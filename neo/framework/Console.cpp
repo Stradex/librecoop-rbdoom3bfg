@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2017-2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -297,7 +298,7 @@ float idConsoleLocal::DrawFPS( float y )
 	const uint64 gameThreadRenderTime	= commonLocal.mainFrameTiming.finishDrawTime - commonLocal.mainFrameTiming.finishGameTime;
 
 	const uint64 rendererBackEndTime = commonLocal.GetRendererBackEndMicroseconds();
-	const uint64 rendererShadowsTime = commonLocal.GetRendererShadowsMicroseconds();
+	const uint64 rendererMaskedOcclusionCullingTime = commonLocal.GetRendererMaskedOcclusionRasterizationMicroseconds();
 	const uint64 rendererGPUTime = commonLocal.GetRendererGPUMicroseconds();
 	const uint64 rendererGPUEarlyZTime = commonLocal.GetRendererGpuBeginDrawingMicroseconds() + commonLocal.GetRendererGpuEarlyZMicroseconds() + commonLocal.GetRendererGpuGeometryMicroseconds();
 	const uint64 rendererGPU_SSAOTime = commonLocal.GetRendererGpuSSAOMicroseconds();
@@ -337,8 +338,6 @@ float idConsoleLocal::DrawFPS( float y )
 	// SRS - Save current CPU and GPU usage factors in ring buffer to calculate smoothed averages for future frames
 	previousCpuUsage[( index - 1 ) % FPS_FRAMES] = float( rendererCPUBusyTime ) / float( frameBusyTime + frameIdleTime ) * 100.0;
 	previousGpuUsage[( index - 1 ) % FPS_FRAMES] = float( rendererGPUTime ) / float( rendererGPUTime + rendererGPUIdleTime ) * 100.0;
-
-#if 1
 
 	// RB: use ImGui to show more detailed stats about the scene loads
 	if( ImGuiHook::IsReadyToRender() )
@@ -546,7 +545,7 @@ float idConsoleLocal::DrawFPS( float y )
 		ImGui::TextColored( gameThreadGameTime > maxTime ? colorRed : colorWhite,			"Game:    %5llu us   SSAO:         %5llu us", gameThreadGameTime, rendererGPU_SSAOTime );
 		ImGui::TextColored( gameThreadRenderTime > maxTime ? colorRed : colorWhite,			"RF:      %5llu us   SSR:          %5llu us", gameThreadRenderTime, rendererGPU_SSRTime );
 		ImGui::TextColored( rendererBackEndTime > maxTime ? colorRed : colorWhite,			"RB:      %5llu us   Ambient Pass: %5llu us", rendererBackEndTime, rendererGPUAmbientPassTime );
-		ImGui::TextColored( rendererGPUShadowAtlasTime > maxTime ? colorRed : colorWhite,	"Shadows: %5llu us   Shadow Atlas: %5llu us", rendererShadowsTime, rendererGPUShadowAtlasTime );
+		ImGui::TextColored( rendererMaskedOcclusionCullingTime > maxTime ? colorRed : colorWhite,	"MOC:     %5llu us   Shadow Atlas: %5llu us", rendererMaskedOcclusionCullingTime, rendererGPUShadowAtlasTime );
 #if defined(__APPLE__) && defined( USE_MoltenVK )
 		// SRS - For more recent versions of MoltenVK with enhanced performance statistics (v1.2.6 and later), display the Vulkan to Metal encoding thread time on macOS
 		ImGui::TextColored( rendererMvkEncodeTime > maxTime || rendererGPUInteractionsTime > maxTime ? colorRed : colorWhite,	"Encode:  %5lld us   Interactions: %5llu us", rendererMvkEncodeTime, rendererGPUInteractionsTime );
@@ -567,52 +566,6 @@ float idConsoleLocal::DrawFPS( float y )
 	}
 
 	return y;
-#else
-
-	// print the resolution scale so we can tell when we are at reduced resolution
-	idStr resolutionText;
-	resolutionScale.GetConsoleText( resolutionText );
-	int w = resolutionText.Length() * BIGCHAR_WIDTH;
-	renderSystem->DrawBigStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, resolutionText.c_str(), colorWhite, true );
-
-	y += SMALLCHAR_HEIGHT + 4;
-	idStr timeStr;
-	timeStr.Format( "%sG+RF: %4d", gameThreadTotalTime > maxTime ? S_COLOR_RED : "", gameThreadTotalTime );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
-
-	timeStr.Format( "%sG: %4d", gameThreadGameTime > maxTime ? S_COLOR_RED : "", gameThreadGameTime );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
-
-	timeStr.Format( "%sRF: %4d", gameThreadRenderTime > maxTime ? S_COLOR_RED : "", gameThreadRenderTime );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
-
-	timeStr.Format( "%sRB: %4.1f", rendererBackEndTime > maxTime * 1000 ? S_COLOR_RED : "", rendererBackEndTime / 1000.0f );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
-
-	timeStr.Format( "%sSV: %4.1f", rendererShadowsTime > maxTime * 1000 ? S_COLOR_RED : "", rendererShadowsTime / 1000.0f );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
-
-	timeStr.Format( "%sIDLE: %4.1f", rendererGPUIdleTime > maxTime * 1000 ? S_COLOR_RED : "", rendererGPUIdleTime / 1000.0f );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-	y += SMALLCHAR_HEIGHT + 4;
-
-	timeStr.Format( "%sGPU: %4.1f", rendererGPUTime > maxTime * 1000 ? S_COLOR_RED : "", rendererGPUTime / 1000.0f );
-	w = timeStr.LengthWithoutColors() * SMALLCHAR_WIDTH;
-	renderSystem->DrawSmallStringExt( LOCALSAFE_RIGHT - w, idMath::Ftoi( y ) + 2, timeStr.c_str(), colorWhite, false );
-
-	return y + BIGCHAR_HEIGHT + 4;
-#endif
 }
 
 /*

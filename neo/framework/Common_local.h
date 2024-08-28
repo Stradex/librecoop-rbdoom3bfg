@@ -306,9 +306,9 @@ public:
 		return time_backend;
 	}
 
-	uint64		GetRendererShadowsMicroseconds() const
+	uint64		GetRendererMaskedOcclusionRasterizationMicroseconds() const
 	{
-		return time_shadows;
+		return time_moc;
 	}
 
 	uint64 	GetRendererIdleMicroseconds() const
@@ -642,7 +642,7 @@ private:
 	int					time_gameDraw;			// game present time
 	uint64				time_frontend;			// renderer frontend time
 	uint64				time_backend;			// renderer backend time
-	uint64				time_shadows;			// renderer backend waiting for shadow volumes to be created
+	uint64				time_moc;				// renderer frontend masked software rasterization time
 	uint64				time_gpu;				// total gpu time, at least for PC
 
 	// RB: r_speeds counters

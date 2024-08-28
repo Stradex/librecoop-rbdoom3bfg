@@ -504,6 +504,8 @@ void R_FillMaskedOcclusionBufferWithModels( viewDef_t* viewDef )
 		return;
 	}
 
+	int startTime = Sys_Microseconds();
+
 	const int viewWidth = viewDef->viewport.x2 - viewDef->viewport.x1 + 1;
 	const int viewHeight = viewDef->viewport.y2 - viewDef->viewport.y1 + 1;
 
@@ -544,6 +546,10 @@ void R_FillMaskedOcclusionBufferWithModels( viewDef_t* viewDef )
 			R_RenderSingleModel( vEntity );
 		}
 	}
+
+	int endTime = Sys_Microseconds();
+
+	tr.pc.mocMicroSec += endTime - startTime;
 #endif
 }
 

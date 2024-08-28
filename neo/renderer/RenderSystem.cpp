@@ -605,13 +605,13 @@ with the rendering of the closed off command buffers by RenderCommandBuffers()
 const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers(
 	uint64* frontEndMicroSec,
 	uint64* backEndMicroSec,
-	uint64* shadowMicroSec,
+	uint64* mocMicroSec,
 	uint64* gpuMicroSec,
 	backEndCounters_t* bc,
 	performanceCounters_t* pc
 )
 {
-	SwapCommandBuffers_FinishRendering( frontEndMicroSec, backEndMicroSec, shadowMicroSec, gpuMicroSec, bc, pc );
+	SwapCommandBuffers_FinishRendering( frontEndMicroSec, backEndMicroSec, mocMicroSec, gpuMicroSec, bc, pc );
 
 	return SwapCommandBuffers_FinishCommandBuffers();
 }
@@ -625,7 +625,7 @@ idRenderSystemLocal::SwapCommandBuffers_FinishRendering
 void idRenderSystemLocal::SwapCommandBuffers_FinishRendering(
 	uint64* frontEndMicroSec,
 	uint64* backEndMicroSec,
-	uint64* shadowMicroSec,
+	uint64* mocMicroSec,
 	uint64* gpuMicroSec,
 	backEndCounters_t* bc,
 	performanceCounters_t* pc
@@ -673,9 +673,9 @@ void idRenderSystemLocal::SwapCommandBuffers_FinishRendering(
 		*backEndMicroSec = backend.pc.cpuTotalMicroSec;
 	}
 
-	if( shadowMicroSec != NULL )
+	if( mocMicroSec != NULL )
 	{
-		*shadowMicroSec = backend.pc.cpuShadowMicroSec;
+		*mocMicroSec = this->pc.mocMicroSec;
 	}
 
 	// RB: TODO clean up the above and just pass entire backend and performance stats before they get cleared
