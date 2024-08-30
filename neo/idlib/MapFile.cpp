@@ -3446,83 +3446,91 @@ bool idMapFile::ConvertQuakeToDoom()
 	idStrList textureCollections;
 
 	int count = GetNumEntities();
-	for( int j = 1; j < count; j++ )
+	for( int j = 0; j < count; j++ )
 	{
 		idMapEntity* ent = GetEntity( j );
 		if( ent )
 		{
-			idStr classname = ent->epairs.GetString( "classname" );
+			bool isWorldspawn = j == 0;
 
-			const idKeyValue* targetnamePair = ent->epairs.FindKey( "targetname" );
-			if( targetnamePair )
+			if( !isWorldspawn )
 			{
-				ent->epairs.Set( "name", targetnamePair->GetValue() );
-				ent->epairs.Delete( "targetname" );
-			}
+				idStr classname = ent->epairs.GetString( "classname" );
 
-			const idKeyValue* namePair = ent->epairs.FindKey( "name" );
-			if( !namePair )
-			{
-				idStr uniqueName = GetUniqueEntityName( classname );
-
-				ent->epairs.Set( "name", uniqueName );
-			}
-			else
-			{
-				// is there a name clash with another entity?
-				bool clash = false;
-
-				for( int i = 1; i < count; i++ )
+				const idKeyValue* targetnamePair = ent->epairs.FindKey( "targetname" );
+				if( targetnamePair )
 				{
-					if( i == j )
+					ent->epairs.Set( "name", targetnamePair->GetValue() );
+					ent->epairs.Delete( "targetname" );
+				}
+
+				const idKeyValue* namePair = ent->epairs.FindKey( "name" );
+				if( !namePair )
+				{
+					idStr uniqueName = GetUniqueEntityName( classname );
+
+					ent->epairs.Set( "name", uniqueName );
+				}
+				else
+				{
+					// is there a name clash with another entity?
+					bool clash = false;
+
+					for( int i = 1; i < count; i++ )
 					{
-						continue;
+						if( i == j )
+						{
+							continue;
+						}
+
+						idMapEntity* otherEnt = GetEntity( i );
+
+						const idKeyValue* otherNamePair = otherEnt->epairs.FindKey( "name" );
+						if( otherNamePair && !otherNamePair->GetValue().IsEmpty() && idStr::Cmp( namePair->GetValue(), otherNamePair->GetValue() ) == 0 )
+						{
+							// both entities have the same name, give this one a new name
+							idStr uniqueName = GetUniqueEntityName( classname );
+
+							ent->epairs.Set( "name", uniqueName );
+							break;
+						}
 					}
+				}
 
-					idMapEntity* otherEnt = GetEntity( i );
+				if( idStr::Icmp( classname, "func_wall" ) == 0 )
+				{
+					ent->epairs.Set( "classname", "func_static" );
+				}
 
-					const idKeyValue* otherNamePair = otherEnt->epairs.FindKey( "name" );
-					if( otherNamePair && !otherNamePair->GetValue().IsEmpty() && idStr::Cmp( namePair->GetValue(), otherNamePair->GetValue() ) == 0 )
+				if( idStr::Icmp( classname, "func_detail" ) == 0 )
+				{
+					ent->epairs.Set( "classname", "func_static" );
+				}
+
+				// fix light color range
+				if( idStr::Icmp( classname, "light" ) == 0 )
+				{
+					idVec3		color;
+					ent->epairs.GetVector( "_color", "1 1 1", color );
+
+					if( color.x > 1 || color.y > 1 || color.z > 1 )
 					{
-						// both entities have the same name, give this one a new name
-						idStr uniqueName = GetUniqueEntityName( classname );
+						color.x *= 1.0f / 255;
+						color.y *= 1.0f / 255;
+						color.z *= 1.0f / 255;
 
-						ent->epairs.Set( "name", uniqueName );
-						break;
+						ent->epairs.SetVector( "_color", color );
 					}
 				}
 			}
-
-			if( idStr::Icmp( classname, "func_wall" ) == 0 )
-			{
-				ent->epairs.Set( "classname", "func_static" );
-			}
-
-			if( idStr::Icmp( classname, "func_detail" ) == 0 )
-			{
-				ent->epairs.Set( "classname", "func_static" );
-			}
-
-			// fix light color range
-			if( idStr::Icmp( classname, "light" ) == 0 )
-			{
-				idVec3		color;
-				ent->epairs.GetVector( "_color", "1 1 1", color );
-
-				if( color.x > 1 || color.y > 1 || color.z > 1 )
-				{
-					color.x *= 1.0f / 255;
-					color.y *= 1.0f / 255;
-					color.z *= 1.0f / 255;
-
-					ent->epairs.SetVector( "_color", color );
-				}
-			}
-
 
 			if( ent->GetNumPrimitives() > 0 )
 			{
-				ent->epairs.Set( "model", namePair->GetValue() );
+				if( !isWorldspawn )
+				{
+					const idKeyValue* namePair = ent->epairs.FindKey( "name" );
+					ent->epairs.Set( "model", namePair->GetValue() );
+				}
 
 				// map Wad brushes names to proper Doom 3 compatible material names
 				for( int i = 0; i < ent->GetNumPrimitives(); i++ )
