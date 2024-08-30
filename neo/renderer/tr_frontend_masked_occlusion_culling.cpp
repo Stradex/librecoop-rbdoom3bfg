@@ -30,7 +30,11 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #if defined(USE_INTRINSICS_SSE)
-	#include "../libs/moc/MaskedOcclusionCulling.h"
+	#if MOC_MULTITHREADED
+		#include "../libs/moc/CullingThreadPool.h"
+	#else
+		#include "../libs/moc/MaskedOcclusionCulling.h"
+	#endif
 #endif
 
 #include "RenderCommon.h"
@@ -334,9 +338,8 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 			if( !gpuSkinned )
 				//if( model->IsStaticWorldModel() )
 			{
-
 #if 0
-				// super simple bruteforce
+				// super simple bruteforce and slow
 				idVec4 triVerts[3];
 				unsigned int triIndices[] = { 0, 1, 2 };
 
@@ -354,11 +357,6 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 					vEntity->unjitteredMVP.TransformPoint( idVec4( v1.xyz.x, v1.xyz.y, v1.xyz.z, 1 ), triVerts[1] );
 					vEntity->unjitteredMVP.TransformPoint( idVec4( v2.xyz.x, v2.xyz.y, v2.xyz.z, 1 ), triVerts[2] );
 
-					// tri->indexes is unsigned short instead of uint
-					//triIndices[0] = tri->indexes[i + 0];
-					//triIndices[1] = tri->indexes[i + 1];
-					//triIndices[2] = tri->indexes[i + 2];
-
 					tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_CCW );
 				}
 #else
@@ -367,7 +365,13 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 				idRenderMatrix mvp;
 				idRenderMatrix::Transpose( vEntity->unjitteredMVP, mvp );
 
+#if MOC_MULTITHREADED
+				tr.maskedOcclusionThreaded->SetMatrix( ( float* )&mvp[0][0] );
+				tr.maskedOcclusionThreaded->RenderTriangles( tri->mocVerts->ToFloatPtr(), tri->mocIndexes, tri->numIndexes / 3, MaskedOcclusionCulling::BACKFACE_CCW, MaskedOcclusionCulling::CLIP_PLANE_ALL );
+#else
 				tr.maskedOcclusionCulling->RenderTriangles( tri->mocVerts->ToFloatPtr(), tri->mocIndexes, tri->numIndexes / 3, ( float* )&mvp[0][0], MaskedOcclusionCulling::BACKFACE_CCW, MaskedOcclusionCulling::CLIP_PLANE_ALL, MaskedOcclusionCulling::VertexLayout( 16, 4, 8 ) );
+#endif
+
 #endif
 			}
 #if 0
@@ -521,9 +525,16 @@ void R_FillMaskedOcclusionBufferWithModels( viewDef_t* viewDef )
 
 	const float zNear = ( viewDef->renderView.cramZNear ) ? ( r_znear.GetFloat() * 0.25f ) : r_znear.GetFloat();
 
+#if MOC_MULTITHREADED
+	tr.maskedOcclusionThreaded->SetResolution( viewWidth, viewHeight );
+	tr.maskedOcclusionThreaded->SetNearClipPlane( zNear );
+	tr.maskedOcclusionThreaded->ClearBuffer();
+
+#else
 	tr.maskedOcclusionCulling->SetResolution( viewWidth, viewHeight );
 	tr.maskedOcclusionCulling->SetNearClipPlane( zNear );
 	tr.maskedOcclusionCulling->ClearBuffer();
+#endif
 
 	//-------------------------------------------------
 	// Go through each view entity that is either visible to the view, or to
@@ -600,11 +611,16 @@ CONSOLE_COMMAND( maskShot, "Dumping masked occlusion culling buffer", NULL )
 
 	// compute a per pixel depth buffer from the hierarchical depth buffer, used for visualization
 	float* perPixelZBuffer = new float[width * height];
+
+#if MOC_MULTITHREADED
+	tr.maskedOcclusionThreaded->ComputePixelDepthBuffer( perPixelZBuffer, false );
+#else
 	tr.maskedOcclusionCulling->ComputePixelDepthBuffer( perPixelZBuffer, false );
+#endif
 
 	halfFloat_t* halfImage = new halfFloat_t[width * height * 3];
 
-	for( int i = 0; i < ( width * height ); i++ )
+	for( unsigned int i = 0; i < ( width * height ); i++ )
 	{
 		float depth = perPixelZBuffer[i];
 		halfFloat_t f16Depth = F32toF16( depth );

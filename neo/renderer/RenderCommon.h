@@ -64,6 +64,12 @@ SURFACES
 #include "ModelOverlay.h"
 #include "Interaction.h"
 
+#define MOC_MULTITHREADED 0
+
+#if MOC_MULTITHREADED
+	class CullingThreadpool;
+#endif
+
 class MaskedOcclusionCulling; // RB
 class idRenderWorldLocal;
 struct viewEntity_t;
@@ -1046,6 +1052,10 @@ public:
 	idRenderBackend			backend;
 
 #if defined(USE_INTRINSICS_SSE)
+
+#if MOC_MULTITHREADED
+	CullingThreadpool*		maskedOcclusionThreaded;
+#endif
 	MaskedOcclusionCulling*	maskedOcclusionCulling;
 	idVec4					maskedUnitCubeVerts[8];
 	idVec4					maskedZeroOneCubeVerts[8];

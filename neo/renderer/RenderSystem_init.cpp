@@ -35,7 +35,11 @@ If you have questions concerning this license or the applicable additional terms
 #include "imgui.h"
 
 #if defined(USE_INTRINSICS_SSE)
-	#include "../libs/moc/MaskedOcclusionCulling.h"
+	#if MOC_MULTITHREADED
+		#include "../libs/moc/CullingThreadPool.h"
+	#else
+		#include "../libs/moc/MaskedOcclusionCulling.h"
+	#endif
 #endif
 
 #include "RenderCommon.h"
@@ -1797,7 +1801,12 @@ void idRenderSystemLocal::Clear()
 	// destroy occlusion culling object and free hierarchical z-buffer
 	if( maskedOcclusionCulling != NULL )
 	{
+#if MOC_MULTITHREADED
+		delete maskedOcclusionThreaded;
+		maskedOcclusionThreaded = NULL;
+#endif
 		MaskedOcclusionCulling::Destroy( maskedOcclusionCulling );
+
 		maskedOcclusionCulling = NULL;
 	}
 #endif
@@ -2303,6 +2312,12 @@ void idRenderSystemLocal::Init()
 	_mm_setcsr( _mm_getcsr() | 0x8040 );
 
 	maskedOcclusionCulling = MaskedOcclusionCulling::Create();
+
+#if MOC_MULTITHREADED
+	maskedOcclusionThreaded = new CullingThreadpool( 2, 10, 6, 128 );
+	maskedOcclusionThreaded->SetBuffer( maskedOcclusionCulling );
+#endif
+
 	R_MakeZeroOneCubeTrisForMaskedOcclusionCulling();
 	R_MakeUnitCubeTrisForMaskedOcclusionCulling();
 #endif

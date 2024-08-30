@@ -31,7 +31,11 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #if defined(USE_INTRINSICS_SSE)
-	#include "../libs/moc/MaskedOcclusionCulling.h"
+	#if MOC_MULTITHREADED
+		#include "../libs/moc/CullingThreadPool.h"
+	#else
+		#include "../libs/moc/MaskedOcclusionCulling.h"
+	#endif
 #endif
 
 #include "RenderCommon.h"
@@ -750,7 +754,12 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 					triIndices[2] = indexes[i + 2];
 
 					// backface none so objects are still visible where we run into
+#if MOC_MULTITHREADED
+					tr.maskedOcclusionThreaded->SetMatrix( NULL );
+					MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionThreaded->TestTriangles( ( float* )triVerts, triIndices, 1, MaskedOcclusionCulling::BACKFACE_NONE );
+#else
 					MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
+#endif
 					if( result == MaskedOcclusionCulling::VISIBLE )
 					{
 						maskVisible = true;
