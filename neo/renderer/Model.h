@@ -84,6 +84,11 @@ struct srfTriangles_t
 
 	triIndex_t* 				silIndexes;				// indexes changed to be the first vertex with same XYZ, ignoring normal and texcoords
 
+	// RB begin
+	idVec4*						mocVerts;				// idDrawVert has no w position
+	unsigned int* 				mocIndexes;				// uint32 instead of uint16 for the Masked Software Occlusion Culling SIMD loading code
+	// RB end
+
 	int							numMirroredVerts;		// this many verts at the end of the vert list are tangent mirrors
 	int* 						mirroredVerts;			// tri->mirroredVerts[0] is the mirror of tri->numVerts - tri->numMirroredVerts + 0
 

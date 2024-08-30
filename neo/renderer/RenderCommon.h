@@ -1632,6 +1632,7 @@ int					R_TriSurfMemory( const srfTriangles_t* tri );
 void				R_BoundTriSurf( srfTriangles_t* tri );
 void				R_RemoveDuplicatedTriangles( srfTriangles_t* tri );
 void				R_CreateSilIndexes( srfTriangles_t* tri );
+void				R_CreateMaskedOcclusionCullingTris( srfTriangles_t* tri ); // RB
 void				R_RemoveDegenerateTriangles( srfTriangles_t* tri );
 void				R_RemoveUnusedVerts( srfTriangles_t* tri );
 void				R_RangeCheckIndexes( const srfTriangles_t* tri );

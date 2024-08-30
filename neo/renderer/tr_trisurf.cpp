@@ -4,6 +4,7 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2020 Stephen Pridham (Mikkelsen tangent space support)
+Copyright (C) 2021-2024 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -251,6 +252,13 @@ int R_TriSurfMemory( const srfTriangles_t* tri )
 		total += tri->numDupVerts * sizeof( tri->dupVerts[0] );
 	}
 
+	// RB: added MOC
+	if( tri->mocIndexes != NULL )
+	{
+		total += tri->numIndexes * sizeof( tri->mocIndexes[0] );
+	}
+	// RB end
+
 	total += sizeof( *tri );
 
 	return total;
@@ -293,6 +301,13 @@ void R_FreeStaticTriSurf( srfTriangles_t* tri )
 				Mem_Free( tri->verts );
 			}
 		}
+
+		// RB begin
+		if( tri->mocVerts != NULL )
+		{
+			Mem_Free( tri->mocVerts );
+		}
+		// RB end
 	}
 
 	if( !tri->referencedIndexes )
@@ -309,6 +324,12 @@ void R_FreeStaticTriSurf( srfTriangles_t* tri )
 		{
 			Mem_Free( tri->silIndexes );
 		}
+		// RB begin
+		if( tri->mocIndexes != NULL )
+		{
+			Mem_Free( tri->mocIndexes );
+		}
+		// RB end
 		if( tri->dominantTris != NULL )
 		{
 			Mem_Free( tri->dominantTris );
@@ -447,6 +468,28 @@ void R_AllocStaticTriSurfDupVerts( srfTriangles_t* tri, int numDupVerts )
 {
 	assert( tri->dupVerts == NULL );
 	tri->dupVerts = ( int* )Mem_Alloc16( numDupVerts * 2 * sizeof( *tri->dupVerts ), TAG_TRI_DUP_VERT );
+}
+
+/*
+=================
+R_AllocStaticTriSurfMocIndexes
+=================
+*/
+void R_AllocStaticTriSurfMocIndexes( srfTriangles_t* tri, int numIndexes )
+{
+	assert( tri->mocIndexes == NULL );
+	tri->mocIndexes = ( unsigned int* )Mem_Alloc16( numIndexes * sizeof( unsigned int ), TAG_TRI_MOC_VERT );
+}
+
+/*
+=================
+R_AllocStaticTriSurfMocVerts
+=================
+*/
+void R_AllocStaticTriSurfMocVerts( srfTriangles_t* tri, int numVerts )
+{
+	assert( tri->mocVerts == NULL );
+	tri->mocVerts = ( idVec4* )Mem_Alloc16( numVerts * sizeof( idVec4 ), TAG_TRI_MOC_VERT );
 }
 
 /*
@@ -692,6 +735,9 @@ void R_CreateDupVerts( srfTriangles_t* tri )
 	R_AllocStaticTriSurfDupVerts( tri, tri->numDupVerts );
 	memcpy( tri->dupVerts, tempDupVerts.Ptr(), tri->numDupVerts * 2 * sizeof( tri->dupVerts[0] ) );
 }
+
+
+
 
 /*
 ===============
@@ -1795,6 +1841,9 @@ void R_CleanupTriangles( srfTriangles_t* tri, bool createNormals, bool identifyS
 	{
 		R_DeriveTangents( tri );
 	}
+
+	// RB: duplicate data appropiate for MOC SIMD fetches
+	R_CreateMaskedOcclusionCullingTris( tri );
 }
 
 /*
@@ -2192,3 +2241,29 @@ idVec3 R_ClosestPointPointTriangle( const idVec3& point, const idVec3& vertex1, 
 
 	return result;
 }
+
+void R_CreateMaskedOcclusionCullingTris( srfTriangles_t* tri )
+{
+	//assert( tri->mocVerts == NULL );
+	if( tri->mocVerts == NULL )
+	{
+		R_AllocStaticTriSurfMocVerts( tri, tri->numVerts );
+
+		for( int i = 0; i < tri->numVerts; i++ )
+		{
+			tri->mocVerts[i].ToVec3() = tri->verts[i].xyz;
+			tri->mocVerts[i].w = 1.0f;
+		}
+	}
+
+	if( tri->mocIndexes == NULL )
+	{
+		R_AllocStaticTriSurfMocIndexes( tri, tri->numIndexes );
+
+		for( int i = 0; i < tri->numIndexes; i++ )
+		{
+			tri->mocIndexes[i] = tri->indexes[i];
+		}
+	}
+}
+// RB end

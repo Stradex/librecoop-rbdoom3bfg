@@ -40,6 +40,7 @@ MEM_TAG( TRI_SIL_EDGE )
 MEM_TAG( TRI_DOMINANT_TRIS )
 MEM_TAG( TRI_MIR_VERT )
 MEM_TAG( TRI_DUP_VERT )
+MEM_TAG( TRI_MOC_VERT )
 MEM_TAG( SRFTRIS )
 MEM_TAG( TEMP )			// Temp data which should be automatically freed at the end of the function
 MEM_TAG( PAGE )

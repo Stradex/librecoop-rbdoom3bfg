@@ -334,6 +334,8 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 			if( !gpuSkinned )
 				//if( model->IsStaticWorldModel() )
 			{
+
+#if 0
 				// super simple bruteforce
 				idVec4 triVerts[3];
 				unsigned int triIndices[] = { 0, 1, 2 };
@@ -359,6 +361,14 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 
 					tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_CCW );
 				}
+#else
+				R_CreateMaskedOcclusionCullingTris( tri );
+
+				idRenderMatrix mvp;
+				idRenderMatrix::Transpose( vEntity->unjitteredMVP, mvp );
+
+				tr.maskedOcclusionCulling->RenderTriangles( tri->mocVerts->ToFloatPtr(), tri->mocIndexes, tri->numIndexes / 3, ( float* )&mvp[0][0], MaskedOcclusionCulling::BACKFACE_CCW, MaskedOcclusionCulling::CLIP_PLANE_ALL, MaskedOcclusionCulling::VertexLayout( 16, 4, 8 ) );
+#endif
 			}
 #if 0
 			else
