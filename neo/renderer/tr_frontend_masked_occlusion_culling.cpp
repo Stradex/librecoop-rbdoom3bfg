@@ -520,8 +520,20 @@ void R_FillMaskedOcclusionBufferWithModels( viewDef_t* viewDef )
 
 	int startTime = Sys_Microseconds();
 
-	const int viewWidth = viewDef->viewport.x2 - viewDef->viewport.x1 + 1;
-	const int viewHeight = viewDef->viewport.y2 - viewDef->viewport.y1 + 1;
+	int viewWidth = viewDef->viewport.x2 - viewDef->viewport.x1 + 1;
+	int viewHeight = viewDef->viewport.y2 - viewDef->viewport.y1 + 1;
+
+	if( viewWidth & 7 )
+	{
+		// must be multiple of 8
+		viewWidth = ( viewWidth + 7 ) & ~7;
+	}
+
+	if( viewHeight & 3 )
+	{
+		// must be multiple of 4
+		viewHeight = ( viewHeight + 3 ) & ~3;
+	}
 
 	const float zNear = ( viewDef->renderView.cramZNear ) ? ( r_znear.GetFloat() * 0.25f ) : r_znear.GetFloat();
 
