@@ -252,9 +252,9 @@ template<> FORCE_INLINE __m128i simd_cast<__m128i>( __m128i A )
 		return acs->m_array; \
 	}
 
-MAKE_ACCESSOR( simd_f32, __m128, float,, 4 )
+MAKE_ACCESSOR( simd_f32, __m128, float, , 4 )
 MAKE_ACCESSOR( simd_f32, __m128, float, const, 4 )
-MAKE_ACCESSOR( simd_i32, __m128i, int,, 4 )
+MAKE_ACCESSOR( simd_i32, __m128i, int, , 4 )
 MAKE_ACCESSOR( simd_i32, __m128i, int, const, 4 )
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -439,8 +439,8 @@ FORCE_INLINE __m128i _mmw_sllv_ones( const __m128i& ishift )
 	static const unsigned int maskLUT[33] =
 	{
 		~0U << 0, ~0U << 1, ~0U << 2,  ~0U << 3, ~0U << 4, ~0U << 5, ~0U << 6, ~0U << 7, ~0U << 8, ~0U << 9, ~0U << 10, ~0U << 11, ~0U << 12, ~0U << 13, ~0U << 14, ~0U << 15,
-			~0U << 16, ~0U << 17, ~0U << 18, ~0U << 19, ~0U << 20, ~0U << 21, ~0U << 22, ~0U << 23, ~0U << 24, ~0U << 25, ~0U << 26, ~0U << 27, ~0U << 28, ~0U << 29, ~0U << 30, ~0U << 31,
-			0U
+		~0U << 16, ~0U << 17, ~0U << 18, ~0U << 19, ~0U << 20, ~0U << 21, ~0U << 22, ~0U << 23, ~0U << 24, ~0U << 25, ~0U << 26, ~0U << 27, ~0U << 28, ~0U << 29, ~0U << 30, ~0U << 31,
+		0U
 	};
 
 	__m128i retMask;

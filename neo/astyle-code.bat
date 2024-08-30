@@ -7,6 +7,10 @@ astyle.exe -v --formatted --options=astyle-options.ini --recursive ../doomclassi
 REM astyle.exe -v --formatted --options=astyle-options.ini --recursive libs/imgui/*.h
 REM astyle.exe -v --formatted --options=astyle-options.ini --recursive libs/imgui/*.cpp
 
+astyle.exe -v --formatted --options=astyle-options.ini --recursive libs/moc/*.h
+astyle.exe -v --formatted --options=astyle-options.ini --recursive libs/moc/*.inl
+astyle.exe -v --formatted --options=astyle-options.ini --recursive libs/moc/*.cpp
+
 REM astyle.exe -v --formatted --options=astyle-options.ini --recursive libs/stb/*.h
 REM astyle.exe -v --formatted --options=astyle-options.ini --recursive libs/tinyexr/*.h
 

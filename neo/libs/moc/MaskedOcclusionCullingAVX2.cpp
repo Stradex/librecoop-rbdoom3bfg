@@ -185,14 +185,14 @@ template<> FORCE_INLINE __m256i simd_cast<__m256i>( __m256i A )
 		return acs->m_array; \
 	}
 
-MAKE_ACCESSOR( simd_f32, __m128, float,, 4 )
+MAKE_ACCESSOR( simd_f32, __m128, float, , 4 )
 MAKE_ACCESSOR( simd_f32, __m128, float, const, 4 )
-MAKE_ACCESSOR( simd_i32, __m128i, int,, 4 )
+MAKE_ACCESSOR( simd_i32, __m128i, int, , 4 )
 MAKE_ACCESSOR( simd_i32, __m128i, int, const, 4 )
 
-MAKE_ACCESSOR( simd_f32, __m256, float,, 8 )
+MAKE_ACCESSOR( simd_f32, __m256, float, , 8 )
 MAKE_ACCESSOR( simd_f32, __m256, float, const, 8 )
-MAKE_ACCESSOR( simd_i32, __m256i, int,, 8 )
+MAKE_ACCESSOR( simd_i32, __m256i, int, , 8 )
 MAKE_ACCESSOR( simd_i32, __m256i, int, const, 8 )
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

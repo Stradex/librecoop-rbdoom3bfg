@@ -194,19 +194,19 @@ template<> FORCE_INLINE __m512i simd_cast<__m512i>( __m512i A )
 		return acs->m_array; \
 	}
 
-MAKE_ACCESSOR( simd_f32, __m128, float,, 4 )
+MAKE_ACCESSOR( simd_f32, __m128, float, , 4 )
 MAKE_ACCESSOR( simd_f32, __m128, float, const, 4 )
-MAKE_ACCESSOR( simd_i32, __m128i, int,, 4 )
+MAKE_ACCESSOR( simd_i32, __m128i, int, , 4 )
 MAKE_ACCESSOR( simd_i32, __m128i, int, const, 4 )
 
-MAKE_ACCESSOR( simd_f32, __m256, float,, 8 )
+MAKE_ACCESSOR( simd_f32, __m256, float, , 8 )
 MAKE_ACCESSOR( simd_f32, __m256, float, const, 8 )
-MAKE_ACCESSOR( simd_i32, __m256i, int,, 8 )
+MAKE_ACCESSOR( simd_i32, __m256i, int, , 8 )
 MAKE_ACCESSOR( simd_i32, __m256i, int, const, 8 )
 
-MAKE_ACCESSOR( simd_f32, __m512, float,, 16 )
+MAKE_ACCESSOR( simd_f32, __m512, float, , 16 )
 MAKE_ACCESSOR( simd_f32, __m512, float, const, 16 )
-MAKE_ACCESSOR( simd_i32, __m512i, int,, 16 )
+MAKE_ACCESSOR( simd_i32, __m512i, int, , 16 )
 MAKE_ACCESSOR( simd_i32, __m512i, int, const, 16 )
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
