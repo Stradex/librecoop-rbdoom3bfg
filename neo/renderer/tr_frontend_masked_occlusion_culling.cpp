@@ -335,31 +335,12 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 		{
 			// render to masked occlusion buffer
 
-			if( !gpuSkinned )
-				//if( model->IsStaticWorldModel() )
+			//if( !gpuSkinned )
+			if( model->IsStaticWorldModel() )
 			{
-#if 0
-				// super simple bruteforce and slow
-				idVec4 triVerts[3];
-				unsigned int triIndices[] = { 0, 1, 2 };
-
 				tr.pc.c_mocIndexes += tri->numIndexes;
 				tr.pc.c_mocVerts += tri->numIndexes;
 
-				for( int i = 0, face = 0; i < tri->numIndexes; i += 3, face++ )
-				{
-					const idDrawVert& v0 = tri->verts[tri->indexes[i + 0]];
-					const idDrawVert& v1 = tri->verts[tri->indexes[i + 1]];
-					const idDrawVert& v2 = tri->verts[tri->indexes[i + 2]];
-
-					// transform to clip space
-					vEntity->unjitteredMVP.TransformPoint( idVec4( v0.xyz.x, v0.xyz.y, v0.xyz.z, 1 ), triVerts[0] );
-					vEntity->unjitteredMVP.TransformPoint( idVec4( v1.xyz.x, v1.xyz.y, v1.xyz.z, 1 ), triVerts[1] );
-					vEntity->unjitteredMVP.TransformPoint( idVec4( v2.xyz.x, v2.xyz.y, v2.xyz.z, 1 ), triVerts[2] );
-
-					tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_CCW );
-				}
-#else
 				R_CreateMaskedOcclusionCullingTris( tri );
 
 				idRenderMatrix mvp;
@@ -370,8 +351,6 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 				tr.maskedOcclusionThreaded->RenderTriangles( tri->mocVerts->ToFloatPtr(), tri->mocIndexes, tri->numIndexes / 3, MaskedOcclusionCulling::BACKFACE_CCW, MaskedOcclusionCulling::CLIP_PLANE_ALL );
 #else
 				tr.maskedOcclusionCulling->RenderTriangles( tri->mocVerts->ToFloatPtr(), tri->mocIndexes, tri->numIndexes / 3, ( float* )&mvp[0][0], MaskedOcclusionCulling::BACKFACE_CCW, MaskedOcclusionCulling::CLIP_PLANE_ALL, MaskedOcclusionCulling::VertexLayout( 16, 4, 8 ) );
-#endif
-
 #endif
 			}
 #if 0
@@ -407,7 +386,6 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 				idRenderMatrix invProjectMVPMatrix;
 				idRenderMatrix::Multiply( viewDef->worldSpace.unjitteredMVP, inverseBaseModelProject, invProjectMVPMatrix );
 
-#if 1
 				// NOTE: unit cube instead of zeroToOne cube
 				idVec4* verts = tr.maskedUnitCubeVerts;
 				unsigned int* indexes = tr.maskedZeroOneCubeIndexes;
@@ -424,14 +402,6 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 
 					tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_CCW );
 				}
-#else
-
-				// TODO get faster alternative working
-				idRenderMatrix invProjectMVPMatrix2;
-				idRenderMatrix::Transpose( invProjectMVPMatrix, invProjectMVPMatrix2 );
-
-				tr.maskedOcclusionCulling->RenderTriangles( ( float* )tr.maskedZeroOneCubeVerts, tr.maskedZeroOneCubeIndexes, 12, ( float* )&invProjectMVPMatrix2[0][0], MaskedOcclusionCulling::BACKFACE_NONE, MaskedOcclusionCulling::CLIP_PLANE_ALL, MaskedOcclusionCulling::VertexLayout( 16, 4, 8 ) );
-#endif
 			}
 #endif
 

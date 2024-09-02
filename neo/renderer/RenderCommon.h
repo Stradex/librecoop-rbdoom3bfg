@@ -65,7 +65,7 @@ SURFACES
 #include "Interaction.h"
 
 // RB begin
-#define MOC_MULTITHREADED 1
+#define MOC_MULTITHREADED 0
 
 #if MOC_MULTITHREADED
 	class CullingThreadpool;

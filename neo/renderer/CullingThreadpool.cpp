@@ -13,6 +13,9 @@
 // License for the specific language governing permissions and limitations
 // under the License.
 ////////////////////////////////////////////////////////////////////////////////
+#include "precompiled.h"
+#pragma hdrstop
+
 #include <assert.h>
 #include "CullingThreadpool.h"
 
@@ -366,7 +369,7 @@ CullingThreadpool::~CullingThreadpool()
 	// Wait for threads to terminate
 	if( mThreads != nullptr || !mKillThreads )
 	{
-		WakeThreads();
+		//WakeThreads();
 		mKillThreads = true;
 		for( unsigned int i = 0; i < mNumThreads; ++i )
 		{

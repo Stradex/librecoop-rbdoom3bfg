@@ -292,7 +292,6 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			tr.pc.c_mocTests += 1;
 
 			float wmin = idMath::INFINITUM;
-			bool maskVisible = false;
 
 			// NOTE: zeroToOne cube is only for lights and models need the unit cube
 			idVec4* verts = tr.maskedZeroOneCubeVerts;
@@ -314,37 +313,24 @@ static void R_AddSingleLight( viewLight_t* vLight )
 
 			if( vLight->pointLight || vLight->parallel )
 			{
-				unsigned int* indexes = tr.maskedZeroOneCubeIndexes;
-				for( int i = 0; i < 36; i += 3 )
-				{
-					triIndices[0] = indexes[i + 0];
-					triIndices[1] = indexes[i + 1];
-					triIndices[2] = indexes[i + 2];
-
 #if 1
-					// backface none so objects are still visible where we run into
+				// backface none so objects are still visible where we run into
 #if MOC_MULTITHREADED
-					tr.maskedOcclusionThreaded->SetMatrix( NULL );
-					MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionThreaded->TestTriangles( ( float* )triVerts, triIndices, 1, MaskedOcclusionCulling::BACKFACE_NONE );
+				tr.maskedOcclusionThreaded->SetMatrix( NULL );
+				MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionThreaded->TestTriangles( ( float* )triVerts, tr.maskedZeroOneCubeIndexes, 12, MaskedOcclusionCulling::BACKFACE_NONE );
 #else
-					MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
+				MaskedOcclusionCulling::CullingResult result = tr.maskedOcclusionCulling->TestTriangles( ( float* )triVerts, tr.maskedZeroOneCubeIndexes, 12, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
 #endif
-					if( result == MaskedOcclusionCulling::VISIBLE )
-					{
-						maskVisible = true;
-					}
-#else
-					// draw for debugging
-					tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
-					maskVisible = true;
-#endif
-				}
-
-				if( !maskVisible )
+				if( result != MaskedOcclusionCulling::VISIBLE )
 				{
 					tr.pc.c_mocCulledLights += 1;
 					return;
 				}
+#else
+				// draw for debugging
+				tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_NONE );
+				maskVisible = true;
+#endif
 			}
 			else
 			{

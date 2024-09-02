@@ -2316,6 +2316,7 @@ void idRenderSystemLocal::Init()
 #if MOC_MULTITHREADED
 	maskedOcclusionThreaded = new CullingThreadpool( 2, 10, 6, 128 );
 	maskedOcclusionThreaded->SetBuffer( maskedOcclusionCulling );
+	maskedOcclusionThreaded->WakeThreads();
 #endif
 
 	R_MakeZeroOneCubeTrisForMaskedOcclusionCulling();
