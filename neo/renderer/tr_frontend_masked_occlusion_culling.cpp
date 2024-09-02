@@ -31,7 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #if defined(USE_INTRINSICS_SSE)
 	#if MOC_MULTITHREADED
-		#include "../libs/moc/CullingThreadPool.h"
+		#include "CullingThreadPool.h"
 	#else
 		#include "../libs/moc/MaskedOcclusionCulling.h"
 	#endif
@@ -579,6 +579,11 @@ void R_FillMaskedOcclusionBufferWithModels( viewDef_t* viewDef )
 			R_RenderSingleModel( vEntity );
 		}
 	}
+
+#if MOC_MULTITHREADED
+	// wait for jobs to be finished
+	tr.maskedOcclusionThreaded->Flush();
+#endif
 
 	int endTime = Sys_Microseconds();
 

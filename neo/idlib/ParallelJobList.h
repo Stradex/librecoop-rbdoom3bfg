@@ -97,31 +97,43 @@ public:
 
 	// Submit the jobs in this list.
 	void					Submit( idParallelJobList* waitForJobList = NULL, int parallelism = JOBLIST_PARALLELISM_DEFAULT );
+
 	// Wait for the jobs in this list to finish. Will spin in place if any jobs are not done.
 	void					Wait();
+
 	// Try to wait for the jobs in this list to finish but either way return immediately. Returns true if all jobs are done.
 	bool					TryWait();
+
 	// returns true if the job list has been submitted.
 	bool					IsSubmitted() const;
 
 	// Get the number of jobs executed in this job list.
 	unsigned int			GetNumExecutedJobs() const;
+
 	// Get the number of sync points.
 	unsigned int			GetNumSyncs() const;
+
 	// Time at which the job list was submitted.
 	uint64					GetSubmitTimeMicroSec() const;
+
 	// Time at which execution of this job list started.
 	uint64					GetStartTimeMicroSec() const;
+
 	// Time at which all jobs in the list were executed.
 	uint64					GetFinishTimeMicroSec() const;
+
 	// Time the host thread waited for this job list to finish.
 	uint64					GetWaitTimeMicroSec() const;
+
 	// Get the total time all units spent processing this job list.
 	uint64					GetTotalProcessingTimeMicroSec() const;
+
 	// Get the total time all units wasted while processing this job list.
 	uint64					GetTotalWastedTimeMicroSec() const;
+
 	// Time the given unit spent processing this job list.
 	uint64					GetUnitProcessingTimeMicroSec( int unit ) const;
+
 	// Time the given unit wasted while processing this job list.
 	uint64					GetUnitWastedTimeMicroSec( int unit ) const;
 

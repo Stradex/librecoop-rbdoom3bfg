@@ -64,13 +64,15 @@ SURFACES
 #include "ModelOverlay.h"
 #include "Interaction.h"
 
-#define MOC_MULTITHREADED 0
+// RB begin
+#define MOC_MULTITHREADED 1
 
 #if MOC_MULTITHREADED
 	class CullingThreadpool;
 #endif
+class MaskedOcclusionCulling;
+// RB end
 
-class MaskedOcclusionCulling; // RB
 class idRenderWorldLocal;
 struct viewEntity_t;
 struct viewLight_t;

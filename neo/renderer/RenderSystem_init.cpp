@@ -36,7 +36,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #if defined(USE_INTRINSICS_SSE)
 	#if MOC_MULTITHREADED
-		#include "../libs/moc/CullingThreadPool.h"
+		#include "CullingThreadPool.h"
 	#else
 		#include "../libs/moc/MaskedOcclusionCulling.h"
 	#endif
