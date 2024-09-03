@@ -341,6 +341,7 @@ static infoParm_t	infoParms[] =
 	// because they represent discrete objects like gui shaders
 	// mirrors, or autosprites
 	{"noFragment",	0,	SURF_NOFRAGMENT,	0 },
+	{"occlusion",	0,	SURF_OCCLUSION,	0 },		// RB: surface becomes vis blocker in software depth buffer
 
 	{"slick",		0,	SURF_SLICK,		0 },
 	{"collision",	0,	SURF_COLLISION,	0 },

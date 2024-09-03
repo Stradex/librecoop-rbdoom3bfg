@@ -441,8 +441,8 @@ typedef enum
 	SURF_NOSTEPS				= BIT( 9 ),	// no footstep sounds
 	SURF_DISCRETE				= BIT( 10 ),	// not clipped or merged by utilities
 	SURF_NOFRAGMENT				= BIT( 11 ),	// dmap won't cut surface at each bsp boundary
-	SURF_NULLNORMAL				= BIT( 12 )	// renderbump will draw this surface as 0x80 0x80 0x80, which
-								  // won't collect light from any angle
+	SURF_NULLNORMAL				= BIT( 12 ),	// renderbump will draw this surface as 0x80 0x80 0x80, which won't collect light from any angle
+	SURF_OCCLUSION				= BIT( 13 ),	// RB: occluder surface
 } surfaceFlags_t;
 
 
@@ -682,6 +682,12 @@ public:
 	bool				NoFragment() const
 	{
 		return ( surfaceFlags & SURF_NOFRAGMENT ) != 0;
+	}
+
+	// RB: occluder surfaces are invisible and only get rendered to the masked occlusion depth buffer
+	bool				IsOccluder() const
+	{
+		return ( surfaceFlags & SURF_OCCLUSION ) != 0;
 	}
 
 	//------------------------------------------------------------------

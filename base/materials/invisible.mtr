@@ -433,4 +433,13 @@ textures/common/origin
 	qer_nocarve		// don't let an awry CSG operation cut it up
 	origin
 }
+
+// if an ASE/LWO/GLTF model has a surface that uses this material that surface will
+// be used for occlusion culling instead of the visual surface(s)
+textures/common/occlusion
+{
+	qer_editorimage textures/common/occlusion.tga
+	noshadows
+	occlusion
+}
 // RB end

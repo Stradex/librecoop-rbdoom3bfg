@@ -196,6 +196,23 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 	//---------------------------
 	// add all the model surfaces
 	//---------------------------
+	bool occlusionSurface = false;
+	for( int surfaceNum = 0; surfaceNum < model->NumSurfaces(); surfaceNum++ )
+	{
+		const modelSurface_t* surf = model->Surface( surfaceNum );
+
+		const idMaterial* shader = surf->shader;
+		if( shader == NULL )
+		{
+			continue;
+		}
+
+		if( shader->IsOccluder() )
+		{
+			occlusionSurface = true;
+		}
+	}
+
 	for( int surfaceNum = 0; surfaceNum < model->NumSurfaces(); surfaceNum++ )
 	{
 		const modelSurface_t* surf = model->Surface( surfaceNum );
@@ -217,6 +234,12 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 		}
 		const idMaterial* shader = surf->shader;
 		if( shader == NULL )
+		{
+			continue;
+		}
+
+		// if the model has a occlusion surface and this surface is not a occluder
+		if( occlusionSurface && !shader->IsOccluder() )
 		{
 			continue;
 		}
@@ -249,7 +272,7 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 		}
 
 		// foresthale 2014-09-01: don't skip surfaces that use the "forceShadows" flag
-		if( !shader->IsDrawn() && !shader->SurfaceCastsShadow() )
+		if( !shader->IsDrawn() && !shader->SurfaceCastsShadow() && !shader->IsOccluder() )
 		{
 			continue;		// collision hulls, etc
 		}
@@ -330,13 +353,16 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 		const float* shaderRegisters = NULL;
 		drawSurf_t* baseDrawSurf = NULL;
 
-		if( surfaceDirectlyVisible && shader->IsDrawn() && shader->Coverage() == MC_OPAQUE && !renderEntity->weaponDepthHack && renderEntity->modelDepthHack == 0.0f )
-			//if( surfaceDirectlyVisible && shader->IsDrawn() && !renderEntity->weaponDepthHack && renderEntity->modelDepthHack == 0.0f )
+		if( surfaceDirectlyVisible &&
+				( ( shader->IsDrawn() && shader->Coverage() == MC_OPAQUE && !renderEntity->weaponDepthHack && renderEntity->modelDepthHack == 0.0f ) || shader->IsOccluder() )
+		  )
 		{
 			// render to masked occlusion buffer
 
 			//if( !gpuSkinned )
-			if( model->IsStaticWorldModel() )
+
+			// render the BSP area surfaces and from static model entities only the occlusion surfaces to keep the tris count at minimum
+			if( model->IsStaticWorldModel() || ( shader->IsOccluder() && !gpuSkinned ) )
 			{
 				tr.pc.c_mocIndexes += tri->numIndexes;
 				tr.pc.c_mocVerts += tri->numIndexes;
