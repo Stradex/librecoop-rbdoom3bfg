@@ -153,14 +153,11 @@ MapPolygonMesh* MapPolygonMesh::ConvertFromMeshGltf( const gltfMesh_Primitive* p
 						bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
 					}
 
-					idVec3 normal;
+					// w = 0 because we only want to rotate the normal
+					idVec4 normal4D( vec.x, vec.y, vec.z, 0.0f );
+					normal4D *= transform;
 
-					normal.x = vec.x;
-					normal.y = vec.y;
-					normal.z = vec.z;
-
-					normal *= transform;
-
+					idVec3 normal = normal4D.ToVec3();
 					// renormalize because previous transforms may contain scale operations
 					normal.Normalize();
 
@@ -203,13 +200,10 @@ MapPolygonMesh* MapPolygonMesh::ConvertFromMeshGltf( const gltfMesh_Primitive* p
 						bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
 					}
 
-					idVec3 tangent;
+					idVec4 tangent4D( vec.x, vec.y, vec.z, 0.0f );
+					tangent4D *= transform;
 
-					tangent.x = vec.x;
-					tangent.y = vec.y;
-					tangent.z = vec.z;
-
-					tangent *= transform;
+					idVec3 tangent = tangent4D.ToVec3();
 					tangent.Normalize();
 
 					mesh->verts[i].SetTangent( tangent );
