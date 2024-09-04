@@ -1022,6 +1022,10 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 
 		byte* buffers[6];
 
+		int areaNum = tr.primaryWorld->PointInArea( def->parms.origin );
+		idVec3 point = def->parms.origin;
+		point.SnapInt();
+
 		for( int j = 0; j < 6; j++ )
 		{
 			ref = primary.renderView;
@@ -1049,12 +1053,23 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 
 			byte* floatRGB16F = NULL;
 
-			R_ReadPixelsRGB16F( deviceManager->GetDevice(), &tr.backend.GetCommonPasses(), globalImages->envprobeHDRImage->GetTextureHandle() , nvrhi::ResourceStates::RenderTarget, &floatRGB16F, captureSize, captureSize );
+			//if( point.x == 0 && point.y == 64 && point.z == 56 && j == 1 )
+			//{
+			//	floatRGB16F = NULL;
+			//}
+
+			//bool validCapture =
+			R_ReadPixelsRGB16F( deviceManager->GetDevice(), &tr.backend.GetCommonPasses(), globalImages->envprobeHDRImage->GetTextureHandle(), nvrhi::ResourceStates::RenderTarget, &floatRGB16F, captureSize, captureSize );
 
 #if 0
 			idStr testName;
-			testName.Format( "env/test/envprobe_%i_side_%i.exr", i, j );
+			testName.Format( "env/test/%s/area%i_envprobe_%i_%i_%i_side_%i.exr", baseName.c_str(), areaNum, int( point.x ), int( point.y ), int( point.z ), j );
 			R_WriteEXR( testName, floatRGB16F, 3, captureSize, captureSize, "fs_basepath" );
+
+			if( !validCapture )
+			{
+				common->Printf( "failed to capture side %s\n", testName.c_str() );
+			}
 #endif
 			buffers[ j ] = floatRGB16F;
 		}
@@ -1062,10 +1077,6 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 		tr.takingEnvprobe = false;
 		progressBar.Increment( true );
 		tr.takingEnvprobe = true;
-
-		int areaNum = tr.primaryWorld->PointInArea( def->parms.origin );
-		idVec3 point = def->parms.origin;
-		point.SnapInt();
 
 		fullname.Format( "%s/area%i_envprobe_%i_%i_%i", baseName.c_str(), areaNum, int( point.x ), int( point.y ), int( point.z ) );
 		fullname.ReplaceChar( '-', '_' );

@@ -855,7 +855,6 @@ bool R_ReadPixelsRGB8( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nvrh
 #endif
 
 	// fix alpha
-	// SRS - changed to uint32_t for type consistency
 	for( uint32_t i = 0; i < ( desc.width * desc.height ); i++ )
 	{
 		data[ i * 4 + 3 ] = 0xff;
@@ -970,7 +969,6 @@ bool R_ReadPixelsRGB16F( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nv
 	}
 #endif
 
-	// SRS - changed to uint32_t for type consistency
 	for( uint32_t i = 0; i < ( desc.width * desc.height ); i++ )
 	{
 		outData[ i * 3 + 0 ] = data[ i * 4 + 0 ];
@@ -985,7 +983,6 @@ bool R_ReadPixelsRGB16F( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nv
 	const idVec3 LUMINANCE_LINEAR( 0.299f, 0.587f, 0.144f );
 	idVec3 rgb;
 
-	// SRS - changed to uint32_t for type consistency
 	for( uint32_t i = 0; i < ( desc.width * desc.height ); i++ )
 	{
 		rgb.x = F16toF32( outData[ i * 3 + 0 ] );
@@ -1001,7 +998,7 @@ bool R_ReadPixelsRGB16F( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nv
 		// captures within the Doom 3 main campaign usually have a luminance of ~ 0.5 - 4.0
 		// the threshold is a bit higher and might need to be adapted for total conversion content
 		float luminance = rgb * LUMINANCE_LINEAR;
-		if( luminance > 20.0f )
+		if( luminance > 30.0f )
 		{
 			isCorrupted = true;
 			break;
@@ -1010,7 +1007,6 @@ bool R_ReadPixelsRGB16F( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nv
 
 	if( isCorrupted )
 	{
-		// SRS - changed to uint32_t for type consistency
 		for( uint32_t i = 0; i < ( desc.width * desc.height ); i++ )
 		{
 			outData[ i * 3 + 0 ] = F32toF16( 0 );
