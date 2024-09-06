@@ -19,6 +19,39 @@ TBD - RBDOOM-3-BFG 1.6.0
 _______________________________
 
 
+## .plan - September 06, 2024
+
+This is a test build for the Masked Software Occlusion Culling (MOC) implementation. Many modern engines have a solution like Umbra integrated that automatically hides hidden objects in the renderer before they even get rendered to optimize the performance.
+
+MOC is a technique for efficient CPU occlusion culling. It supplements the traditional BSP portal culling method. MOC works by directly updating a hierarchical Z-buffer without computing the full resolution depth buffer. This allows culling many pixels in parallel using SIMD instructions. The algorithm has very low memory overhead but can reduce the number of draw calls in worst case scenarios by up to 40% which makes it also very interesting for the VR implementation.
+
+Steve Saunders also provided a few Linux/Posix specific cleanups.
+
+Changelog:
+
+* Fixed glTF normals when transforms have not been applied in Blender. close #929
+
+* Added Masked Software Occlusion Culling library by Intel
+
+* Added material textures/common/occlusion
+
+* Only draw BSP surfs/patches to masked buffer to reduce tris
+
+* Fixed a few bugs in the convertMapQuakeToDoom command
+
+* Show masked occlusion time with com_showFPS 3
+
+* Increased vertex cache limits for TSM mod #918 #660
+
+* rbdmap for Win32: Suppress warnings from imtui / imgui / pdcurses / wincon third-party source libraries
+
+* rbdmap for Linux/Posix: Replace deprecated readdir_r() with readdir() to eliminate warnings
+
+* rbdmap: Suppress warnings from zlib and minizip third-party source libraries
+
+* Fix rbdmap / idlib PCH mismatch and cleanup rbdmap PCH files after build
+
+
 ## .plan - August 17, 2024
 
 This update improves the PSX render mode to be more faithful to the original output of the PS1.
