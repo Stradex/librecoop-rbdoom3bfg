@@ -46,6 +46,16 @@ FORCE_INLINE void aligned_free( void* ptr )
 	_aligned_free( ptr );
 }
 
+FORCE_INLINE void cpuidex( int cpuinfo[4], int function, int subfunction )
+{
+	__cpuidex( cpuinfo, function, subfunction );
+}
+
+FORCE_INLINE unsigned long long xgetbv( unsigned int index )
+{
+	return _xgetbv( index );
+}
+
 #elif defined(__GNUG__)	|| defined(__clang__) // G++ or clang
 #include <cpuid.h>
 #if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
@@ -69,7 +79,9 @@ FORCE_INLINE unsigned long find_clear_lsb( unsigned int* mask )
 
 FORCE_INLINE void* aligned_alloc( size_t alignment, size_t size )
 {
-	return memalign( alignment, size );
+	void* ret;
+	posix_memalign( &ret, alignment, size );
+	return ret;
 }
 
 FORCE_INLINE void aligned_free( void* ptr )
@@ -77,14 +89,12 @@ FORCE_INLINE void aligned_free( void* ptr )
 	free( ptr );
 }
 
-// RB: commented out
-#if 0
-FORCE_INLINE void __cpuidex( int* cpuinfo, int function, int subfunction )
+FORCE_INLINE void cpuidex( int cpuinfo[4], int function, int subfunction )
 {
 	__cpuid_count( function, subfunction, cpuinfo[0], cpuinfo[1], cpuinfo[2], cpuinfo[3] );
 }
 
-FORCE_INLINE unsigned long long _xgetbv( unsigned int index )
+FORCE_INLINE unsigned long long xgetbv( unsigned int index )
 {
 	unsigned int eax, edx;
 	__asm__ __volatile__(
@@ -94,7 +104,6 @@ FORCE_INLINE unsigned long long _xgetbv( unsigned int index )
 	);
 	return ( ( unsigned long long )edx << 32 ) | eax;
 }
-#endif
 
 #else
 #error Unsupported compiler
