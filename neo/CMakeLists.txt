@@ -1512,7 +1512,11 @@ else()
 
 	list(REMOVE_DUPLICATES RBDOOM3_SOURCES)
 	
-	if(USE_PRECOMPILED_HEADERS) 	
+	if(USE_PRECOMPILED_HEADERS)
+		# we need to recreate the precompiled header for RBDoom3BFG
+		# (i.e. can't use the one created for idlib before)
+		# because some definitions (e.g. -D__IDLIB__ -D__DOOM_DLL__) differ
+
 		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
@@ -1536,6 +1540,30 @@ else()
 		FOREACH(item ${_directory_flags})
 			LIST(APPEND _compiler_FLAGS " -I${item}")
 		ENDFOREACH(item)
+
+		GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_OPTIONS)
+		LIST(APPEND _compiler_FLAGS ${_directory_flags})
+		SEPARATE_ARGUMENTS(_compiler_FLAGS)
+
+		GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_DEFINITIONS)
+		FOREACH(item ${_directory_flags})
+			LIST(APPEND _compiler_FLAGS "-D${item}")
+		ENDFOREACH(item)
+
+		if(OPTICK)
+			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=1)
+		else()
+			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=0)
+		endif()
+
+		add_custom_target(precomp_header_rbdoom3bfg ALL
+				COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header idlib/precompiled.h -o idlib/precompiled.h.gch
+				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+				COMMENT "Creating idlib/precompiled.h.gch for RBDoom3BFG"
+				)
+
+		# make sure this is run after creating idlib
+		add_dependencies(precomp_header_rbdoom3bfg idlib)
 	endif()
 
 	# SRS - disable certain gcc/clang warnings for select third-party source libraries, consider updating versions in the future?
@@ -1555,34 +1583,6 @@ else()
 				)
 	endif()
 	
-	GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_OPTIONS)
-	LIST(APPEND _compiler_FLAGS ${_directory_flags})
-	SEPARATE_ARGUMENTS(_compiler_FLAGS)
-	
-	GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_DEFINITIONS)
-	FOREACH(item ${_directory_flags})
-		LIST(APPEND _compiler_FLAGS "-D${item}")
-	ENDFOREACH(item)
-
-	if(USE_PRECOMPILED_HEADERS)
-		# we need to recreate the precompiled header for RBDoom3BFG 
-		# (i.e. can't use the one created for idlib before)
-		# because some definitions (e.g. -D__IDLIB__ -D__DOOM_DLL__) differ
-		if(OPTICK)
-			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=1)
-		else()
-			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=0)
-		endif()
-		add_custom_target(precomp_header_rbdoom3bfg ALL
-				COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header idlib/precompiled.h -o idlib/precompiled.h.gch
-				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-				COMMENT "Creating idlib/precompiled.h.gch for RBDoom3BFG"
-				)
-				
-		# make sure this is run after creating idlib
-		add_dependencies(precomp_header_rbdoom3bfg idlib)
-	endif()
-
 	if(MACOSX_BUNDLE)
 		# define contents of macOS app bundle Resources folder
 		set(MACOS_RESOURCES sys/posix/res/Doom3BFG.icns ../base)
@@ -1608,6 +1608,7 @@ else()
 	if(USE_VULKAN)
         add_dependencies(RBDoom3BFG nvrhi_vk)
     endif()
+
 	if (USE_PRECOMPILED_HEADERS)
 		# make sure precompiled header is created before executable is compiled
 		add_dependencies(RBDoom3BFG precomp_header_rbdoom3bfg)

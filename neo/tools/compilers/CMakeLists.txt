@@ -295,14 +295,6 @@ if(MSVC)
 else()
 	include_directories(.)
 
-	# SRS - disable certain gcc/clang warnings for select third-party source libraries, consider updating versions in the future?
-	set_source_files_properties(
-			${MC_ZLIB_SOURCES}
-			${MC_MINIZIP_SOURCES}
-			PROPERTIES
-			COMPILE_FLAGS "-Wno-stringop-overread -Wno-deprecated-non-prototype"
-			)
-
 	if (USE_PRECOMPILED_HEADERS)
 		foreach( src_file ${MC_PRECOMPILED_SOURCES} )
 			#message(STATUS "-include precompiled.h for ${src_file}")
@@ -343,7 +335,15 @@ else()
 						COMMENT "Creating tools/compilers/precompiled.h.gch for rbdmap"
 						)
 	endif()
-	
+
+	# SRS - disable certain gcc/clang warnings for select third-party source libraries, consider updating versions in the future?
+	set_source_files_properties(
+			${MC_ZLIB_SOURCES}
+			${MC_MINIZIP_SOURCES}
+			PROPERTIES
+			COMPILE_FLAGS "-Wno-stringop-overread -Wno-deprecated-non-prototype"
+			)
+
 	add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
 	add_dependencies(rbdmap idlib)
 
