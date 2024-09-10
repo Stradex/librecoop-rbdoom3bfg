@@ -295,14 +295,6 @@ if(MSVC)
 else()
 	include_directories(.)
 
-	# SRS - disable certain gcc/clang warnings for select third-party source libraries, consider updating versions in the future?
-	set_source_files_properties(
-			${MC_ZLIB_SOURCES}
-			${MC_MINIZIP_SOURCES}
-			PROPERTIES
-			COMPILE_FLAGS "-Wno-stringop-overread -Wno-deprecated-non-prototype"
-			)
-
 	if (USE_PRECOMPILED_HEADERS)
 		foreach( src_file ${MC_PRECOMPILED_SOURCES} )
 			#message(STATUS "-include precompiled.h for ${src_file}")
@@ -321,10 +313,14 @@ else()
 			LIST(APPEND _compiler_FLAGS " -I${item}")
 		ENDFOREACH(item)
 
-		GET_DIRECTORY_PROPERTY(_directory_flags DEFINITIONS)
+		GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_OPTIONS)
 		LIST(APPEND _compiler_FLAGS ${_directory_flags})
-
 		SEPARATE_ARGUMENTS(_compiler_FLAGS)
+
+		GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_DEFINITIONS)
+		FOREACH(item ${_directory_flags})
+			LIST(APPEND _compiler_FLAGS "-D${item}")
+		ENDFOREACH(item)
 
 		# SRS - USE_OPTICK not useful for rbdmap, but definition required to avoid mismatch with idlib precompiled header
 		if(OPTICK)
@@ -339,7 +335,15 @@ else()
 						COMMENT "Creating tools/compilers/precompiled.h.gch for rbdmap"
 						)
 	endif()
-	
+
+	# SRS - disable certain gcc/clang warnings for select third-party source libraries, consider updating versions in the future?
+	set_source_files_properties(
+			${MC_ZLIB_SOURCES}
+			${MC_MINIZIP_SOURCES}
+			PROPERTIES
+			COMPILE_FLAGS "-Wno-stringop-overread -Wno-deprecated-non-prototype"
+			)
+
 	add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
 	add_dependencies(rbdmap idlib)
 

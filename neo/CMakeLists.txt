@@ -69,16 +69,16 @@ set(NVRHI_INSTALL OFF)
 
 set(CPU_TYPE "" CACHE STRING "When set, passes this string as CPU-ID which will be embedded into the binary.")
 
-# SRS - Turn on optimization when cross-compiling from Apple arm64 to x86_64
+# SRS - Turn on compiler optimizations for x86 and also when cross-compiling from Apple arm64 to x86_64
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)" OR CMAKE_OSX_ARCHITECTURES MATCHES "x86_64")
-	set(CPU_OPTIMIZATION "-mmmx -msse -msse2" CACHE STRING "Which CPU specific optimitations should be used beside the compiler's default?")
+	set(CPU_OPTIMIZATION "-mmmx -msse -msse2" CACHE STRING "Which CPU-specific optimizations should be used besides the compiler's default?")
 endif()
 
-# SRS - Turn off MMX/SSE intrinsics when cross-compiling from Apple x86_64 to arm64
+# SRS - Turn on MMX/SSE intrinsics for x86 but not when cross-compiling from Apple x86_64 to arm64
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)|(e2k)|(E2K)" AND NOT CMAKE_OSX_ARCHITECTURES MATCHES "arm64")
-	option(USE_INTRINSICS_SSE "Compile using SSE intrinsics (e.g mmx, sse, msse2)" ON)
+	option(USE_INTRINSICS_SSE "Compile using x86 MMX/SSE intrinsics (e.g SSE SIMD instructions)" ON)
 else()
-	option(USE_INTRINSICS_SSE "Compile using SSE intrinsics (e.g mmx, sse, msse2)" OFF)
+	option(USE_INTRINSICS_SSE "Compile using x86 MMX/SSE intrinsics (e.g SSE SIMD instructions)" OFF)
 endif()
 
 if(FFMPEG AND BINKDEC)
@@ -122,12 +122,12 @@ endif()
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 
-	add_definitions(-pipe)
-	#add_definitions(-Wall)
-	add_definitions(-Werror=format-security)
-	add_definitions(-Werror=format)
-	add_definitions(-Wno-format-zero-length)
-	add_definitions(-Wno-nonnull)
+	add_compile_options(-pipe)
+	#add_compile_options(-Wall)
+	add_compile_options(-Werror=format-security)
+	add_compile_options(-Werror=format)
+	add_compile_options(-Wno-format-zero-length)
+	add_compile_options(-Wno-nonnull)
 
 	# Compiler check (needs -std=c++17 flag)
 	include(CheckCXXCompilerFlag)
@@ -144,7 +144,8 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 		add_definitions(-DCPUSTRING="${CPU_TYPE}")
 	endif()
 	if (CPU_OPTIMIZATION)
-		add_definitions(${CPU_OPTIMIZATION})
+		SEPARATE_ARGUMENTS(CPU_OPTIMIZATION)
+		add_compile_options(${CPU_OPTIMIZATION})
 	endif()
 	if(WIN32)
 		# require msvcr70.dll or newer for _aligned_malloc etc
@@ -166,14 +167,14 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 		# add clang-specific settings for warnings (the second one make sure clang doesn't complain
 		# about unknown -W flags, like -Wno-unused-but-set-variable)
 		# SRS - Add -Wno-expansion-to-defined, Wno-nullability-completeness and -Wno-shorten-64-to-32 to list of warning settings
-		add_definitions(-Wno-local-type-template-args -Wno-unknown-warning-option -Wno-inline-new-delete -Wno-switch-enum -Wno-expansion-to-defined -Wno-nullability-completeness -Wno-shorten-64-to-32)
+		add_compile_options(-Wno-local-type-template-args -Wno-unknown-warning-option -Wno-inline-new-delete -Wno-switch-enum -Wno-expansion-to-defined -Wno-nullability-completeness -Wno-shorten-64-to-32)
 	endif()
 	
 	if(NOT CMAKE_CROSSCOMPILING AND ONATIVE)
 		if(CMAKE_SYSTEM_PROCESSOR MATCHES "((powerpc|ppc)64le)|(mips64)")
-			add_definitions(-mcpu=native)
+			add_compile_options(-mcpu=native)
 		else()
-			add_definitions(-march=native)
+			add_compile_options(-march=native)
 		endif()
 	endif()
 
@@ -182,13 +183,13 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 	# SRS - Make sure OSX can find system headers and add support for minimum OSX runtime version
     if(APPLE)
 		# SRS - Also add -fasm-blocks otherwise Xcode complains and -Qunused-arguments to silence MMX/SSE unused arg warnings when compiling for Apple arm64
-		add_definitions(-fasm-blocks -Qunused-arguments)
+		add_compile_options(-fasm-blocks -Qunused-arguments)
         if(CMAKE_OSX_SYSROOT)
-            add_definitions(-isysroot "${CMAKE_OSX_SYSROOT}")
+            add_compile_options(-isysroot ${CMAKE_OSX_SYSROOT})
             message(STATUS "Using macOS sysroot: " ${CMAKE_OSX_SYSROOT})
         endif()
 		if(CMAKE_OSX_DEPLOYMENT_TARGET)
-			add_definitions(-mmacosx-version-min="${CMAKE_OSX_DEPLOYMENT_TARGET}")
+			add_compile_options(-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
 		endif()
 	endif()
 
@@ -1511,7 +1512,11 @@ else()
 
 	list(REMOVE_DUPLICATES RBDOOM3_SOURCES)
 	
-	if(USE_PRECOMPILED_HEADERS) 	
+	if(USE_PRECOMPILED_HEADERS)
+		# we need to recreate the precompiled header for RBDoom3BFG
+		# (i.e. can't use the one created for idlib before)
+		# because some definitions (e.g. -D__IDLIB__ -D__DOOM_DLL__) differ
+
 		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
@@ -1535,6 +1540,30 @@ else()
 		FOREACH(item ${_directory_flags})
 			LIST(APPEND _compiler_FLAGS " -I${item}")
 		ENDFOREACH(item)
+
+		GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_OPTIONS)
+		LIST(APPEND _compiler_FLAGS ${_directory_flags})
+		SEPARATE_ARGUMENTS(_compiler_FLAGS)
+
+		GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_DEFINITIONS)
+		FOREACH(item ${_directory_flags})
+			LIST(APPEND _compiler_FLAGS "-D${item}")
+		ENDFOREACH(item)
+
+		if(OPTICK)
+			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=1)
+		else()
+			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=0)
+		endif()
+
+		add_custom_target(precomp_header_rbdoom3bfg ALL
+				COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header idlib/precompiled.h -o idlib/precompiled.h.gch
+				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+				COMMENT "Creating idlib/precompiled.h.gch for RBDoom3BFG"
+				)
+
+		# make sure this is run after creating idlib
+		add_dependencies(precomp_header_rbdoom3bfg idlib)
 	endif()
 
 	# SRS - disable certain gcc/clang warnings for select third-party source libraries, consider updating versions in the future?
@@ -1554,29 +1583,6 @@ else()
 				)
 	endif()
 	
-	GET_DIRECTORY_PROPERTY(_directory_flags DEFINITIONS)
-	LIST(APPEND _compiler_FLAGS ${_directory_flags})
-	SEPARATE_ARGUMENTS(_compiler_FLAGS)
-	
-	if(USE_PRECOMPILED_HEADERS)
-		# we need to recreate the precompiled header for RBDoom3BFG 
-		# (i.e. can't use the one created for idlib before)
-		# because some definitions (e.g. -D__IDLIB__ -D__DOOM_DLL__) differ
-		if(OPTICK)
-			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=1)
-		else()
-			LIST(APPEND _compiler_FLAGS -DUSE_OPTICK=0)
-		endif()
-		add_custom_target(precomp_header_rbdoom3bfg ALL
-				COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header idlib/precompiled.h -o idlib/precompiled.h.gch
-				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-				COMMENT "Creating idlib/precompiled.h.gch for RBDoom3BFG"
-				)
-				
-		# make sure this is run after creating idlib
-		add_dependencies(precomp_header_rbdoom3bfg idlib)
-	endif()
-
 	if(MACOSX_BUNDLE)
 		# define contents of macOS app bundle Resources folder
 		set(MACOS_RESOURCES sys/posix/res/Doom3BFG.icns ../base)
@@ -1602,6 +1608,7 @@ else()
 	if(USE_VULKAN)
         add_dependencies(RBDoom3BFG nvrhi_vk)
     endif()
+
 	if (USE_PRECOMPILED_HEADERS)
 		# make sure precompiled header is created before executable is compiled
 		add_dependencies(RBDoom3BFG precomp_header_rbdoom3bfg)
