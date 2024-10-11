@@ -1,3 +1,5 @@
+rm -f idlib/precompiled.h.gch
+rm -f tools/compilers/precompiled.h.gch
 cd ..
 rm -rf build
 mkdir build
