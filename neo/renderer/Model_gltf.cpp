@@ -49,7 +49,7 @@ idCVar gltf_modelSceneName( "gltf_modelSceneName", "Scene", CVAR_SYSTEM | CVAR_N
 idCVar gltf_animSampleRate( "gltf_animSampleRate", "24", CVAR_SYSTEM | CVAR_INTEGER | CVAR_NEW, "The frame rate of the converted md5anim" );
 
 
-static const byte GLMB_VERSION = 102;
+static const byte GLMB_VERSION = 103;
 static const unsigned int GLMB_MAGIC = ( 'M' << 24 ) | ( 'L' << 16 ) | ( 'G' << 8 ) | GLMB_VERSION;
 static const char* GLTF_SnapshotName = "_GLTF_Snapshot_";
 static const idMat4 blenderToDoomTransform( idAngles( 0.0f, 0.0f, 90 ).ToMat3(), vec3_origin );

@@ -1628,6 +1628,11 @@ void				R_AllocStaticTriSurfDominantTris( srfTriangles_t* tri, int numVerts );
 void				R_AllocStaticTriSurfMirroredVerts( srfTriangles_t* tri, int numMirroredVerts );
 void				R_AllocStaticTriSurfDupVerts( srfTriangles_t* tri, int numDupVerts );
 
+// RB begin
+void				R_AllocStaticTriSurfMocIndexes( srfTriangles_t* tri, int numIndexes );
+void				R_AllocStaticTriSurfMocVerts( srfTriangles_t* tri, int numVerts );
+// RB end
+
 srfTriangles_t* 	R_CopyStaticTriSurf( const srfTriangles_t* tri );
 
 void				R_ResizeStaticTriSurfVerts( srfTriangles_t* tri, int numVerts );
