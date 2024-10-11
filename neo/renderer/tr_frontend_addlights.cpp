@@ -277,7 +277,6 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		// RB: test surface visibility by drawing the triangles of the bounds
 #if defined(USE_INTRINSICS_SSE)
 
-		// FIXME spot light projections are too short
 		if( r_useMaskedOcclusionCulling.GetBool() && !viewInsideLight && !viewDef->isMirror && !viewDef->isSubview )
 		{
 			idVec4 triVerts[8];
@@ -287,7 +286,24 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			tr.pc.c_mocVerts += 8;
 
 			idRenderMatrix invProjectMVPMatrix;
-			idRenderMatrix::Multiply( viewDef->worldSpace.unjitteredMVP, light->inverseBaseLightProject, invProjectMVPMatrix );
+
+			// draw light volume 1 percentage bigger to avoid flickering
+			// right before entering the volume with the camera
+			const float mocLightScale = 0.99f;
+			idRenderMatrix scaledInverseBaseLightProject = light->inverseBaseLightProject;
+			scaledInverseBaseLightProject[0][0] *= mocLightScale;
+			scaledInverseBaseLightProject[0][1] *= mocLightScale;
+			scaledInverseBaseLightProject[0][2] *= mocLightScale;
+
+			scaledInverseBaseLightProject[1][0] *= mocLightScale;
+			scaledInverseBaseLightProject[1][1] *= mocLightScale;
+			scaledInverseBaseLightProject[1][2] *= mocLightScale;
+
+			scaledInverseBaseLightProject[2][0] *= mocLightScale;
+			scaledInverseBaseLightProject[2][1] *= mocLightScale;
+			scaledInverseBaseLightProject[2][2] *= mocLightScale;
+
+			idRenderMatrix::Multiply( viewDef->worldSpace.unjitteredMVP, scaledInverseBaseLightProject, invProjectMVPMatrix );
 
 			tr.pc.c_mocTests += 1;
 
